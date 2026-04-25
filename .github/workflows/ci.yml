@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# The full release matrix (compile across platforms, codeql, etc.) lives in
+# SLICES.md §S50. This minimal job is the gate for slice-by-slice work
+# until then: typecheck, help-template validation (§S2.5), unit tests, and
+# the bun runtime smoke (§S1).
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Validate `--help` template (§S2.5)
+        run: bun run validate:help
+
+      - name: Unit tests
+        run: bun test
+
+      - name: Bun runtime smoke (§S1)
+        run: bun run smoke

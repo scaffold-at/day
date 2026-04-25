@@ -17,6 +17,8 @@
     "typecheck": "tsc --noEmit",
     "dev:cli": "bun run packages/day-cli/src/index.ts",
     "smoke": "bun run scripts/bun-compat-smoke.ts",
+    "validate:help": "bun run scripts/validate-help.ts",
+    "test": "bun test",
     "lint": "biome check .",
     "format": "biome format --write ."
   },
