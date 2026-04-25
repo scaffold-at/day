@@ -1,56 +1,50 @@
 #!/usr/bin/env bun
 import pkg from "../package.json" with { type: "json" };
+import { formatCommandHelp, formatRootHelp } from "./cli/help";
+import { commands, findCommand } from "./cli/registry";
 
 const VERSION = pkg.version;
-const NAME = "scaffold-day";
 
-const HELP = `${NAME} v${VERSION}
-
-  Scaffold your day with AI.
-
-USAGE
-  ${NAME} [command] [options]
-
-COMMANDS
-  (none yet — coming in S2)
-
-OPTIONS
-  -v, --version    Print version and exit
-  -h, --help       Print this help and exit
-
-DOCS
-  https://scaffold.at/day
-`;
-
-function printVersion(): void {
-  console.log(`${NAME} v${VERSION}`);
-}
-
-function printHelp(): void {
-  console.log(HELP);
-}
-
-function main(argv: string[]): number {
+async function main(argv: string[]): Promise<number> {
   const args = argv.slice(2);
 
   if (args.length === 0) {
-    printHelp();
+    console.log(formatRootHelp(VERSION, commands));
     return 0;
   }
 
-  if (args.includes("--version") || args.includes("-v")) {
-    printVersion();
+  const first = args[0] ?? "";
+
+  if (first === "--version" || first === "-v") {
+    console.log(`scaffold-day v${VERSION}`);
     return 0;
   }
 
-  if (args.includes("--help") || args.includes("-h")) {
-    printHelp();
+  if (first === "--help" || first === "-h") {
+    console.log(formatRootHelp(VERSION, commands));
     return 0;
   }
 
-  console.error(`${NAME}: unknown command '${args[0]}'`);
-  console.error(`Run \`${NAME} --help\` for usage.`);
-  return 2;
+  if (first.startsWith("-")) {
+    console.error(`scaffold-day: unknown option '${first}'`);
+    console.error("Run `scaffold-day --help` for usage.");
+    return 2;
+  }
+
+  const cmd = findCommand(first);
+  if (!cmd) {
+    console.error(`scaffold-day: unknown command '${first}'`);
+    console.error("Run `scaffold-day --help` for usage.");
+    return 2;
+  }
+
+  const rest = args.slice(1);
+  if (rest.includes("--help") || rest.includes("-h")) {
+    console.log(formatCommandHelp(cmd));
+    return 0;
+  }
+
+  return await cmd.run(rest);
 }
 
-process.exit(main(process.argv));
+process.exit(await main(process.argv));
