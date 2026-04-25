@@ -1,0 +1,31 @@
+{
+  "name": "scaffold-day",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Scaffold your day with AI. AGPL-3.0-or-later.",
+  "license": "AGPL-3.0-or-later",
+  "homepage": "https://scaffold.at/day",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scaffold-at/day.git"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev:cli": "bun run packages/day-cli/src/index.ts",
+    "smoke": "bun run scripts/bun-compat-smoke.ts",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "^1.1.13",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}

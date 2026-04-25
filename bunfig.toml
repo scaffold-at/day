@@ -1,0 +1,6 @@
+[install]
+exact = false
+production = false
+
+[install.scopes]
+"@scaffold" = { default = false }

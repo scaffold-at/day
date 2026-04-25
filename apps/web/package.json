@@ -1,0 +1,11 @@
+{
+  "name": "@scaffold/day-web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "scaffold.at/day landing site (set up in S52).",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "typecheck": "echo 'no typecheck yet (set up in S52)'"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@scaffold/day-cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Scaffold Day CLI — the canonical user surface.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "scaffold-day": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@scaffold/day-core": "workspace:*"
+  }
+}
