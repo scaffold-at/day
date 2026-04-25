@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Bun
+.bun/
+bun.lockb.bak
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.recommended.json
+*.swp
+*.swo
+
+# Local scaffold-day data (must never leak into the repo)
+.scaffold-day/
+scaffold-day-data/
+
+# Caches
+.turbo/
+.next/
+.cache/
+
+# OMC (oh-my-claudecode) local state
+.omc/
