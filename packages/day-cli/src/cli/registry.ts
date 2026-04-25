@@ -3,6 +3,7 @@ import { feedbackCommand } from "../commands/feedback";
 import { initCommand } from "../commands/init";
 import { logsCommand } from "../commands/logs";
 import { mcpCommand } from "../commands/mcp";
+import { migrateCommand } from "../commands/migrate";
 import { rebuildIndexCommand } from "../commands/rebuild-index";
 import { selfUpdateCommand } from "../commands/self-update";
 import { telemetryCommand } from "../commands/telemetry";
@@ -11,6 +12,7 @@ import type { Command } from "./command";
 export const commands: Command[] = [
   initCommand,
   doctorCommand,
+  migrateCommand,
   mcpCommand,
   feedbackCommand,
   selfUpdateCommand,
