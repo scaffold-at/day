@@ -36,6 +36,14 @@ export {
   SoftPreferenceSchema,
 } from "./soft-preference";
 export {
+  policyDir,
+  policyFilePath,
+  POLICY_DIR,
+  POLICY_FILE,
+  readPolicyYaml,
+  writePolicyYaml,
+} from "./storage";
+export {
   applyPolicyPatchPreservingFormatting,
   compilePolicy,
   diffPolicy,
