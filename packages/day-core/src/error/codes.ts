@@ -53,6 +53,14 @@ export const DAY_CODE_CATALOG = {
     description: "AI provider authentication has expired or is missing.",
     defaultExitCode: 77,
   },
+  DAY_PROVIDER_UNAVAILABLE: {
+    description: "AI provider binary / runtime is not installed or not reachable.",
+    defaultExitCode: 69,
+  },
+  DAY_PROVIDER_UNSUPPORTED: {
+    description: "AI provider does not implement the requested capability.",
+    defaultExitCode: 65,
+  },
   DAY_OAUTH_NO_REFRESH: {
     description: "Google Calendar refresh token is missing or revoked.",
     defaultExitCode: 77,
