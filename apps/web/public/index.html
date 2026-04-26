@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>scaffold-day — Scaffold your day with AI</title>
+    <meta
+      name="description"
+      content="A CLI-first, MCP-ready scheduler that places your TODOs into the free slots of your calendar — with AI clients as a first-class user."
+    />
+    <link rel="canonical" href="https://day.scaffold.at" />
+    <meta property="og:title" content="scaffold-day" />
+    <meta property="og:description" content="Scaffold your day with AI." />
+    <meta property="og:url" content="https://day.scaffold.at" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --fg: #1a1a1a;
+        --muted: #6b7280;
+        --accent: #2563eb;
+        --bg: #ffffff;
+        --code-bg: #f4f4f5;
+        --border: #e5e7eb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fg: #e5e7eb;
+          --muted: #9ca3af;
+          --accent: #60a5fa;
+          --bg: #0a0a0a;
+          --code-bg: #1f1f23;
+          --border: #2a2a2e;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", Helvetica, Arial, sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 4rem 1.5rem 6rem;
+      }
+      h1 { font-size: 2.5rem; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
+      .tagline { color: var(--muted); font-size: 1.15rem; margin: 0 0 2.5rem; }
+      h2 { font-size: 1.15rem; margin: 2.5rem 0 0.75rem; }
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        overflow-x: auto;
+        font: 14px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      code { font: 14px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      ul { padding-left: 1.25rem; }
+      li { margin: 0.25rem 0; }
+      .pill {
+        display: inline-block;
+        font-size: 0.8rem;
+        padding: 0.15rem 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--muted);
+        margin-left: 0.5rem;
+        vertical-align: middle;
+      }
+      footer {
+        margin-top: 4rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>scaffold-day<span class="pill">pre-release</span></h1>
+    <p class="tagline">Scaffold your day with AI.</p>
+
+    <p>
+      A CLI-first, MCP-ready scheduler that places your TODOs into the free
+      slots of your calendar — with AI clients (Claude Code, Cursor, Claude
+      Desktop) as a first-class user. Same surface via CLI flags or MCP tools.
+    </p>
+
+    <h2>Install</h2>
+    <pre><code>curl -fsSL https://day.scaffold.at/install.sh | sh</code></pre>
+    <p style="color: var(--muted); font-size: 0.9rem;">
+      v0.1 binaries are unsigned (Apple notarization lands post-v0.1). The
+      installer clears the macOS quarantine attribute for you. Tier 1
+      targets: macOS Apple Silicon, Linux x64.
+    </p>
+
+    <h2>Quick start</h2>
+    <pre><code>scaffold-day init
+scaffold-day today --tz Asia/Seoul
+scaffold-day docs --for-ai      # AI-readable surface dump</code></pre>
+
+    <h2>Links</h2>
+    <ul>
+      <li>
+        <a href="https://github.com/scaffold-at/day">GitHub repo</a>
+        — source, issues, releases
+      </li>
+      <li>
+        <a href="https://github.com/scaffold-at/day/blob/main/AGENTS.md">AGENTS.md</a>
+        — paste into your AI client at session start
+      </li>
+      <li>
+        <a href="https://github.com/scaffold-at/day/blob/main/README.md">README</a>
+        ·
+        <a href="https://github.com/scaffold-at/day/blob/main/README.ko.md">한국어</a>
+      </li>
+      <li>
+        <a href="https://github.com/scaffold-at/day/issues/1">Walking Skeleton tracker</a>
+        — slice-by-slice progress
+      </li>
+    </ul>
+
+    <footer>
+      AGPL-3.0-or-later · part of the
+      <a href="https://scaffold.at">scaffold.at</a> products line ·
+      Show HN landing in v0.1
+    </footer>
+  </body>
+</html>
