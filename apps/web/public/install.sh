@@ -77,7 +77,7 @@ if [ -z "$VERSION" ]; then
   echo "install.sh: resolving latest release of ${REPO}..."
   # GitHub redirects /releases/latest to /releases/tag/<tag>; we follow
   # to read the tag without needing curl-jq.
-  resolved=$(curl -fsI -o /dev/null -w '%{url_effective}' \
+  resolved=$(curl -fsLI -o /dev/null -w '%{url_effective}' \
     "https://github.com/${REPO}/releases/latest" 2>/dev/null || true)
   VERSION=$(printf '%s\n' "$resolved" | sed -n 's|.*/releases/tag/||p')
   if [ -z "$VERSION" ]; then
