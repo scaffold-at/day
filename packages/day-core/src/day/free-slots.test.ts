@@ -31,6 +31,7 @@ const placement = (start: string, end: string): Placement => ({
   title: "p",
   tags: [],
   importance_score: 50,
+  importance_at_placement: null,
   duration_min: Math.round((Date.parse(at(end)) - Date.parse(at(start))) / 60000),
   placed_by: "user",
   placed_at: at("00:00"),

@@ -1,10 +1,16 @@
 import {
+  appendPlacementLog,
   compilePolicy,
   defaultHomeDir,
+  evaluateHardRules,
   FsDayStore,
   FsTodoRepository,
-  type Day,
+  generateEntityId,
   ISODateSchema,
+  ISODateTimeSchema,
+  type Day,
+  type Placement,
+  policyHash,
   readPolicyYaml,
   ScaffoldError,
   suggestPlacements,
@@ -192,16 +198,203 @@ export const placeCommand: Command = {
     if (!sub) throw usage("place: missing subcommand. try `place suggest <todo-id>`");
     const rest = args.slice(1);
     if (sub === "suggest") return runSuggest(rest);
-    if (sub === "do") {
-      console.log("scaffold-day place do: not yet implemented (placeholder).");
-      console.log("Tracking: SLICES.md §S21");
-      return 0;
-    }
-    if (sub === "override") {
-      console.log("scaffold-day place override: not yet implemented (placeholder).");
-      console.log("Tracking: SLICES.md §S22");
-      return 0;
-    }
+    if (sub === "do") return runDo(rest);
+    if (sub === "override") return runOverride(rest);
     throw usage(`place: unknown subcommand '${sub}'`);
   },
 };
+
+// ─── place do ─────────────────────────────────────────────────────
+
+function offsetFromIso(iso: string): string {
+  const m = /([+-]\d{2}):?(\d{2})$|Z$/.exec(iso);
+  if (!m) return "+00:00";
+  if (iso.endsWith("Z")) return "+00:00";
+  return `${m[1]}:${m[2]}`;
+}
+
+async function runDo(args: string[]): Promise<number> {
+  let id: string | undefined;
+  let slot: string | undefined;
+  let lock = false;
+  let by = "user";
+  let json = false;
+
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i] ?? "";
+    if (!id && !a.startsWith("--")) { id = a; continue; }
+    if (a === "--slot") { slot = args[i + 1]; i++; }
+    else if (a === "--lock") { lock = true; }
+    else if (a === "--by") { by = args[i + 1] ?? "user"; i++; }
+    else if (a === "--json") { json = true; }
+    else throw usage(`place do: unexpected argument '${a}'`);
+  }
+  if (!id) throw usage("place do: <todo-id> argument is required");
+  if (!slot) throw usage("place do: --slot <ISO datetime+TZ> is required");
+
+  const slotCheck = ISODateTimeSchema.safeParse(slot);
+  if (!slotCheck.success) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: "--slot must be an ISO 8601 datetime with TZ" },
+      cause: slotCheck.error.message,
+      try: ["Use a value like 2026-04-27T10:00:00+09:00."],
+      context: { value: slot },
+    });
+  }
+
+  const home = defaultHomeDir();
+  const yaml = await readPolicyYaml(home);
+  if (!yaml) {
+    throw new ScaffoldError({
+      code: "DAY_NOT_INITIALIZED",
+      summary: { en: "no policy/current.yaml yet" },
+      cause: "place do needs the policy weights + working hours.",
+      try: ["Run `scaffold-day policy preset apply balanced`."],
+    });
+  }
+  const policy = compilePolicy(yaml);
+
+  const todoRepo = new FsTodoRepository(home);
+  const detail = await todoRepo.getDetail(id);
+  if (!detail) {
+    throw new ScaffoldError({
+      code: "DAY_NOT_FOUND",
+      summary: { en: `todo '${id}' not found` },
+      cause: `No active todo exists with id '${id}'.`,
+      try: ["Run `scaffold-day todo list` to see available ids."],
+      context: { id },
+    });
+  }
+  if (detail.duration_min == null) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: "todo has no duration_min — can't commit a placement" },
+      cause: `Todo '${id}' has no duration_min set.`,
+      try: [`Run \`scaffold-day todo update ${id} --duration-min 60\`.`],
+    });
+  }
+
+  // Compute slot.end = slot.start + duration_min.
+  const slotStartMs = Date.parse(slot);
+  const slotEndMs = slotStartMs + detail.duration_min * 60_000;
+  const slotEnd = new Date(slotEndMs).toISOString();
+  const tzOffset = offsetFromIso(slot);
+  const date = slot.slice(0, 10);
+
+  const dayStore = new FsDayStore(home);
+  const day = await dayStore.readDay(date);
+
+  // Hard-rule + free-time validation.
+  const hardCheck = evaluateHardRules(
+    {
+      start: slot,
+      end: slotEnd,
+      duration_min: detail.duration_min,
+    },
+    policy.hard_rules,
+    {
+      date,
+      todoTags: detail.tags,
+      events: day.events,
+      placements: day.placements,
+      tzOffset,
+    },
+  );
+  if (!hardCheck.ok) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: "slot violates one or more hard rules" },
+      cause: hardCheck.violations
+        .map((v) => `  ${v.rule.kind}: ${v.reason}`)
+        .join("\n"),
+      try: [
+        "Run `place suggest <todo-id>` to find a valid slot.",
+        "Or pick a slot that doesn't overlap events / protected ranges.",
+      ],
+      context: { violations: hardCheck.violations.length, date, slot },
+    });
+  }
+
+  // Conflict with existing events / placements (basic overlap check).
+  for (const e of day.events) {
+    const eStart = Date.parse(e.start);
+    const eEnd = Date.parse(e.end);
+    if (slotStartMs < eEnd && eStart < slotEndMs) {
+      throw new ScaffoldError({
+        code: "DAY_INVALID_INPUT",
+        summary: { en: `slot overlaps event '${e.title}'` },
+        cause: `Event ${e.id} occupies ${e.start} - ${e.end}.`,
+        try: ["Pick a non-overlapping slot via `place suggest`."],
+      });
+    }
+  }
+  for (const p of day.placements) {
+    const pStart = Date.parse(p.start);
+    const pEnd = Date.parse(p.end);
+    if (slotStartMs < pEnd && pStart < slotEndMs) {
+      throw new ScaffoldError({
+        code: "DAY_INVALID_INPUT",
+        summary: { en: `slot overlaps placement ${p.id}` },
+        cause: `Existing placement covers ${p.start} - ${p.end}.`,
+        try: ["Pick a non-overlapping slot via `place suggest`."],
+      });
+    }
+  }
+
+  const hash = await policyHash(policy);
+  const placedAt = new Date().toISOString();
+  const placement: Placement = {
+    id: generateEntityId("placement"),
+    todo_id: detail.id,
+    start: slot,
+    end: slotEnd,
+    title: detail.title,
+    tags: [...detail.tags],
+    importance_score: detail.importance?.score ?? detail.importance_score ?? null,
+    importance_at_placement: detail.importance ?? null,
+    duration_min: detail.duration_min,
+    placed_by: by === "user" || by === "ai" || by === "auto" ? (by as "user" | "ai" | "auto") : "user",
+    placed_at: placedAt,
+    policy_hash: hash,
+    locked: lock,
+  };
+
+  // Transactional order: log → day file.
+  await appendPlacementLog(home, {
+    schema_version: "0.1.0",
+    at: placedAt,
+    action: "placed",
+    placement_id: placement.id,
+    todo_id: placement.todo_id,
+    date,
+    start: placement.start,
+    end: placement.end,
+    by,
+    policy_hash: hash,
+    reason: null,
+    previous: null,
+  });
+  await dayStore.addPlacement(date, placement);
+
+  if (json) {
+    console.log(JSON.stringify(placement, null, 2));
+    return 0;
+  }
+  console.log("scaffold-day place do");
+  console.log(`  placement: ${placement.id}`);
+  console.log(`  todo:      ${placement.todo_id}`);
+  console.log(`  when:      ${placement.start} → ${placement.end}`);
+  console.log(`  date:      ${date}`);
+  console.log(`  locked:    ${placement.locked ? "yes" : "no"}`);
+  console.log(`  policy:    ${hash.slice(0, 12)}…`);
+  return 0;
+}
+
+// ─── place override (S22 placeholder for now) ─────────────────────
+
+async function runOverride(_args: string[]): Promise<number> {
+  console.log("scaffold-day place override: not yet implemented (placeholder).");
+  console.log("Tracking: SLICES.md §S22");
+  return 0;
+}

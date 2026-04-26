@@ -145,6 +145,7 @@ describe("evaluateHardRules — duration_cap_per_day_min", () => {
       title: "x",
       tags: [],
       importance_score: null,
+  importance_at_placement: null,
       duration_min: 200,
       placed_by: "user" as const,
       placed_at: at("00:00"),

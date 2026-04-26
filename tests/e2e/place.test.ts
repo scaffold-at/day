@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { cleanupHome, makeTmpHome, runCli } from "./_helpers";
 
 let home: string;
@@ -171,5 +173,152 @@ describe("place suggest", () => {
     expect(r.stdout).toContain("place suggest");
     expect(r.stdout).toMatch(/\[1\] \d{4}-\d{2}-\d{2}/);
     expect(r.stdout).toMatch(/score:\s+\d+\.\d+/);
+  });
+});
+
+describe("place do (S21)", () => {
+  test("commits a placement with inline snapshot + writes a log entry first", async () => {
+    const id = await setup();
+    const r = await runCli(
+      [
+        "place",
+        "do",
+        id,
+        "--slot",
+        `${MONDAY}T10:00:00+09:00`,
+        "--lock",
+        "--json",
+      ],
+      { home },
+    );
+    expect(r.exitCode, r.stderr).toBe(0);
+    const placement = JSON.parse(r.stdout);
+    expect(placement.id).toMatch(/^plc_[a-z0-9]{14}$/);
+    expect(placement.todo_id).toBe(id);
+    expect(placement.title).toBe("Write S20");
+    expect(placement.tags).toContain("#deep-work");
+    expect(placement.duration_min).toBe(60);
+    expect(placement.locked).toBe(true);
+    expect(placement.policy_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(placement.importance_at_placement).not.toBeNull();
+    expect(placement.importance_at_placement.score).toBeGreaterThan(0);
+
+    // Day file was updated.
+    const day = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
+    );
+    expect(day.placements).toHaveLength(1);
+    expect(day.placements[0].id).toBe(placement.id);
+
+    // Placement log was appended (before the day file, by spec).
+    const log = await readFile(
+      path.join(home, "logs/2026-04/placements.jsonl"),
+      "utf8",
+    );
+    const lines = log.trim().split("\n");
+    expect(lines).toHaveLength(1);
+    const entry = JSON.parse(lines[0]!);
+    expect(entry.action).toBe("placed");
+    expect(entry.placement_id).toBe(placement.id);
+    expect(entry.todo_id).toBe(id);
+    expect(entry.policy_hash).toBe(placement.policy_hash);
+  });
+
+  test("inline snapshot freezes title at placement time (later todo update doesn't change it)", async () => {
+    const id = await setup();
+    await runCli(
+      ["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`],
+      { home },
+    );
+
+    await runCli(
+      ["todo", "update", id, "--title", "renamed after placement"],
+      { home },
+    );
+
+    const day = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
+    );
+    expect(day.placements[0].title).toBe("Write S20"); // frozen
+  });
+
+  test("slot violating a hard rule → DAY_INVALID_INPUT (no placement, no log)", async () => {
+    const id = await setup();
+    // Schedule into the no_placement_in (22:00-07:00) range.
+    const r = await runCli(
+      ["place", "do", id, "--slot", `${MONDAY}T23:00:00+09:00`],
+      { home },
+    );
+    expect(r.exitCode).toBe(65);
+    expect(r.stderr).toContain("DAY_INVALID_INPUT");
+    expect(r.stderr).toContain("no_placement_in");
+
+    // No log entry, no day file mutation.
+    let logExists = false;
+    try {
+      await readFile(path.join(home, "logs/2026-04/placements.jsonl"), "utf8");
+      logExists = true;
+    } catch {}
+    expect(logExists).toBe(false);
+  });
+
+  test("slot overlapping an existing event → DAY_INVALID_INPUT", async () => {
+    const id = await setup();
+    await runCli(
+      [
+        "event",
+        "add",
+        "--title",
+        "block",
+        "--start",
+        `${MONDAY}T10:00:00+09:00`,
+        "--end",
+        `${MONDAY}T11:00:00+09:00`,
+      ],
+      { home },
+    );
+    const r = await runCli(
+      ["place", "do", id, "--slot", `${MONDAY}T10:30:00+09:00`],
+      { home },
+    );
+    expect(r.exitCode).toBe(65);
+    expect(r.stderr).toContain("DAY_INVALID_INPUT");
+  });
+
+  test("place do without --slot → DAY_USAGE", async () => {
+    const id = await setup();
+    const r = await runCli(["place", "do", id], { home });
+    expect(r.exitCode).toBe(2);
+    expect(r.stderr).toContain("DAY_USAGE");
+    expect(r.stderr).toContain("--slot");
+  });
+
+  test("two placements same day appear in the day file's placements[]", async () => {
+    const id = await setup();
+    await runCli(
+      ["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`],
+      { home },
+    );
+    // second todo
+    const second = await runCli(
+      [
+        "todo", "add", "--title", "Second", "--duration-min", "30",
+      ],
+      { home },
+    );
+    const id2 = /id:\s+(todo_[a-z0-9]{14})/.exec(second.stdout)![1] as string;
+    await runCli(
+      ["todo", "score", id2, "--urgency", "5", "--impact", "5", "--effort", "5", "--reversibility", "5"],
+      { home },
+    );
+    await runCli(
+      ["place", "do", id2, "--slot", `${MONDAY}T14:00:00+09:00`],
+      { home },
+    );
+
+    const day = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
+    );
+    expect(day.placements).toHaveLength(2);
   });
 });

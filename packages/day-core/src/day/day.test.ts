@@ -43,6 +43,7 @@ const samplePlacement: Placement = {
   title: "draft S9",
   tags: ["#deep-work"],
   importance_score: 70,
+  importance_at_placement: null,
   duration_min: 60,
   placed_by: "user",
   placed_at: "2026-04-26T09:00:00+09:00",

@@ -27,6 +27,7 @@ const placement = (start: string, end: string, tags: string[] = []): Placement =
   title: "x",
   tags,
   importance_score: 50,
+  importance_at_placement: null,
   duration_min: 30,
   placed_by: "user",
   placed_at: at("00:00"),
