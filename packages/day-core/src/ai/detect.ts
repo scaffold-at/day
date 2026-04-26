@@ -29,12 +29,25 @@ export async function detectAvailableProviders(
   options: DetectProvidersOptions = {},
 ): Promise<ProviderProbeResult[]> {
   const includeMock = options.includeMock ?? true;
-  const candidates: AIProvider[] = options.candidates
+  // SCAFFOLD_DAY_AI_PROVIDERS is a comma-separated whitelist of
+  // provider ids. When set, only listed ids get probed — used by
+  // tests that want deterministic behavior on a developer machine
+  // where `claude` is actually installed.
+  const whitelistRaw = process.env.SCAFFOLD_DAY_AI_PROVIDERS;
+  const whitelist = whitelistRaw
+    ? new Set(whitelistRaw.split(",").map((s) => s.trim()).filter(Boolean))
+    : null;
+
+  const baseCandidates: AIProvider[] = options.candidates
     ? [...options.candidates]
     : [
         new ClaudeCliProvider(),
         ...(includeMock ? [new MockAIProvider()] : []),
       ];
+
+  const candidates = whitelist
+    ? baseCandidates.filter((p) => whitelist.has(p.id))
+    : baseCandidates;
 
   const results = await Promise.all(
     candidates.map(async (p): Promise<ProviderProbeResult> => {

@@ -39,6 +39,12 @@ export async function runCli(
   if (!options.keepColor && env.NO_COLOR === undefined) {
     env.NO_COLOR = "1";
   }
+  // E2E tests should never spawn the real `claude` binary even if
+  // it's installed on the developer's machine — clamp the catalog
+  // to the deterministic mock unless the test explicitly opts out.
+  if (env.SCAFFOLD_DAY_AI_PROVIDERS === undefined) {
+    env.SCAFFOLD_DAY_AI_PROVIDERS = "mock";
+  }
 
   const proc = Bun.spawn(["bun", CLI_PATH, ...args], {
     env,
