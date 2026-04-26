@@ -1,3 +1,10 @@
+export { InMemoryTodoRepository } from "./in-memory";
+export {
+  type CreateTodoInput,
+  type TodoFilter,
+  type TodoRepository,
+  type UpdateTodoInput,
+} from "./repository";
 export {
   DurationMinSchema,
   extractDeadlineDate,
