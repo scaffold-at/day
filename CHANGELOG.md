@@ -11,6 +11,12 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+## [v0.1.0] - 2026-04-27
+
+First public Walking Skeleton release. Tier 1 binaries (macOS arm64,
+Linux x64) are unsigned; Apple notarization lands post-v0.1. Install
+via `curl -fsSL https://day.scaffold.at/install.sh | sh`.
+
 ### Added — Phase 1: Foundation
 - **S0** Legal & documentation skeleton: `LICENSE` (AGPL-3.0-or-later), `NOTICE`, `CONTRIBUTING.md` (DCO + permissive-only re-licensing covenant), `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 - **S1** bun monorepo scaffold (5 packages: `day-core`, `day-cli`, `day-mcp`, `day-adapters`, `apps/web`); `--version` / `--help` baseline.
@@ -75,4 +81,5 @@ This file rolls those up into release notes once a tag is cut.
 - **S51 / S52 / S53** Logo (skipped for v0.1) + scaffold.at/day landing + docs site MVP.
 - **S55 / S56 / S57** GitHub Discussions + good-first-issue labels, MCP directory registration, Show HN rehearsal.
 
-[Unreleased]: https://github.com/scaffold-at/day/compare/HEAD~1...HEAD
+[Unreleased]: https://github.com/scaffold-at/day/compare/v0.1.0...HEAD
+[v0.1.0]: https://github.com/scaffold-at/day/releases/tag/v0.1.0
