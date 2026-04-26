@@ -37,6 +37,44 @@ export function placementLogPath(home: string, month: string): string {
   return path.join(home, "logs", month, "placements.jsonl");
 }
 
+export function conflictLogPath(home: string, month: string): string {
+  return path.join(home, "logs", month, "conflicts.jsonl");
+}
+
+export const ConflictLogActionSchema = z.enum(["detected", "resolved", "ignored"]);
+export type ConflictLogAction = z.infer<typeof ConflictLogActionSchema>;
+
+export const ConflictLogEntrySchema = z.object({
+  schema_version: z.string().min(1),
+  at: ISODateTimeSchema,
+  action: ConflictLogActionSchema,
+  conflict_id: entityIdSchemaOf("conflict"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  kind: z.string().min(1),
+  party_ids: z.array(z.string()).min(1),
+  by: z.string().min(1),
+  reason: z.string().nullable(),
+  resolution: z.record(z.unknown()).nullable(),
+});
+export type ConflictLogEntry = z.infer<typeof ConflictLogEntrySchema>;
+
+export async function appendConflictLog(
+  home: string,
+  entry: ConflictLogEntry,
+): Promise<void> {
+  const validated = ConflictLogEntrySchema.parse(entry);
+  const month = validated.date.slice(0, 7);
+  const target = conflictLogPath(home, month);
+  await mkdir(path.dirname(target), { recursive: true });
+  const fh = await open(target, "a", 0o600);
+  try {
+    await fh.writeFile(`${JSON.stringify(validated)}\n`);
+    await fh.sync();
+  } finally {
+    await fh.close();
+  }
+}
+
 /**
  * Append a single JSON Lines entry to `logs/YYYY-MM/placements.jsonl`.
  * The file is opened with O_APPEND so concurrent writers don't
