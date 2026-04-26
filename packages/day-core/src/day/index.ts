@@ -6,6 +6,12 @@ export {
   FixedEventSchema,
   RecurringSchema,
 } from "./event";
+export {
+  type ComputeFreeSlotsOptions,
+  computeFreeIntervalsMs,
+  computeFreeSlots,
+  type FreeSlot,
+} from "./free-slots";
 export { FsDayStore } from "./fs-day-store";
 export {
   type DayManifest,
