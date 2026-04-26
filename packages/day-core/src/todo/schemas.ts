@@ -83,3 +83,23 @@ export function extractDeadlineDate(tags: readonly Tag[]): string | null {
 }
 
 export const HISTORY_KIND_VALUES = HISTORY_KINDS;
+
+/**
+ * Project a `TodoDetail` (or `TodoArchive`) down to its `TodoSummary`
+ * shape. Strips description / reasoning / history and any
+ * archive-only fields. Used to keep the active index in sync with
+ * per-todo detail files (PRD §9.4 inline-snapshot invariant).
+ */
+export function summarize(detail: TodoDetail | TodoArchive): TodoSummary {
+  return {
+    id: detail.id,
+    title: detail.title,
+    status: detail.status,
+    tags: [...detail.tags],
+    importance_score: detail.importance_score,
+    duration_min: detail.duration_min,
+    target_date: detail.target_date,
+    created_at: detail.created_at,
+    updated_at: detail.updated_at,
+  };
+}
