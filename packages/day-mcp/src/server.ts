@@ -7,6 +7,11 @@ import {
 import { ScaffoldError } from "@scaffold/day-core";
 import { toMcpError } from "./error-mapping";
 import { createTodoTool } from "./tools/create-todo";
+import {
+  getDaysRangeTool,
+  getMonthOverviewTool,
+  listAvailableMonthsTool,
+} from "./tools/day-tools";
 import { getDayTool } from "./tools/get-day";
 import { healthTool } from "./tools/health";
 import { placeTodoTool } from "./tools/place-todo";
@@ -17,6 +22,9 @@ import { suggestPlacementTool } from "./tools/suggest-placement";
 export const TOOLS: ToolRegistry = [
   healthTool as Tool<unknown, unknown>,
   getDayTool as Tool<unknown, unknown>,
+  getDaysRangeTool as Tool<unknown, unknown>,
+  listAvailableMonthsTool as Tool<unknown, unknown>,
+  getMonthOverviewTool as Tool<unknown, unknown>,
   queryTodosTool as Tool<unknown, unknown>,
   createTodoTool as Tool<unknown, unknown>,
   suggestPlacementTool as Tool<unknown, unknown>,
