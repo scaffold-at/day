@@ -391,10 +391,186 @@ async function runDo(args: string[]): Promise<number> {
   return 0;
 }
 
-// ─── place override (S22 placeholder for now) ─────────────────────
+// ─── place override ───────────────────────────────────────────────
 
-async function runOverride(_args: string[]): Promise<number> {
-  console.log("scaffold-day place override: not yet implemented (placeholder).");
-  console.log("Tracking: SLICES.md §S22");
+async function runOverride(args: string[]): Promise<number> {
+  let placementId: string | undefined;
+  let newSlot: string | undefined;
+  let reason: string | undefined;
+  let by = "user";
+  let json = false;
+
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i] ?? "";
+    if (!placementId && !a.startsWith("--")) { placementId = a; continue; }
+    if (a === "--new-slot") { newSlot = args[i + 1]; i++; }
+    else if (a === "--reason") { reason = args[i + 1]; i++; }
+    else if (a === "--by") { by = args[i + 1] ?? "user"; i++; }
+    else if (a === "--json") { json = true; }
+    else throw usage(`place override: unexpected argument '${a}'`);
+  }
+  if (!placementId) throw usage("place override: <placement-id> is required");
+  if (!newSlot) throw usage("place override: --new-slot <ISO datetime+TZ> is required");
+
+  const newSlotCheck = ISODateTimeSchema.safeParse(newSlot);
+  if (!newSlotCheck.success) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: "--new-slot must be an ISO 8601 datetime with TZ" },
+      cause: newSlotCheck.error.message,
+      try: ["Use a value like 2026-04-27T11:00:00+09:00."],
+      context: { value: newSlot },
+    });
+  }
+
+  const home = defaultHomeDir();
+  const yaml = await readPolicyYaml(home);
+  if (!yaml) {
+    throw new ScaffoldError({
+      code: "DAY_NOT_INITIALIZED",
+      summary: { en: "no policy/current.yaml yet" },
+      cause: "place override needs the policy weights + working hours.",
+      try: ["Run `scaffold-day policy preset apply balanced`."],
+    });
+  }
+  const policy = compilePolicy(yaml);
+
+  // Find the placement by scanning all day files (small N in v0.1).
+  const dayStore = new FsDayStore(home);
+  const months = await dayStore.listMonths();
+  let foundPlacement: import("@scaffold/day-core").Placement | null = null;
+  let foundDate: string | null = null;
+  outer: for (const month of months) {
+    const dates = await dayStore.listMonth(month);
+    for (const d of dates) {
+      const day = await dayStore.readDay(d);
+      const match = day.placements.find((p) => p.id === placementId);
+      if (match) {
+        foundPlacement = match;
+        foundDate = d;
+        break outer;
+      }
+    }
+  }
+  if (!foundPlacement || !foundDate) {
+    throw new ScaffoldError({
+      code: "DAY_NOT_FOUND",
+      summary: { en: `placement '${placementId}' not found` },
+      cause: "No day file under <home>/days/ contains a placement with this id.",
+      try: ["Run `scaffold-day day overview <YYYY-MM>` to inspect."],
+      context: { placement_id: placementId },
+    });
+  }
+
+  const newStartMs = Date.parse(newSlot);
+  const newEndMs = newStartMs + foundPlacement.duration_min * 60_000;
+  const newSlotEnd = new Date(newEndMs).toISOString();
+  const newDate = newSlot.slice(0, 10);
+  const tzOffset = offsetFromIso(newSlot);
+
+  // Validate destination slot.
+  const destDay = newDate === foundDate
+    ? await dayStore.readDay(foundDate)
+    : await dayStore.readDay(newDate);
+
+  // For same-day move, exclude the placement we're moving from overlap checks.
+  const existingPlacements = destDay.placements.filter((p) => p.id !== placementId);
+
+  const hardCheck = evaluateHardRules(
+    {
+      start: newSlot,
+      end: newSlotEnd,
+      duration_min: foundPlacement.duration_min,
+    },
+    policy.hard_rules,
+    {
+      date: newDate,
+      todoTags: foundPlacement.tags,
+      events: destDay.events,
+      placements: existingPlacements,
+      tzOffset,
+    },
+  );
+  if (!hardCheck.ok) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: "--new-slot violates one or more hard rules" },
+      cause: hardCheck.violations.map((v) => `  ${v.rule.kind}: ${v.reason}`).join("\n"),
+      try: ["Pick a different new-slot, or relax the policy."],
+      context: { violations: hardCheck.violations.length },
+    });
+  }
+  for (const e of destDay.events) {
+    const eStart = Date.parse(e.start);
+    const eEnd = Date.parse(e.end);
+    if (newStartMs < eEnd && eStart < newEndMs) {
+      throw new ScaffoldError({
+        code: "DAY_INVALID_INPUT",
+        summary: { en: `--new-slot overlaps event '${e.title}'` },
+        cause: `Event ${e.id} occupies ${e.start} - ${e.end}.`,
+        try: ["Pick a non-overlapping slot."],
+      });
+    }
+  }
+  for (const p of existingPlacements) {
+    const pStart = Date.parse(p.start);
+    const pEnd = Date.parse(p.end);
+    if (newStartMs < pEnd && pStart < newEndMs) {
+      throw new ScaffoldError({
+        code: "DAY_INVALID_INPUT",
+        summary: { en: `--new-slot overlaps placement ${p.id}` },
+        cause: `Existing placement covers ${p.start} - ${p.end}.`,
+        try: ["Pick a non-overlapping slot."],
+      });
+    }
+  }
+
+  const overriddenAt = new Date().toISOString();
+  const previous = { start: foundPlacement.start, end: foundPlacement.end };
+  const updated = {
+    ...foundPlacement,
+    start: newSlot,
+    end: newSlotEnd,
+  };
+
+  // Log first.
+  await appendPlacementLog(home, {
+    schema_version: "0.1.0",
+    at: overriddenAt,
+    action: "overridden",
+    placement_id: placementId,
+    todo_id: foundPlacement.todo_id,
+    date: newDate,
+    start: updated.start,
+    end: updated.end,
+    by,
+    policy_hash: foundPlacement.policy_hash ?? null,
+    reason: reason ?? null,
+    previous,
+  });
+
+  // Apply: same-day → mutate in place; cross-day → remove from old, add to new.
+  if (newDate === foundDate) {
+    const day = await dayStore.readDay(foundDate);
+    day.placements = day.placements.map((p) => (p.id === placementId ? updated : p));
+    await dayStore.writeDay(day);
+  } else {
+    // Remove from old day.
+    const oldDay = await dayStore.readDay(foundDate);
+    oldDay.placements = oldDay.placements.filter((p) => p.id !== placementId);
+    await dayStore.writeDay(oldDay);
+    // Add to new day.
+    await dayStore.addPlacement(newDate, updated);
+  }
+
+  if (json) {
+    console.log(JSON.stringify({ placement: updated, previous, reason: reason ?? null }, null, 2));
+    return 0;
+  }
+  console.log("scaffold-day place override");
+  console.log(`  placement: ${updated.id}`);
+  console.log(`  from:      ${previous.start} → ${previous.end}`);
+  console.log(`  to:        ${updated.start} → ${updated.end}`);
+  if (reason) console.log(`  reason:    ${reason}`);
   return 0;
 }

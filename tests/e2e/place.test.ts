@@ -293,6 +293,106 @@ describe("place do (S21)", () => {
     expect(r.stderr).toContain("--slot");
   });
 
+  test("override moves a placement same-day and logs before/after", async () => {
+    const id = await setup();
+    const placeRes = await runCli(
+      ["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`, "--json"],
+      { home },
+    );
+    const placement = JSON.parse(placeRes.stdout);
+
+    const ovr = await runCli(
+      [
+        "place",
+        "override",
+        placement.id,
+        "--new-slot",
+        `${MONDAY}T15:00:00+09:00`,
+        "--reason",
+        "moved to afternoon",
+        "--json",
+      ],
+      { home },
+    );
+    expect(ovr.exitCode, ovr.stderr).toBe(0);
+    const result = JSON.parse(ovr.stdout);
+    expect(result.placement.start).toBe(`${MONDAY}T15:00:00+09:00`);
+    expect(result.previous.start).toBe(`${MONDAY}T10:00:00+09:00`);
+    expect(result.reason).toBe("moved to afternoon");
+
+    const day = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
+    );
+    expect(day.placements).toHaveLength(1);
+    expect(day.placements[0].start).toBe(`${MONDAY}T15:00:00+09:00`);
+
+    const log = await readFile(
+      path.join(home, "logs/2026-04/placements.jsonl"),
+      "utf8",
+    );
+    const lines = log.trim().split("\n");
+    const overrideEntry = JSON.parse(lines[lines.length - 1]!);
+    expect(overrideEntry.action).toBe("overridden");
+    expect(overrideEntry.previous.start).toBe(`${MONDAY}T10:00:00+09:00`);
+    expect(overrideEntry.start).toBe(`${MONDAY}T15:00:00+09:00`);
+    expect(overrideEntry.reason).toBe("moved to afternoon");
+  });
+
+  test("override on unknown placement → DAY_NOT_FOUND", async () => {
+    await runCli(["policy", "preset", "apply", "balanced"], { home });
+    const r = await runCli(
+      [
+        "place",
+        "override",
+        "plc_00000000000000",
+        "--new-slot",
+        `${MONDAY}T10:00:00+09:00`,
+      ],
+      { home },
+    );
+    expect(r.exitCode).toBe(66);
+    expect(r.stderr).toContain("DAY_NOT_FOUND");
+  });
+
+  test("override into an overlapping slot → DAY_INVALID_INPUT", async () => {
+    const id = await setup();
+    await runCli(
+      ["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`],
+      { home },
+    );
+    // Create a blocker event at 14:00.
+    await runCli(
+      [
+        "event",
+        "add",
+        "--title",
+        "blocker",
+        "--start",
+        `${MONDAY}T14:00:00+09:00`,
+        "--end",
+        `${MONDAY}T15:00:00+09:00`,
+      ],
+      { home },
+    );
+    // Get the placement id.
+    const day = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
+    );
+    const placementId = day.placements[0].id;
+    const r = await runCli(
+      [
+        "place",
+        "override",
+        placementId,
+        "--new-slot",
+        `${MONDAY}T14:00:00+09:00`,
+      ],
+      { home },
+    );
+    expect(r.exitCode).toBe(65);
+    expect(r.stderr).toContain("DAY_INVALID_INPUT");
+  });
+
   test("two placements same day appear in the day file's placements[]", async () => {
     const id = await setup();
     await runCli(
