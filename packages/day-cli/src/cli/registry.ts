@@ -6,6 +6,7 @@ import { initCommand } from "../commands/init";
 import { logsCommand } from "../commands/logs";
 import { mcpCommand } from "../commands/mcp";
 import { migrateCommand } from "../commands/migrate";
+import { placeCommand } from "../commands/place";
 import { policyCommand } from "../commands/policy";
 import { rebuildIndexCommand } from "../commands/rebuild-index";
 import { selfUpdateCommand } from "../commands/self-update";
@@ -23,6 +24,7 @@ export const commands: Command[] = [
   dayCommand,
   weekCommand,
   todoCommand,
+  placeCommand,
   eventCommand,
   policyCommand,
   mcpCommand,

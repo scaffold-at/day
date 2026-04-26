@@ -14,3 +14,9 @@ export {
   type SoftPreferenceContribution,
   type SoftPreferenceEvaluation,
 } from "./soft-preferences";
+export {
+  type CandidateBreakdown,
+  type Suggestion,
+  type SuggestionInput,
+  suggestPlacements,
+} from "./suggest";
