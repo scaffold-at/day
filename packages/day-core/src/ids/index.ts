@@ -24,3 +24,14 @@ export {
   type YYYYMM,
   YYYYMMSchema,
 } from "./schemas";
+export {
+  extractDeadline,
+  filterTags,
+  isTag,
+  isTimeSensitiveTag,
+  normalizeTag,
+  parseTag,
+  searchTagsByName,
+  TIME_SENSITIVE_TAGS,
+  type TimeSensitiveTag,
+} from "./tag-helpers";
