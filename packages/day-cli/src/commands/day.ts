@@ -1,7 +1,15 @@
 import {
+  appendPlacementLog,
+  compilePolicy,
   FsDayStore,
+  generateEntityId,
+  readPolicyYaml,
+  replanDay,
   ScaffoldError,
+  syncConflicts,
+  type Conflict,
   defaultHomeDir,
+  detectConflicts,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import {
@@ -201,6 +209,154 @@ export const dayCommand: Command = {
     if (sub === "overview") return runDayOverview(args.slice(1));
     if (sub === "get") return runDayGet(args.slice(1));
     if (sub === "range") return runDayRange(args.slice(1));
+    if (sub === "replan") return runDayReplan(args.slice(1));
     throw usage(`day: unknown subcommand '${sub}'`);
   },
 };
+
+async function runDayReplan(args: string[]): Promise<number> {
+  let date: string | undefined;
+  let scope: "flexible_only" | "all_unlocked" = "flexible_only";
+  let json = false;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i] ?? "";
+    if (!date && !a.startsWith("--")) { date = a; continue; }
+    if (a === "--scope") {
+      const v = args[i + 1];
+      if (v !== "flexible_only" && v !== "all_unlocked") {
+        throw usage("--scope must be flexible_only or all_unlocked");
+      }
+      scope = v;
+      i++;
+    } else if (a === "--json") {
+      json = true;
+    } else throw usage(`day replan: unexpected argument '${a}'`);
+  }
+  if (!date) throw usage("day replan: <YYYY-MM-DD> argument is required");
+  if (!ISO_DATE_RE.test(date)) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: `invalid date '${date}'` },
+      cause: "Date must match YYYY-MM-DD.",
+      try: ["Pass a string like 2026-04-27."],
+    });
+  }
+
+  const home = defaultHomeDir();
+  const yaml = await readPolicyYaml(home);
+  if (!yaml) {
+    throw new ScaffoldError({
+      code: "DAY_NOT_INITIALIZED",
+      summary: { en: "no policy/current.yaml yet" },
+      cause: "day replan needs the policy.",
+      try: ["Run `scaffold-day policy preset apply balanced`."],
+    });
+  }
+  const policy = compilePolicy(yaml);
+  const dayStore = new FsDayStore(home);
+  const day = await dayStore.readDay(date);
+
+  const outcome = replanDay(day, policy, scope);
+
+  // Apply: write back the new placements, log moves, emit conflicts for drops.
+  const at = new Date().toISOString();
+  for (const move of outcome.moved) {
+    await appendPlacementLog(home, {
+      schema_version: "0.1.0",
+      at,
+      action: "overridden",
+      placement_id: move.placement.id,
+      todo_id: move.placement.todo_id,
+      date,
+      start: move.placement.start,
+      end: move.placement.end,
+      by: "auto",
+      policy_hash: move.placement.policy_hash ?? null,
+      reason: `replan ${scope}`,
+      previous: move.previous,
+    });
+  }
+  for (const drop of outcome.dropped) {
+    await appendPlacementLog(home, {
+      schema_version: "0.1.0",
+      at,
+      action: "removed",
+      placement_id: drop.id,
+      todo_id: drop.todo_id,
+      date,
+      start: drop.start,
+      end: drop.end,
+      by: "auto",
+      policy_hash: drop.policy_hash ?? null,
+      reason: `replan ${scope} dropped`,
+      previous: { start: drop.start, end: drop.end },
+    });
+  }
+  day.placements = outcome.final_placements;
+  await dayStore.writeDay(day);
+
+  // Synthetic dropped conflicts.
+  if (outcome.dropped.length > 0) {
+    const dropped: Conflict[] = outcome.dropped.map((p) => ({
+      id: generateEntityId("conflict"),
+      date,
+      kind: "capacity_exceeded" as const,
+      detected_at: at,
+      detector: "replan",
+      party_ids: [p.id],
+      detail: `replan(${scope}) could not fit placement ${p.id} (${p.duration_min} min) — original ${p.start}-${p.end}`,
+      hard_rule_kind: null,
+      status: "open" as const,
+      resolved_at: null,
+      resolved_by: null,
+      resolution: null,
+    }));
+    const detected = [
+      ...detectConflicts({ ...day, placements: outcome.final_placements }, policy, {
+        detector: "replan",
+      }),
+      ...dropped,
+    ];
+    const { openIdsForDate } = await syncConflicts(home, date, detected);
+    day.conflicts_open = openIdsForDate;
+    await dayStore.writeDay(day);
+  } else {
+    const detected = detectConflicts(
+      { ...day, placements: outcome.final_placements },
+      policy,
+      { detector: "replan" },
+    );
+    const { openIdsForDate } = await syncConflicts(home, date, detected);
+    day.conflicts_open = openIdsForDate;
+    await dayStore.writeDay(day);
+  }
+
+  if (json) {
+    console.log(JSON.stringify({
+      date,
+      scope,
+      kept: outcome.kept_in_place.length,
+      moved: outcome.moved.length,
+      dropped: outcome.dropped.length,
+      moves: outcome.moved.map((m) => ({
+        id: m.placement.id,
+        previous: m.previous,
+        next: { start: m.placement.start, end: m.placement.end },
+      })),
+      dropped_ids: outcome.dropped.map((d) => d.id),
+    }, null, 2));
+    return 0;
+  }
+  console.log(`scaffold-day day replan ${date}`);
+  console.log(`  scope:     ${scope}`);
+  console.log(`  kept:      ${outcome.kept_in_place.length}`);
+  console.log(`  moved:     ${outcome.moved.length}`);
+  console.log(`  dropped:   ${outcome.dropped.length}`);
+  for (const m of outcome.moved) {
+    console.log(`    ${m.placement.id}  ${m.previous.start} → ${m.placement.start}`);
+  }
+  for (const d of outcome.dropped) {
+    console.log(`    DROPPED  ${d.id}  (${d.start})`);
+  }
+  return 0;
+}

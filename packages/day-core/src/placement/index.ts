@@ -20,3 +20,8 @@ export {
   type SuggestionInput,
   suggestPlacements,
 } from "./suggest";
+export {
+  replanDay,
+  type ReplanOutcome,
+  type ReplanScope,
+} from "./replan";
