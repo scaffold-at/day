@@ -50,3 +50,13 @@ export {
   type JsonPatchOperation,
   serializePolicy,
 } from "./yaml-codec";
+export {
+  computeImportanceScore,
+  type DeadlineKind,
+  DeadlineKindSchema,
+  type ImportanceDimensions,
+  ImportanceDimensionsSchema,
+  makeTaskImportance,
+  type TaskImportance,
+  TaskImportanceSchema,
+} from "./importance";
