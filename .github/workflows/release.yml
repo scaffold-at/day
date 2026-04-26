@@ -1,0 +1,225 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag name (e.g. v0.1.0). Must already exist."
+        required: true
+
+# §S50 — tag-driven release pipeline.
+#
+# 1. Compile darwin-arm64 + linux-x64 single binaries (unsigned).
+# 2. Compute sha256 checksums.
+# 3. Publish a GitHub Release with all artifacts.
+# 4. Bump the Homebrew tap formula in scaffold-at/homebrew-tap
+#    (separate repo) so `brew install scaffold-at/tap/day` always
+#    points at the latest tag.
+#
+# Apple notarization lands post-v0.1; the brew formula carries
+# `livecheck` so users can pull updates as we cut tags.
+
+permissions:
+  contents: write
+
+jobs:
+  compile:
+    name: compile (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: bun-darwin-arm64
+            runner: macos-14
+            asset: scaffold-day-darwin-arm64
+          - target: bun-linux-x64
+            runner: ubuntu-latest
+            asset: scaffold-day-linux-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Compile
+        run: |
+          mkdir -p dist
+          bun build \
+            --compile \
+            --target=${{ matrix.target }} \
+            ./packages/day-cli/src/index.ts \
+            --outfile=dist/${{ matrix.asset }}
+
+      - name: Smoke
+        run: |
+          test -x dist/${{ matrix.asset }}
+          ./dist/${{ matrix.asset }} --version
+
+      - name: SHA-256
+        run: |
+          cd dist
+          if command -v sha256sum >/dev/null; then
+            sha256sum ${{ matrix.asset }} > ${{ matrix.asset }}.sha256
+          else
+            shasum -a 256 ${{ matrix.asset }} > ${{ matrix.asset }}.sha256
+          fi
+          cat ${{ matrix.asset }}.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: |
+            dist/${{ matrix.asset }}
+            dist/${{ matrix.asset }}.sha256
+          if-no-files-found: error
+
+  publish:
+    name: publish release
+    needs: [compile]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lh dist/
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create / update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          # Pull the matching CHANGELOG section if any (best-effort).
+          notes=$(awk -v tag="$TAG" '
+            $0 ~ "^## \\[" tag "\\]" || $0 ~ "^## " tag {flag=1; next}
+            flag && /^## / {flag=0}
+            flag {print}
+          ' CHANGELOG.md || true)
+          if [ -z "$notes" ]; then
+            notes="See CHANGELOG.md for the full change log."
+          fi
+
+          # Create or replace the release.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes "$notes"
+          else
+            gh release create "$TAG" \
+              --title "scaffold-day $TAG" \
+              --notes "$notes"
+          fi
+
+          gh release upload "$TAG" \
+            dist/scaffold-day-darwin-arm64 \
+            dist/scaffold-day-darwin-arm64.sha256 \
+            dist/scaffold-day-linux-x64 \
+            dist/scaffold-day-linux-x64.sha256 \
+            --clobber
+
+  homebrew:
+    name: bump Homebrew tap
+    needs: [publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Only push to the tap when the secret is configured. The tap
+    # bootstrap commit lives in scaffold-at/homebrew-tap; this job
+    # opens a follow-up PR each release.
+    if: ${{ vars.HOMEBREW_TAP_REPO != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.HOMEBREW_TAP_REPO }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Resolve tag + checksums
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          base="https://github.com/${{ github.repository }}/releases/download/${TAG}"
+          arm_sha=$(gh release view "$TAG" --json assets \
+            --jq '.assets[] | select(.name=="scaffold-day-darwin-arm64.sha256") | .url' \
+            | xargs curl -fsSL | awk '{print $1}')
+          lin_sha=$(gh release view "$TAG" --json assets \
+            --jq '.assets[] | select(.name=="scaffold-day-linux-x64.sha256") | .url' \
+            | xargs curl -fsSL | awk '{print $1}')
+          {
+            echo "version=$version"
+            echo "tag=$TAG"
+            echo "base=$base"
+            echo "arm_sha=$arm_sha"
+            echo "lin_sha=$lin_sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Render Formula
+        run: |
+          mkdir -p tap/Formula
+          cat > tap/Formula/day.rb <<RUBY
+          class Day < Formula
+            desc "Scaffold your day with AI — CLI/MCP scheduler that places TODOs into calendar free slots"
+            homepage "https://day.scaffold.at"
+            version "${{ steps.meta.outputs.version }}"
+            license "AGPL-3.0-or-later"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "${{ steps.meta.outputs.base }}/scaffold-day-darwin-arm64"
+                sha256 "${{ steps.meta.outputs.arm_sha }}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.intel?
+                url "${{ steps.meta.outputs.base }}/scaffold-day-linux-x64"
+                sha256 "${{ steps.meta.outputs.lin_sha }}"
+              end
+            end
+
+            def install
+              bin.install Dir["scaffold-day-*"].first => "scaffold-day"
+            end
+
+            test do
+              assert_match "scaffold-day v#{version}", shell_output("#{bin}/scaffold-day --version")
+            end
+          end
+          RUBY
+
+      - name: Commit + push tap update
+        working-directory: tap
+        run: |
+          git config user.name "scaffold-day-bot"
+          git config user.email "noreply@github.com"
+          git add Formula/day.rb
+          if git diff --cached --quiet; then
+            echo "Formula already up to date."
+            exit 0
+          fi
+          git commit -m "day: bump to ${{ steps.meta.outputs.tag }}"
+          git push
