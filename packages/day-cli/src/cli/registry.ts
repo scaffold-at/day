@@ -1,4 +1,5 @@
 import { doctorCommand } from "../commands/doctor";
+import { eventCommand } from "../commands/event";
 import { feedbackCommand } from "../commands/feedback";
 import { initCommand } from "../commands/init";
 import { logsCommand } from "../commands/logs";
@@ -13,6 +14,7 @@ export const commands: Command[] = [
   initCommand,
   doctorCommand,
   migrateCommand,
+  eventCommand,
   mcpCommand,
   feedbackCommand,
   selfUpdateCommand,
