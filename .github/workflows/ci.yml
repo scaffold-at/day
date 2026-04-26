@@ -39,6 +39,9 @@ jobs:
       - name: AGENTS.md fresh (§S53.7)
         run: bun run check:agents-md
 
+      - name: CLI reference fresh (§S53.8)
+        run: bun run check:cli-reference
+
       - name: Unit tests
         run: bun test
 

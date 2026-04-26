@@ -21,6 +21,8 @@
     "bench:token": "bun run scripts/bench-token.ts",
     "gen:agents-md": "bun run scripts/gen-agents-md.ts",
     "check:agents-md": "bun run scripts/gen-agents-md.ts --check",
+    "gen:cli-reference": "bun run scripts/gen-cli-reference.ts",
+    "check:cli-reference": "bun run scripts/gen-cli-reference.ts --check",
     "test": "bun test",
     "test:unit": "bun test packages",
     "test:e2e": "bun test tests/e2e",
