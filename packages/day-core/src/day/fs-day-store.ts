@@ -1,10 +1,15 @@
-import { mkdir, readFile, readdir } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 import { ScaffoldError } from "../error";
 import { atomicWrite } from "../fs/atomic-write";
 import { CURRENT_SCHEMA_VERSION } from "../schema/version";
 import { type Day, DaySchema } from "./day";
 import type { FixedEvent } from "./event";
+import {
+  type DayManifest,
+  type DayManifestEntry,
+  DayManifestSchema,
+} from "./manifest";
 import type { Placement } from "./placement";
 
 function isEnoent(err: unknown): boolean {
@@ -58,6 +63,10 @@ export class FsDayStore {
     return path.join(this.monthDir(month), `${date}.json`);
   }
 
+  manifestPath(month: string): string {
+    return path.join(this.monthDir(month), "manifest.json");
+  }
+
   /**
    * Read a Day file. Returns an empty Day for that date if the file
    * does not exist yet. Throws DAY_INVALID_INPUT if the file is
@@ -85,7 +94,10 @@ export class FsDayStore {
     }
   }
 
-  /** Atomically rewrite the entire Day file. */
+  /**
+   * Atomically rewrite the entire Day file and refresh the month
+   * manifest so it always reflects on-disk truth (SLICES §S10).
+   */
   async writeDay(day: Day): Promise<void> {
     const parsed = DaySchema.safeParse(day);
     if (!parsed.success) {
@@ -102,6 +114,7 @@ export class FsDayStore {
     await atomicWrite(p, `${JSON.stringify(parsed.data, null, 2)}\n`, {
       mode: 0o600,
     });
+    await this.refreshManifest(day.date.slice(0, 7));
   }
 
   /** Append a FixedEvent to the day; create the file if needed. */
@@ -153,6 +166,93 @@ export class FsDayStore {
       if (isEnoent(err)) return [];
       throw err;
     }
+  }
+
+  /**
+   * Read the manifest for a month, or null if it has not been written
+   * yet. Throws DAY_INVALID_INPUT on a malformed manifest file.
+   */
+  async readManifest(month: string): Promise<DayManifest | null> {
+    if (!YYYYMM_RE.test(month)) {
+      throw new ScaffoldError({
+        code: "DAY_INVALID_INPUT",
+        summary: { en: `invalid month '${month}'` },
+        cause: "Month must match YYYY-MM.",
+        try: ["Pass a string like 2026-04."],
+        context: { month },
+      });
+    }
+    const p = this.manifestPath(month);
+    try {
+      const raw = await readFile(p, "utf8");
+      const parsed = DayManifestSchema.safeParse(JSON.parse(raw));
+      if (!parsed.success) throw invalid(p, parsed.error.message);
+      return parsed.data;
+    } catch (err) {
+      if (isEnoent(err)) return null;
+      throw err;
+    }
+  }
+
+  /**
+   * Recompute the manifest for `month` from on-disk Day files and
+   * persist it. If no Day files remain, the manifest file is removed
+   * (so the partition's directory state stays honest).
+   */
+  async refreshManifest(month: string): Promise<DayManifest> {
+    if (!YYYYMM_RE.test(month)) {
+      throw new ScaffoldError({
+        code: "DAY_INVALID_INPUT",
+        summary: { en: `invalid month '${month}'` },
+        cause: "Month must match YYYY-MM.",
+        try: ["Pass a string like 2026-04."],
+        context: { month },
+      });
+    }
+
+    const dates = await this.listMonth(month);
+    const entries: DayManifestEntry[] = [];
+    for (const date of dates) {
+      const day = await this.readDay(date);
+      let updatedAt: string;
+      try {
+        const st = await stat(this.dayPath(date));
+        updatedAt = st.mtime.toISOString();
+      } catch {
+        updatedAt = new Date().toISOString();
+      }
+      entries.push({
+        date,
+        event_count: day.events.length,
+        placement_count: day.placements.length,
+        conflicts_open_count: day.conflicts_open.length,
+        updated_at: updatedAt,
+      });
+    }
+
+    const manifest: DayManifest = {
+      schema_version: CURRENT_SCHEMA_VERSION,
+      month,
+      days: entries,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (entries.length === 0) {
+      try {
+        await unlink(this.manifestPath(month));
+      } catch (err) {
+        if (!isEnoent(err)) throw err;
+      }
+      return manifest;
+    }
+
+    await mkdir(this.monthDir(month), { recursive: true });
+    await atomicWrite(
+      this.manifestPath(month),
+      `${JSON.stringify(manifest, null, 2)}\n`,
+      { mode: 0o600 },
+    );
+    return manifest;
   }
 
   private emptyDay(date: string): Day {

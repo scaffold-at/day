@@ -8,6 +8,12 @@ export {
 } from "./event";
 export { FsDayStore } from "./fs-day-store";
 export {
+  type DayManifest,
+  type DayManifestEntry,
+  DayManifestEntrySchema,
+  DayManifestSchema,
+} from "./manifest";
+export {
   type PlacedBy,
   PlacedBySchema,
   type Placement,

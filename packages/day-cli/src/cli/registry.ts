@@ -1,3 +1,4 @@
+import { dayCommand } from "../commands/day";
 import { doctorCommand } from "../commands/doctor";
 import { eventCommand } from "../commands/event";
 import { feedbackCommand } from "../commands/feedback";
@@ -14,6 +15,7 @@ export const commands: Command[] = [
   initCommand,
   doctorCommand,
   migrateCommand,
+  dayCommand,
   eventCommand,
   mcpCommand,
   feedbackCommand,
