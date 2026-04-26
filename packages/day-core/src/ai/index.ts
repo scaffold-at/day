@@ -1,3 +1,7 @@
+export {
+  ClaudeCliProvider,
+  type ClaudeCliProviderOptions,
+} from "./claude-cli-provider";
 export { MockAIProvider, type MockProviderFixture } from "./mock-provider";
 export {
   type AIProvider,
