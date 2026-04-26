@@ -6,3 +6,11 @@ export {
   type HardRuleEvaluation,
   type HardRuleViolation,
 } from "./hard-rules";
+export {
+  computeReactivityPenalty,
+  evaluateSoftPreferences,
+  evaluateSoftPreferencesPolicy,
+  type SoftPreferenceContext,
+  type SoftPreferenceContribution,
+  type SoftPreferenceEvaluation,
+} from "./soft-preferences";
