@@ -12,9 +12,19 @@ import {
   getMonthOverviewTool,
   listAvailableMonthsTool,
 } from "./tools/day-tools";
+import {
+  createEventTool,
+  deleteEventTool,
+  updateEventTool,
+} from "./tools/event-tools";
 import { getDayTool } from "./tools/get-day";
 import { healthTool } from "./tools/health";
 import { placeTodoTool } from "./tools/place-todo";
+import {
+  applyPresetTool,
+  getPolicyTool,
+  updatePolicyTool,
+} from "./tools/policy-tools";
 import { queryTodosTool } from "./tools/query-todos";
 import type { Tool, ToolRegistry } from "./tools/registry";
 import { suggestPlacementTool } from "./tools/suggest-placement";
@@ -37,6 +47,12 @@ export const TOOLS: ToolRegistry = [
   getTodoDetailTool as Tool<unknown, unknown>,
   updateTodoTool as Tool<unknown, unknown>,
   archiveTodoTool as Tool<unknown, unknown>,
+  createEventTool as Tool<unknown, unknown>,
+  updateEventTool as Tool<unknown, unknown>,
+  deleteEventTool as Tool<unknown, unknown>,
+  getPolicyTool as Tool<unknown, unknown>,
+  updatePolicyTool as Tool<unknown, unknown>,
+  applyPresetTool as Tool<unknown, unknown>,
   suggestPlacementTool as Tool<unknown, unknown>,
   placeTodoTool as Tool<unknown, unknown>,
 ];
