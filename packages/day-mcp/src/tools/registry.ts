@@ -13,7 +13,12 @@ export type Tool<I = unknown, O = unknown> = {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
-  parser: z.ZodType<I>;
+  /**
+   * `z.ZodType<I, ZodTypeDef, unknown>` so schemas with `.default()`
+   * (where Zod's input ≠ output) still satisfy the slot — input is
+   * unknown JSON from MCP, output is the typed `I`.
+   */
+  parser: z.ZodType<I, z.ZodTypeDef, unknown>;
   handler: (input: I) => Promise<O>;
 };
 

@@ -13,6 +13,13 @@ import {
   listAvailableMonthsTool,
 } from "./tools/day-tools";
 import {
+  computeTaskImportanceTool,
+  explainPlacementTool,
+  placeOverrideTool,
+  replanDayTool,
+  resolveConflictTool,
+} from "./tools/decision-tools";
+import {
   createEventTool,
   deleteEventTool,
   updateEventTool,
@@ -55,6 +62,11 @@ export const TOOLS: ToolRegistry = [
   applyPresetTool as Tool<unknown, unknown>,
   suggestPlacementTool as Tool<unknown, unknown>,
   placeTodoTool as Tool<unknown, unknown>,
+  placeOverrideTool as Tool<unknown, unknown>,
+  replanDayTool as Tool<unknown, unknown>,
+  explainPlacementTool as Tool<unknown, unknown>,
+  resolveConflictTool as Tool<unknown, unknown>,
+  computeTaskImportanceTool as Tool<unknown, unknown>,
 ];
 
 export type RunMcpServerOptions = {
