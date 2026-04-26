@@ -1,0 +1,96 @@
+name: compile
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# §S48 — Tier 1 single-binary build matrix.
+#
+# Cross-compile is also supported (any host can target any of these),
+# but running each target on its native host is what catches platform
+# bugs (musl/glibc differences, libuv quirks, macOS arm64 codegen).
+#
+# Codesigning / notarization (Apple) is intentionally OUT of scope for
+# v0.1 — see CHANGELOG. Brew tap is the recommended install path until
+# §S48-followup adds Apple secrets.
+
+jobs:
+  compile:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: bun-darwin-arm64
+            runner: macos-14
+            artifact: scaffold-day-darwin-arm64
+          - target: bun-linux-x64
+            runner: ubuntu-latest
+            artifact: scaffold-day-linux-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile single binary
+        run: |
+          mkdir -p dist
+          bun build \
+            --compile \
+            --target=${{ matrix.target }} \
+            ./packages/day-cli/src/index.ts \
+            --outfile=dist/${{ matrix.artifact }}
+
+      - name: Smoke — --version
+        run: |
+          test -x dist/${{ matrix.artifact }}
+          OUT=$(./dist/${{ matrix.artifact }} --version)
+          echo "$OUT"
+          echo "$OUT" | grep -E '^scaffold-day v[0-9]+\.[0-9]+\.[0-9]+$'
+
+      - name: Smoke — --help renders the registry
+        run: |
+          ./dist/${{ matrix.artifact }} --help | tee /tmp/help.txt
+          for cmd in today init doctor migrate day week todo place \
+                    conflict explain event policy mcp docs feedback \
+                    self-update rebuild-index logs telemetry auth; do
+            grep -q "^  $cmd " /tmp/help.txt || {
+              echo "::error::missing command in compiled --help: $cmd"
+              exit 1
+            }
+          done
+
+      - name: Smoke — `docs --for-ai --format json` parses
+        run: |
+          ./dist/${{ matrix.artifact }} docs --for-ai --format json > /tmp/bundle.json
+          # bun is already on PATH; use it as the JSON sanity checker
+          # so we don't pull in jq just for one assertion.
+          bun -e "
+            const b = JSON.parse(await Bun.file('/tmp/bundle.json').text());
+            if (!Array.isArray(b.cli) || b.cli.length < 5) throw new Error('cli[] too short');
+            if (!Array.isArray(b.mcp) || b.mcp.length < 5) throw new Error('mcp[] too short');
+            console.log('docs bundle ok:', b.cli.length, 'commands /', b.mcp.length, 'mcp tools');
+          "
+
+      - name: Report binary size
+        run: ls -lh dist/${{ matrix.artifact }}
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          retention-days: 14
+          if-no-files-found: error
