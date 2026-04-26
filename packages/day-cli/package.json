@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@scaffold/day-core": "workspace:*"
+    "@scaffold/day-core": "workspace:*",
+    "@scaffold/day-mcp": "workspace:*"
   }
 }

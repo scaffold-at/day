@@ -293,10 +293,10 @@ describe("day months / day overview", () => {
 });
 
 describe("placeholder commands", () => {
+  // `mcp` is no longer a placeholder as of §S41 — it boots a real server.
   test.each([
     "init",
     "doctor",
-    "mcp",
     "feedback",
     "self-update",
     "rebuild-index",

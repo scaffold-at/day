@@ -13,6 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@scaffold/day-core": "workspace:*"
+    "@modelcontextprotocol/sdk": "1.18.2",
+    "@scaffold/day-core": "workspace:*",
+    "zod": "^3.23.8"
   }
 }
