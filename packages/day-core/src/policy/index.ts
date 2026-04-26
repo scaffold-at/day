@@ -35,3 +35,10 @@ export {
   type SoftPreferenceKind,
   SoftPreferenceSchema,
 } from "./soft-preference";
+export {
+  applyPolicyPatchPreservingFormatting,
+  compilePolicy,
+  diffPolicy,
+  type JsonPatchOperation,
+  serializePolicy,
+} from "./yaml-codec";
