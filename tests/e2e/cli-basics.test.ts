@@ -18,6 +18,7 @@ const REQUIRED_COMMANDS = [
   "week",
   "event",
   "mcp",
+  "docs",
   "feedback",
   "self-update",
   "rebuild-index",

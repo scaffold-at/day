@@ -1,6 +1,7 @@
 import { authCommand } from "../commands/auth";
 import { conflictCommand } from "../commands/conflict";
 import { dayCommand } from "../commands/day";
+import { docsCommand } from "../commands/docs";
 import { doctorCommand } from "../commands/doctor";
 import { eventCommand } from "../commands/event";
 import { explainCommand } from "../commands/explain";
@@ -34,6 +35,7 @@ export const commands: Command[] = [
   eventCommand,
   policyCommand,
   mcpCommand,
+  docsCommand,
   feedbackCommand,
   selfUpdateCommand,
   rebuildIndexCommand,
