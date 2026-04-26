@@ -185,6 +185,37 @@ describe("todo score", () => {
     expect(r.stderr).toContain("DAY_NOT_FOUND");
   });
 
+  test("--ai delegates to the configured provider (S37)", async () => {
+    await runCli(["policy", "preset", "apply", "balanced"], { home });
+    const id = await addBasic("AI-scored todo");
+    const r = await runCli(
+      ["todo", "score", id, "--ai", "--ai-provider", "mock", "--reasoning", "auto"],
+      { home },
+    );
+    expect(r.exitCode, r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/score:\s+\d+\.\d+\s+\/ 100/);
+
+    const detail = JSON.parse(
+      (await runCli(["todo", "get", id, "--json"], { home })).stdout,
+    );
+    expect(detail.importance).not.toBeNull();
+    // MockAIProvider's neutral defaults yield the §S16 baseline score
+    // (urgency=impact=effort=reversibility=5 → 34.905 under Balanced).
+    expect(detail.importance.score).toBeCloseTo(34.905, 2);
+    expect(detail.importance.computed_by).toBe("mock");
+  });
+
+  test("--ai with unknown provider → DAY_PROVIDER_UNAVAILABLE", async () => {
+    await runCli(["policy", "preset", "apply", "balanced"], { home });
+    const id = await addBasic();
+    const r = await runCli(
+      ["todo", "score", id, "--ai", "--ai-provider", "nope"],
+      { home },
+    );
+    expect(r.exitCode).toBe(69);
+    expect(r.stderr).toContain("DAY_PROVIDER_UNAVAILABLE");
+  });
+
   test("--json output contains the full TaskImportance", async () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
     const id = await addBasic();

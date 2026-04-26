@@ -1,12 +1,15 @@
 import {
   compilePolicy,
   defaultHomeDir,
+  detectAvailableProviders,
   FsTodoRepository,
   type ImportanceDimensions,
   ISODateSchema,
   makeTaskImportance,
+  MockAIProvider,
   readPolicyYaml,
   ScaffoldError,
+  scoreImportanceViaProvider,
   TagSchema,
   type TodoSummary,
   TODO_STATUSES,
@@ -364,6 +367,8 @@ async function runScore(args: string[]): Promise<number> {
   let reasoning: string | undefined;
   let computedBy = "user";
   let json = false;
+  let aiMode = false;
+  let aiProvider: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
@@ -388,6 +393,8 @@ async function runScore(args: string[]): Promise<number> {
       i++;
     } else if (a === "--reasoning") { reasoning = takeValue(args, i, "--reasoning"); i++; }
     else if (a === "--by") { computedBy = takeValue(args, i, "--by"); i++; }
+    else if (a === "--ai") { aiMode = true; }
+    else if (a === "--ai-provider") { aiProvider = takeValue(args, i, "--ai-provider"); i++; }
     else if (a === "--json") { json = true; }
     else if (a === "--from-stdin") {
       // Read JSON from stdin: { urgency, impact, effort, reversibility, ... }
@@ -408,14 +415,6 @@ async function runScore(args: string[]): Promise<number> {
   }
 
   if (!id) throw usage("todo score: <id> argument is required");
-  for (const [name, v] of [
-    ["--urgency", urgency],
-    ["--impact", impact],
-    ["--effort", effort],
-    ["--reversibility", reversibility],
-  ] as const) {
-    if (v === undefined) throw usage(`todo score: ${name} is required`);
-  }
 
   const home = defaultHomeDir();
   const yaml = await readPolicyYaml(home);
@@ -429,20 +428,92 @@ async function runScore(args: string[]): Promise<number> {
   }
   const policy = compilePolicy(yaml);
 
-  const dimensions: ImportanceDimensions = {
-    urgency: urgency!,
-    impact: impact!,
-    effort: effort!,
-    reversibility: reversibility!,
-    time_sensitivity: timeSensitivity,
-    external_dependency: extDep,
-    deadline: deadline ?? "none",
-  };
+  let importance;
+  if (aiMode) {
+    // Resolve a provider: explicit --ai-provider id wins; otherwise
+    // pick the first available from the catalog (mock-first per
+    // memory:project_test_strategy).
+    const probes = await detectAvailableProviders();
+    let chosen: string | null = null;
+    if (aiProvider) {
+      const match = probes.find((p) => p.id === aiProvider);
+      if (!match || !match.available) {
+        throw new ScaffoldError({
+          code: "DAY_PROVIDER_UNAVAILABLE",
+          summary: { en: `provider '${aiProvider}' is not available` },
+          cause: match ? `Provider declared unavailable: ${match.note ?? ""}` : "Not in the catalog.",
+          try: ["Drop --ai-provider to use the first available provider, or install the named one."],
+          context: { provider: aiProvider },
+        });
+      }
+      chosen = aiProvider;
+    } else {
+      const first = probes.find((p) => p.available);
+      if (!first) {
+        throw new ScaffoldError({
+          code: "DAY_PROVIDER_UNAVAILABLE",
+          summary: { en: "no AI provider is available" },
+          cause: `Catalog: ${probes.map((p) => p.id).join(", ")}; none reported available.`,
+          try: ["Install Claude Code, or test with the bundled mock provider."],
+        });
+      }
+      chosen = first.id;
+    }
 
-  const importance = await makeTaskImportance(dimensions, policy, {
-    reasoning: reasoning ?? "manual scoring",
-    computedBy,
-  });
+    const todoRepo = new FsTodoRepository(home);
+    const detail = await todoRepo.getDetail(id);
+    if (!detail) {
+      throw new ScaffoldError({
+        code: "DAY_NOT_FOUND",
+        summary: { en: `todo '${id}' not found` },
+        cause: `No active todo exists with id '${id}'.`,
+        try: ["Run `scaffold-day todo list`."],
+        context: { id },
+      });
+    }
+
+    // Build the provider instance fresh — detect.ts returns probes,
+    // not adapter instances. Same wiring as doctor's roundtrip.
+    const { ClaudeCliProvider } = await import("@scaffold/day-core");
+    const provider =
+      chosen === "mock"
+        ? new MockAIProvider()
+        : new ClaudeCliProvider();
+
+    importance = await scoreImportanceViaProvider(
+      {
+        title: detail.title,
+        description: detail.description,
+        tags: detail.tags,
+        target_date: detail.target_date,
+      },
+      policy,
+      provider,
+      { by: computedBy === "user" ? provider.id : computedBy },
+    );
+  } else {
+    for (const [name, v] of [
+      ["--urgency", urgency],
+      ["--impact", impact],
+      ["--effort", effort],
+      ["--reversibility", reversibility],
+    ] as const) {
+      if (v === undefined) throw usage(`todo score: ${name} is required (or pass --ai)`);
+    }
+    const dimensions: ImportanceDimensions = {
+      urgency: urgency!,
+      impact: impact!,
+      effort: effort!,
+      reversibility: reversibility!,
+      time_sensitivity: timeSensitivity,
+      external_dependency: extDep,
+      deadline: deadline ?? "none",
+    };
+    importance = await makeTaskImportance(dimensions, policy, {
+      reasoning: reasoning ?? "manual scoring",
+      computedBy,
+    });
+  }
 
   const repo = new FsTodoRepository(home);
   const updated = await repo.update(id, {

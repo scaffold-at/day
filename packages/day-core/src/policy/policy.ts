@@ -15,6 +15,12 @@ export const AIProviderConfigSchema = z
     primary: z.string().min(1),
     fallback: z.array(z.string().min(1)).default([]),
     config: z.record(z.unknown()).default({}),
+    /**
+     * When true, `create_todo` (CLI / MCP) auto-delegates importance
+     * scoring to the configured provider — PRD §S37. Default false
+     * so a fork without an AI provider doesn't surprise on intake.
+     */
+    auto_compute_importance: z.boolean().default(false),
   })
   .strict();
 export type AIProviderConfig = z.infer<typeof AIProviderConfigSchema>;

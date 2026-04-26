@@ -3,6 +3,10 @@ export {
   type ClaudeCliProviderOptions,
 } from "./claude-cli-provider";
 export {
+  scoreImportanceViaProvider,
+  type ScoreImportanceViaProviderOptions,
+} from "./delegate";
+export {
   detectAvailableProviders,
   type DetectProvidersOptions,
   type ProviderProbeResult,
