@@ -6,30 +6,43 @@
     <title>scaffold-day — Scaffold your day with AI</title>
     <meta
       name="description"
-      content="A CLI-first, MCP-ready scheduler that places your TODOs into the free slots of your calendar — with AI clients as a first-class user."
+      content="A CLI-first, MCP-ready scheduler that places your TODOs into the free slots of your calendar — with AI clients (Claude Code, Cursor, Claude Desktop) as a first-class user."
     />
     <link rel="canonical" href="https://day.scaffold.at" />
+    <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
     <meta property="og:title" content="scaffold-day" />
-    <meta property="og:description" content="Scaffold your day with AI." />
+    <meta property="og:description" content="Scaffold your day with AI. CLI + MCP scheduler." />
     <meta property="og:url" content="https://day.scaffold.at" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="scaffold.at" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="scaffold-day" />
+    <meta name="twitter:description" content="Scaffold your day with AI. CLI + MCP scheduler." />
     <style>
       :root {
         color-scheme: light dark;
         --fg: #1a1a1a;
         --muted: #6b7280;
         --accent: #2563eb;
+        --accent-soft: #eff6ff;
         --bg: #ffffff;
-        --code-bg: #f4f4f5;
+        --code-bg: #0b1020;
+        --code-fg: #e2e8f0;
+        --code-muted: #94a3b8;
         --border: #e5e7eb;
+        --ok: #16a34a;
       }
       @media (prefers-color-scheme: dark) {
         :root {
           --fg: #e5e7eb;
           --muted: #9ca3af;
           --accent: #60a5fa;
+          --accent-soft: #1e293b;
           --bg: #0a0a0a;
-          --code-bg: #1f1f23;
+          --code-bg: #0b1020;
           --border: #2a2a2e;
+          --ok: #4ade80;
         }
       }
       * { box-sizing: border-box; }
@@ -39,38 +52,133 @@
           "Segoe UI", Helvetica, Arial, sans-serif;
         color: var(--fg);
         background: var(--bg);
-        max-width: 720px;
+        max-width: 760px;
         margin: 0 auto;
         padding: 4rem 1.5rem 6rem;
       }
-      h1 { font-size: 2.5rem; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
-      .tagline { color: var(--muted); font-size: 1.15rem; margin: 0 0 2.5rem; }
-      h2 { font-size: 1.15rem; margin: 2.5rem 0 0.75rem; }
+      h1 {
+        font-size: 3rem;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.025em;
+        line-height: 1.05;
+      }
+      .tagline { color: var(--muted); font-size: 1.2rem; margin: 0 0 2.5rem; }
+      h2 {
+        font-size: 1.25rem;
+        margin: 3rem 0 0.75rem;
+        letter-spacing: -0.01em;
+      }
+      h3 {
+        font-size: 1rem;
+        margin: 1.5rem 0 0.5rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      p { margin: 0.75rem 0; }
+      .lede {
+        font-size: 1.05rem;
+        margin: 0 0 1.25rem;
+      }
+
       pre {
         background: var(--code-bg);
-        border: 1px solid var(--border);
-        border-radius: 8px;
+        color: var(--code-fg);
+        border-radius: 10px;
         padding: 1rem 1.25rem;
         overflow-x: auto;
         font: 14px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        margin: 0.5rem 0;
       }
+      pre .comment { color: var(--code-muted); }
+      pre .prompt { color: var(--code-muted); user-select: none; }
       code { font: 14px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+      :not(pre) > code {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-radius: 4px;
+        padding: 0.1rem 0.35rem;
+        font-size: 0.92em;
+      }
       a { color: var(--accent); text-decoration: none; }
       a:hover { text-decoration: underline; }
       ul { padding-left: 1.25rem; }
       li { margin: 0.25rem 0; }
+
       .pill {
         display: inline-block;
         font-size: 0.8rem;
-        padding: 0.15rem 0.5rem;
+        padding: 0.15rem 0.55rem;
         border: 1px solid var(--border);
         border-radius: 999px;
         color: var(--muted);
         margin-left: 0.5rem;
         vertical-align: middle;
+        font-weight: 500;
       }
+
+      /* Copy-able command block */
+      .cmd {
+        position: relative;
+      }
+      .cmd .copy {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--code-fg);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 6px;
+        padding: 0.3rem 0.6rem;
+        font: 12px/1 ui-monospace, "SF Mono", Menlo, monospace;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.12s;
+      }
+      .cmd:hover .copy,
+      .cmd .copy:focus {
+        opacity: 1;
+      }
+      .cmd .copy.ok { color: var(--ok); border-color: var(--ok); }
+
+      /* Tabs (MCP client switcher) */
+      .tabs {
+        display: flex;
+        gap: 0.25rem;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 0.75rem;
+      }
+      .tabs button {
+        background: transparent;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        color: var(--muted);
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.9rem;
+      }
+      .tabs button[aria-selected="true"] {
+        color: var(--fg);
+        border-color: var(--accent);
+      }
+      .tabpanel { display: none; }
+      .tabpanel[data-active] { display: block; }
+
+      /* Demo terminal */
+      .term {
+        background: var(--code-bg);
+        color: var(--code-fg);
+        border-radius: 10px;
+        padding: 1.1rem 1.25rem 1.25rem;
+        font: 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        white-space: pre;
+        overflow-x: auto;
+      }
+      .term .dim { color: var(--code-muted); }
+      .term .ok { color: #4ade80; }
+
       footer {
-        margin-top: 4rem;
+        margin-top: 5rem;
         padding-top: 1.5rem;
         border-top: 1px solid var(--border);
         color: var(--muted);
@@ -79,33 +187,131 @@
     </style>
   </head>
   <body>
-    <h1>scaffold-day<span class="pill">pre-release</span></h1>
+    <h1>scaffold-day<span class="pill">v0.1 · pre-release</span></h1>
     <p class="tagline">Scaffold your day with AI.</p>
 
-    <p>
-      A CLI-first, MCP-ready scheduler that places your TODOs into the free
-      slots of your calendar — with AI clients (Claude Code, Cursor, Claude
-      Desktop) as a first-class user. Same surface via CLI flags or MCP tools.
+    <p class="lede">
+      A CLI-first, MCP-ready scheduler that places your TODOs into the
+      free slots of your calendar — with AI clients (Claude Code, Cursor,
+      Claude Desktop) as a first-class user. The same surface is
+      exposed both as CLI flags and as MCP tools, so an LLM can plan
+      your day with one tool call instead of piping CLI text.
     </p>
 
     <h2>Install</h2>
-    <pre><code>curl -fsSL https://day.scaffold.at/install.sh | sh</code></pre>
+    <div class="cmd">
+      <pre id="cmd-install"><code>curl -fsSL https://day.scaffold.at/install.sh | sh</code></pre>
+      <button class="copy" data-copy="cmd-install" aria-label="Copy install command">copy</button>
+    </div>
     <p style="color: var(--muted); font-size: 0.9rem;">
-      v0.1 binaries are unsigned (Apple notarization lands post-v0.1). The
-      installer clears the macOS quarantine attribute for you. Tier 1
-      targets: macOS Apple Silicon, Linux x64.
+      Tier 1: macOS Apple Silicon, Linux x64. v0.1 binaries are
+      <strong>unsigned</strong> (Apple notarization is post-v0.1). The
+      installer clears the macOS quarantine attribute for you. Pin a
+      version with <code>sh -s -- --version v0.1.0</code>.
     </p>
 
     <h2>Quick start</h2>
-    <pre><code>scaffold-day init
-scaffold-day today --tz Asia/Seoul
-scaffold-day docs --for-ai      # AI-readable surface dump</code></pre>
+    <div class="cmd">
+      <pre id="cmd-quick"><code><span class="prompt">$ </span>scaffold-day init                  <span class="comment"># ~/.scaffold-day + balanced policy</span>
+<span class="prompt">$ </span>scaffold-day today --tz Asia/Seoul
+<span class="prompt">$ </span>scaffold-day docs --for-ai          <span class="comment"># AI-readable surface dump</span></code></pre>
+      <button class="copy" data-copy="cmd-quick" aria-label="Copy quick-start commands">copy</button>
+    </div>
+
+    <h2>What it looks like</h2>
+    <div class="term">scaffold-day today
+<span class="dim">─────────────────────────────────────────────</span>
+2026-04-27 (Mon) · Asia/Seoul · policy: balanced
+
+<span class="dim">events</span>
+  10:00–11:00  Standup
+  14:00–15:00  Design review
+
+<span class="dim">placements</span>
+  09:00–10:00  Draft Q2 OKR doc           <span class="ok">★ 78</span>
+  11:30–12:30  Review PR #142             <span class="ok">★ 64</span>
+
+<span class="dim">free slots</span>
+  13:00–14:00 (1h) · 15:00–18:00 (3h)
+</div>
+
+    <h2>Use it from your AI client</h2>
+    <p>
+      <code>scaffold-day mcp</code> speaks the
+      <a href="https://modelcontextprotocol.io">Model Context Protocol</a>
+      over stdio — 24 tools (<code>get_day</code>,
+      <code>suggest_placement</code>, <code>place_todo</code>,
+      <code>compute_task_importance</code>, <code>replan_day</code>,
+      <code>explain_placement</code>, …). Drop one of the snippets below
+      into your client config:
+    </p>
+
+    <div class="tabs" role="tablist" aria-label="MCP client config">
+      <button role="tab" aria-selected="true" data-tab="claude-desktop">Claude Desktop</button>
+      <button role="tab" aria-selected="false" data-tab="claude-code">Claude Code</button>
+      <button role="tab" aria-selected="false" data-tab="cursor">Cursor</button>
+    </div>
+
+    <div class="tabpanel" data-tab="claude-desktop" data-active>
+      <h3><code>~/Library/Application Support/Claude/claude_desktop_config.json</code></h3>
+      <div class="cmd">
+        <pre id="mcp-claude-desktop"><code>{
+  "mcpServers": {
+    "scaffold-day": {
+      "command": "scaffold-day",
+      "args": ["mcp"]
+    }
+  }
+}</code></pre>
+        <button class="copy" data-copy="mcp-claude-desktop" aria-label="Copy Claude Desktop config">copy</button>
+      </div>
+    </div>
+
+    <div class="tabpanel" data-tab="claude-code">
+      <h3>One command (writes <code>~/.config/claude-code/mcp.json</code> or merges)</h3>
+      <div class="cmd">
+        <pre id="mcp-claude-code"><code>claude mcp add scaffold-day -- scaffold-day mcp</code></pre>
+        <button class="copy" data-copy="mcp-claude-code" aria-label="Copy Claude Code mcp add command">copy</button>
+      </div>
+    </div>
+
+    <div class="tabpanel" data-tab="cursor">
+      <h3>Cursor → Settings → MCP → Add</h3>
+      <div class="cmd">
+        <pre id="mcp-cursor"><code>{
+  "mcpServers": {
+    "scaffold-day": {
+      "command": "scaffold-day",
+      "args": ["mcp"]
+    }
+  }
+}</code></pre>
+        <button class="copy" data-copy="mcp-cursor" aria-label="Copy Cursor MCP config">copy</button>
+      </div>
+    </div>
+
+    <p style="color: var(--muted); font-size: 0.9rem;">
+      Tip: paste
+      <a href="https://github.com/scaffold-at/day/blob/main/AGENTS.md">AGENTS.md</a>
+      into the system prompt at session start. It carries the JTBD
+      recipes (<em>"a meeting moved — replan"</em>) so the AI doesn't
+      have to derive call sequences from scratch.
+    </p>
+
+    <h2>Why</h2>
+    <p>
+      Most calendar tools optimise for <em>displaying</em> time.
+      <code>scaffold-day</code> optimises for <em>placing</em> time:
+      take a list of TODOs, score their importance, and slot them into
+      the calendar's actual free space — under a transparent,
+      replayable policy you can edit by hand.
+    </p>
 
     <h2>Links</h2>
     <ul>
       <li>
-        <a href="https://github.com/scaffold-at/day">GitHub repo</a>
-        — source, issues, releases
+        <a href="https://github.com/scaffold-at/day">GitHub repo</a> —
+        source · issues · releases
       </li>
       <li>
         <a href="https://github.com/scaffold-at/day/blob/main/AGENTS.md">AGENTS.md</a>
@@ -115,17 +321,59 @@ scaffold-day docs --for-ai      # AI-readable surface dump</code></pre>
         <a href="https://github.com/scaffold-at/day/blob/main/README.md">README</a>
         ·
         <a href="https://github.com/scaffold-at/day/blob/main/README.ko.md">한국어</a>
+        ·
+        <a href="https://github.com/scaffold-at/day/blob/main/CHANGELOG.md">CHANGELOG</a>
       </li>
       <li>
         <a href="https://github.com/scaffold-at/day/issues/1">Walking Skeleton tracker</a>
         — slice-by-slice progress
       </li>
+      <li>
+        <a href="https://github.com/scaffold-at/day/discussions">GitHub Discussions</a>
+        — ideas, Q&amp;A, show &amp; tell
+      </li>
     </ul>
 
     <footer>
       AGPL-3.0-or-later · part of the
-      <a href="https://scaffold.at">scaffold.at</a> products line ·
-      Show HN landing in v0.1
+      <a href="https://scaffold.at">scaffold.at</a> products line
     </footer>
+
+    <script>
+      // Copy buttons.
+      for (const btn of document.querySelectorAll('button.copy')) {
+        btn.addEventListener('click', async () => {
+          const target = document.getElementById(btn.dataset.copy);
+          if (!target) return;
+          // Strip the shell prompts ("$ ") from copied text so the
+          // pasted snippet just runs.
+          const text = target.innerText.replace(/^\$ /gm, '');
+          try {
+            await navigator.clipboard.writeText(text);
+            const prev = btn.textContent;
+            btn.textContent = 'copied';
+            btn.classList.add('ok');
+            setTimeout(() => {
+              btn.textContent = prev;
+              btn.classList.remove('ok');
+            }, 1400);
+          } catch (e) {
+            btn.textContent = 'copy failed';
+          }
+        });
+      }
+      // MCP client tabs.
+      const tabs = document.querySelectorAll('.tabs [role="tab"]');
+      const panels = document.querySelectorAll('.tabpanel');
+      for (const tab of tabs) {
+        tab.addEventListener('click', () => {
+          for (const t of tabs) t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+          for (const p of panels) {
+            if (p.dataset.tab === tab.dataset.tab) p.setAttribute('data-active', '');
+            else p.removeAttribute('data-active');
+          }
+        });
+      }
+    </script>
   </body>
 </html>
