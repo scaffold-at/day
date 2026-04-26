@@ -1,4 +1,5 @@
 import type { ISODate, Tag } from "../ids/schemas";
+import type { TaskImportance } from "../policy/importance";
 import type { TodoArchive, TodoDetail, TodoHistoryKind, TodoSummary } from "./schemas";
 import type { TodoStatus } from "./status";
 
@@ -29,6 +30,12 @@ export type UpdateTodoInput = {
   status?: TodoStatus;
   tags?: readonly Tag[];
   importance_score?: number | null;
+  /**
+   * Full TaskImportance record. When provided, the repository also
+   * mirrors `.score` into `importance_score` so the summary stays in
+   * sync. Default history_kind for these updates is "scored".
+   */
+  importance?: TaskImportance | null;
   duration_min?: number | null;
   target_date?: ISODate | null;
   description?: string | null;

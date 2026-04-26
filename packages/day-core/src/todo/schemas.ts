@@ -6,6 +6,7 @@ import {
   type Tag,
   TagSchema,
 } from "../ids/schemas";
+import { TaskImportanceSchema } from "../policy/importance";
 import { TODO_STATUSES } from "./status";
 
 const TodoIdSchema = entityIdSchemaOf("todo");
@@ -51,6 +52,12 @@ export const TodoDetailSchema = TodoSummarySchema.extend({
   description: z.string().nullable(),
   reasoning: z.string().nullable(),
   history: z.array(TodoHistoryEntrySchema).default([]),
+  /**
+   * Full TaskImportance record (score + dimensions + policy_hash).
+   * The `importance_score` projected into TodoSummary stays in sync
+   * via repository write paths.
+   */
+  importance: TaskImportanceSchema.nullable().default(null),
 });
 
 export const TodoArchiveSchema = TodoDetailSchema.extend({
@@ -96,7 +103,8 @@ export function summarize(detail: TodoDetail | TodoArchive): TodoSummary {
     title: detail.title,
     status: detail.status,
     tags: [...detail.tags],
-    importance_score: detail.importance_score,
+    importance_score:
+      detail.importance?.score ?? detail.importance_score ?? null,
     duration_min: detail.duration_min,
     target_date: detail.target_date,
     created_at: detail.created_at,

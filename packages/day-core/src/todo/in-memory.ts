@@ -113,6 +113,7 @@ export class InMemoryTodoRepository implements TodoRepository {
           patch: null,
         },
       ],
+      importance: null,
     };
     this.active.set(id, detail);
     return clone(detail);
@@ -142,7 +143,12 @@ export class InMemoryTodoRepository implements TodoRepository {
       next.tags = [...patch.tags];
       diff.tags = next.tags;
     }
-    if (patch.importance_score !== undefined) {
+    if (patch.importance !== undefined) {
+      next.importance = patch.importance;
+      next.importance_score = patch.importance?.score ?? null;
+      diff.importance = patch.importance;
+      diff.importance_score = next.importance_score;
+    } else if (patch.importance_score !== undefined) {
       next.importance_score = patch.importance_score;
       diff.importance_score = patch.importance_score;
     }
