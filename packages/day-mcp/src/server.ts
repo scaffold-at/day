@@ -92,6 +92,9 @@ export async function runMcpServer(options: RunMcpServerOptions): Promise<void> 
       name: t.name,
       description: t.description,
       inputSchema: t.inputSchema,
+      // PRD §11.1 + §S44: surface a chars/4 token estimate so AI clients
+      // can budget. Real tiktoken WASM is a future swap behind the same key.
+      _meta: { tokens_est: Math.ceil(t.description.length / 4) },
     })),
   }));
 

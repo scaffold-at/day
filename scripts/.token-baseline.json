@@ -1,0 +1,31 @@
+{
+  "recorded_at": "2026-04-26T06:13:17.741Z",
+  "total_chars": 4297,
+  "total_tokens_est": 1075,
+  "per_tool_tokens": {
+    "health": 55,
+    "get_day": 65,
+    "get_days_range": 39,
+    "list_available_months": 31,
+    "get_month_overview": 41,
+    "query_todos": 56,
+    "create_todo": 39,
+    "get_todo_summary": 39,
+    "get_todo_detail": 36,
+    "update_todo": 44,
+    "archive_todo": 33,
+    "create_event": 36,
+    "update_event": 32,
+    "delete_event": 22,
+    "get_policy": 31,
+    "update_policy": 52,
+    "apply_preset": 34,
+    "suggest_placement": 59,
+    "place_todo": 65,
+    "place_override": 60,
+    "replan_day": 52,
+    "explain_placement": 43,
+    "resolve_conflict": 54,
+    "compute_task_importance": 65
+  }
+}

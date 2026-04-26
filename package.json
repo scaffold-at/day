@@ -18,6 +18,7 @@
     "dev:cli": "bun run packages/day-cli/src/index.ts",
     "smoke": "bun run scripts/bun-compat-smoke.ts",
     "validate:help": "bun run scripts/validate-help.ts",
+    "bench:token": "bun run scripts/bench-token.ts",
     "test": "bun test",
     "test:unit": "bun test packages",
     "test:e2e": "bun test tests/e2e",

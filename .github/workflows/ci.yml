@@ -33,6 +33,9 @@ jobs:
       - name: Validate `--help` template (§S2.5)
         run: bun run validate:help
 
+      - name: Bench MCP token corpus (§S44)
+        run: bun run bench:token
+
       - name: Unit tests
         run: bun test
 
