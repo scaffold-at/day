@@ -19,6 +19,8 @@
     "smoke": "bun run scripts/bun-compat-smoke.ts",
     "validate:help": "bun run scripts/validate-help.ts",
     "test": "bun test",
+    "test:unit": "bun test packages",
+    "test:e2e": "bun test tests/e2e",
     "lint": "biome check .",
     "format": "biome format --write ."
   },
