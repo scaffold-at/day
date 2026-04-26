@@ -20,6 +20,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@scaffold/day-core": "workspace:*",
+        "zod": "^3.23.8",
       },
     },
     "packages/day-cli": {

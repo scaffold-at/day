@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@scaffold/day-core": "workspace:*"
+    "@scaffold/day-core": "workspace:*",
+    "zod": "^3.23.8"
   }
 }
