@@ -2,6 +2,11 @@ export {
   ClaudeCliProvider,
   type ClaudeCliProviderOptions,
 } from "./claude-cli-provider";
+export {
+  detectAvailableProviders,
+  type DetectProvidersOptions,
+  type ProviderProbeResult,
+} from "./detect";
 export { MockAIProvider, type MockProviderFixture } from "./mock-provider";
 export {
   type AIProvider,

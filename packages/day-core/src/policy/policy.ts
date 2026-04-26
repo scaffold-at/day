@@ -3,6 +3,22 @@ import { ContextSchema } from "./context";
 import { HardRuleSchema } from "./hard-rule";
 import { SoftPreferenceSchema } from "./soft-preference";
 
+/**
+ * Optional ai_provider section (PRD §11.5.4). When present, the
+ * primary provider id is the one `init` selected (or the user
+ * promoted manually); fallback is consulted in order. v0.1 records
+ * the choice but does not yet auto-resolve a chain — single primary
+ * with hand-coded fallback semantics until §S37 wires AI delegation.
+ */
+export const AIProviderConfigSchema = z
+  .object({
+    primary: z.string().min(1),
+    fallback: z.array(z.string().min(1)).default([]),
+    config: z.record(z.unknown()).default({}),
+  })
+  .strict();
+export type AIProviderConfig = z.infer<typeof AIProviderConfigSchema>;
+
 export const ReactivityLevelSchema = z.enum(["low", "balanced", "high"]);
 export type ReactivityLevel = z.infer<typeof ReactivityLevelSchema>;
 
@@ -44,6 +60,7 @@ export const PolicySchema = z
       ConflictThresholdsSchema.parse({}),
     ),
     placement_grid_min: z.number().int().min(5).max(120).default(30),
+    ai_provider: AIProviderConfigSchema.optional(),
   })
   .strict();
 export type Policy = z.infer<typeof PolicySchema>;

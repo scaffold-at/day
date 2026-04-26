@@ -20,6 +20,8 @@ export {
   HardRuleSchema,
 } from "./hard-rule";
 export {
+  type AIProviderConfig,
+  AIProviderConfigSchema,
   type ConflictThresholds,
   ConflictThresholdsSchema,
   type ImportanceWeights,
