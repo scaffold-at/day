@@ -36,6 +36,9 @@ jobs:
       - name: Bench MCP token corpus (§S44)
         run: bun run bench:token
 
+      - name: AGENTS.md fresh (§S53.7)
+        run: bun run check:agents-md
+
       - name: Unit tests
         run: bun test
 
