@@ -40,7 +40,12 @@ export {
   policyFilePath,
   POLICY_DIR,
   POLICY_FILE,
+  POLICY_SNAPSHOTS_DIR,
+  policySnapshotPath,
+  type PolicySnapshotFile,
+  readPolicySnapshot,
   readPolicyYaml,
+  writePolicySnapshot,
   writePolicyYaml,
 } from "./storage";
 export {

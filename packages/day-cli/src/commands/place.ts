@@ -15,6 +15,7 @@ import {
   ScaffoldError,
   suggestPlacements,
   type SuggestionInput,
+  writePolicySnapshot,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 
@@ -342,7 +343,7 @@ async function runDo(args: string[]): Promise<number> {
     }
   }
 
-  const hash = await policyHash(policy);
+  const hash = await writePolicySnapshot(home, policy);
   const placedAt = new Date().toISOString();
   const placement: Placement = {
     id: generateEntityId("placement"),

@@ -2,6 +2,7 @@ import { conflictCommand } from "../commands/conflict";
 import { dayCommand } from "../commands/day";
 import { doctorCommand } from "../commands/doctor";
 import { eventCommand } from "../commands/event";
+import { explainCommand } from "../commands/explain";
 import { feedbackCommand } from "../commands/feedback";
 import { initCommand } from "../commands/init";
 import { logsCommand } from "../commands/logs";
@@ -27,6 +28,7 @@ export const commands: Command[] = [
   todoCommand,
   placeCommand,
   conflictCommand,
+  explainCommand,
   eventCommand,
   policyCommand,
   mcpCommand,
