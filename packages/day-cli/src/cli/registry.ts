@@ -9,13 +9,17 @@ import { migrateCommand } from "../commands/migrate";
 import { rebuildIndexCommand } from "../commands/rebuild-index";
 import { selfUpdateCommand } from "../commands/self-update";
 import { telemetryCommand } from "../commands/telemetry";
+import { todayCommand } from "../commands/today";
+import { weekCommand } from "../commands/week";
 import type { Command } from "./command";
 
 export const commands: Command[] = [
+  todayCommand,
   initCommand,
   doctorCommand,
   migrateCommand,
   dayCommand,
+  weekCommand,
   eventCommand,
   mcpCommand,
   feedbackCommand,

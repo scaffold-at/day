@@ -1,4 +1,4 @@
-import { encodeTime } from "ulid";
+import { monotonicFactory } from "ulid";
 import { z } from "zod";
 
 /**
@@ -56,22 +56,23 @@ export function entityIdSchemaOf<K extends EntityKind>(kind: K) {
   return z.string().regex(re, `expected ${prefix}_<14 [a-z0-9]>`);
 }
 
-const RAND_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
-
-function randomTail(length: number): string {
-  let out = "";
-  for (let i = 0; i < length; i++) {
-    out += RAND_CHARS[Math.floor(Math.random() * RAND_CHARS.length)];
-  }
-  return out;
-}
+const monotonic = monotonicFactory();
 
 /**
- * Generate a new EntityId for a given kind. Uses ULID's Crockford-base32
- * timestamp encoding (lower-cased so the regex stays `[a-z0-9]`) plus
- * 4 random characters.
+ * Generate a new EntityId for a given kind.
+ *
+ * - 10 chars: ULID Crockford-base32 timestamp (lower-cased)
+ * -  4 chars: trailing 4 chars of the same monotonic ULID. Within a
+ *             single millisecond `monotonicFactory` increments the
+ *             low-order bits, so successive ids are guaranteed unique
+ *             and lexicographically ordered.
+ *
+ * Total tail = 14 chars matching `[a-z0-9]`. The lowercased Crockford
+ * alphabet is a strict subset of `[a-z0-9]` (it omits i/l/o/u).
  */
 export function generateEntityId(kind: EntityKind, now: number = Date.now()): string {
-  const timestamp = encodeTime(now, 10).toLowerCase();
-  return `${ENTITY_PREFIXES[kind]}_${timestamp}${randomTail(4)}`;
+  const ulidString = monotonic(now).toLowerCase();
+  const timestamp = ulidString.slice(0, 10);
+  const tail = ulidString.slice(-4);
+  return `${ENTITY_PREFIXES[kind]}_${timestamp}${tail}`;
 }

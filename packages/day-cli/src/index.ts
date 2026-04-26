@@ -8,14 +8,25 @@ import { commands, findCommand } from "./cli/registry";
 const VERSION = pkg.version;
 
 async function dispatch(argv: string[]): Promise<number> {
-  const args = argv.slice(2).filter((a) => a !== "--json");
+  const args = argv.slice(2);
 
   if (args.length === 0) {
     console.log(formatRootHelp(VERSION, commands));
     return 0;
   }
 
-  const first = args[0] ?? "";
+  // Skip a leading `--json` so it can also be supplied before the
+  // subcommand (e.g. `scaffold-day --json today`). We still pass it
+  // through inside `rest` so the command sees it.
+  let cursor = 0;
+  while (cursor < args.length && args[cursor] === "--json") cursor++;
+
+  if (cursor >= args.length) {
+    console.log(formatRootHelp(VERSION, commands));
+    return 0;
+  }
+
+  const first = args[cursor] ?? "";
 
   if (first === "--version" || first === "-v") {
     console.log(`scaffold-day v${VERSION}`);
@@ -60,7 +71,7 @@ async function dispatch(argv: string[]): Promise<number> {
     });
   }
 
-  const rest = args.slice(1);
+  const rest = args.slice(cursor + 1);
   if (rest.includes("--help") || rest.includes("-h")) {
     console.log(formatCommandHelp(cmd));
     return 0;
