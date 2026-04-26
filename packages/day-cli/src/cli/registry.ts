@@ -1,3 +1,4 @@
+import { authCommand } from "../commands/auth";
 import { conflictCommand } from "../commands/conflict";
 import { dayCommand } from "../commands/day";
 import { doctorCommand } from "../commands/doctor";
@@ -21,6 +22,7 @@ import type { Command } from "./command";
 export const commands: Command[] = [
   todayCommand,
   initCommand,
+  authCommand,
   doctorCommand,
   migrateCommand,
   dayCommand,

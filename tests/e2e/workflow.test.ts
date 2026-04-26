@@ -293,9 +293,8 @@ describe("day months / day overview", () => {
 });
 
 describe("placeholder commands", () => {
-  // `mcp` (S41) and `doctor` (S35) are no longer placeholders.
+  // `mcp` (S41), `doctor` (S35), and `init` (S29.5) are no longer placeholders.
   test.each([
-    "init",
     "feedback",
     "self-update",
     "rebuild-index",

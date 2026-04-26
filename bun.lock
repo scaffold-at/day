@@ -30,6 +30,7 @@
         "scaffold-day": "./src/index.ts",
       },
       "dependencies": {
+        "@scaffold/day-adapters": "workspace:*",
         "@scaffold/day-core": "workspace:*",
         "@scaffold/day-mcp": "workspace:*",
       },

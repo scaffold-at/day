@@ -1,16 +1,178 @@
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
+import {
+  BUILTIN_PRESETS,
+  type BuiltinPresetName,
+  CURRENT_SCHEMA_VERSION,
+  defaultHomeDir,
+  defaultSchemaVersionFile,
+  detectAvailableProviders,
+  pathExists,
+  ScaffoldError,
+  schemaVersionPath,
+  serializePolicy,
+  writePolicyYaml,
+  writeSchemaVersionFile,
+} from "@scaffold/day-core";
+import pkg from "../../package.json" with { type: "json" };
+import { colors } from "../cli/colors";
 import type { Command } from "../cli/command";
-import { placeholderRun } from "./_placeholder";
+
+function usage(message: string): ScaffoldError {
+  return new ScaffoldError({
+    code: "DAY_USAGE",
+    summary: { en: message },
+    cause: "See `scaffold-day init --help` for the full input contract.",
+    try: ["Run `scaffold-day init --help`."],
+  });
+}
 
 export const initCommand: Command = {
   name: "init",
-  summary: "initialize the local scaffold-day directory and config",
+  summary: "create the local scaffold-day home and seed default policy",
   help: {
-    what: "Create ~/scaffold-day/ with the Balanced policy preset, an empty days/ tree, and an empty todos/ tree. Optionally connect Google Calendar and pick a primary AI provider.",
-    when: "Run once after installing scaffold-day. Required before any other command can read or write data.",
-    cost: "Local file I/O only by default. Opting in to Google Calendar adds an OAuth flow that opens a browser tab.",
-    input: "(no positional args yet) [--no-browser] [--force]",
-    return: "Exit 0 on success. Prints the path of ~/scaffold-day/ and the next-step suggestions.",
-    gotcha: "Refuses to run if ~/scaffold-day/ already exists, unless --force is given (which backs up first). Tracking SLICES.md §S29.5.",
+    what: "Initialize <home>/ with the scaffold-day directory layout: <home>/.scaffold-day/schema-version.json, days/, todos/, policy/, sync/, conflicts/, logs/. Seeds policy/current.yaml with the named preset (default: balanced) and prints a list of detected AI providers + next-step suggestions.",
+    when: "Run once after installing scaffold-day. Required before any home-aware command works.",
+    cost: "Local file I/O only. No network in v0.1.",
+    input: "[--preset <name>=balanced] [--force] [--no-preset] [--json]",
+    return: "Exit 0 on success. DAY_INVALID_INPUT if the home already has a schema-version.json and --force is not given.",
+    gotcha: "Refuses to clobber an existing initialized home; pass --force to overwrite (writes a fresh schema-version.json + preset). The interactive OAuth + provider primary prompts arrive in §S29.5 B-mode wiring. Tracking SLICES.md §S29.5 + §S0/§S4/§S13/§S15/§S34.",
   },
-  run: placeholderRun("init", "SLICES.md §S29.5"),
+  run: async (args) => {
+    let preset: BuiltinPresetName | null = "balanced";
+    let force = false;
+    let json = false;
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i] ?? "";
+      if (a === "--preset") {
+        const v = args[i + 1];
+        if (!v) throw usage("--preset requires a value");
+        if (!(v in BUILTIN_PRESETS)) {
+          throw new ScaffoldError({
+            code: "DAY_INVALID_INPUT",
+            summary: { en: `unknown preset '${v}'` },
+            cause: `Built-in presets: ${Object.keys(BUILTIN_PRESETS).join(", ")}.`,
+            try: ["Pick a built-in preset name."],
+          });
+        }
+        preset = v as BuiltinPresetName;
+        i++;
+      } else if (a === "--no-preset") {
+        preset = null;
+      } else if (a === "--force") {
+        force = true;
+      } else if (a === "--json") {
+        json = true;
+      } else {
+        throw usage(`init: unexpected argument '${a}'`);
+      }
+    }
+
+    const home = defaultHomeDir();
+    const schemaPath = schemaVersionPath(home);
+    const exists = await pathExists(schemaPath);
+    if (exists && !force) {
+      throw new ScaffoldError({
+        code: "DAY_INVALID_INPUT",
+        summary: { en: "scaffold-day home is already initialized" },
+        cause: `${schemaPath} already exists.`,
+        try: ["Re-run with --force to overwrite."],
+        context: { home, schema_path: schemaPath },
+      });
+    }
+
+    // Create the directory layout.
+    const dirs = [
+      ".scaffold-day",
+      "days",
+      "todos/active/detail",
+      "todos/archive",
+      "policy",
+      "sync",
+      "conflicts",
+      "logs",
+      ".secrets",
+      "policy-snapshots",
+    ];
+    for (const d of dirs) {
+      await mkdir(path.join(home, d), {
+        recursive: true,
+        mode: d === ".secrets" ? 0o700 : 0o755,
+      });
+    }
+
+    // Schema version file.
+    await writeSchemaVersionFile(home, defaultSchemaVersionFile(pkg.version));
+
+    // Seed policy if requested.
+    let presetWritten: string | null = null;
+    if (preset) {
+      const yamlText = serializePolicy(BUILTIN_PRESETS[preset], {
+        headerComment: `scaffold-day policy — ${preset} preset (generated by init ${new Date().toISOString()})`,
+      });
+      await writePolicyYaml(home, yamlText);
+      presetWritten = preset;
+    }
+
+    // Detect providers (informational).
+    const probes = await detectAvailableProviders();
+    const providersAvailable = probes
+      .filter((p) => p.available)
+      .map((p) => p.id);
+
+    if (json) {
+      console.log(
+        JSON.stringify(
+          {
+            home,
+            schema_version: CURRENT_SCHEMA_VERSION,
+            preset: presetWritten,
+            providers_available: providersAvailable,
+            providers_unavailable: probes
+              .filter((p) => !p.available)
+              .map((p) => ({ id: p.id, note: p.note ?? null })),
+          },
+          null,
+          2,
+        ),
+      );
+      return 0;
+    }
+
+    const out: string[] = [];
+    out.push(colors.cyan("─".repeat(46)));
+    out.push(colors.bold(`scaffold-day · init · v${pkg.version}`));
+    out.push(colors.cyan("─".repeat(46)));
+    out.push("");
+    out.push(`  ${colors.emerald("✓")} home initialized at ${home}`);
+    out.push(`  ${colors.emerald("✓")} schema_version: ${CURRENT_SCHEMA_VERSION}`);
+    if (presetWritten) {
+      out.push(`  ${colors.emerald("✓")} policy: ${presetWritten} preset`);
+    } else {
+      out.push(`  ${colors.dim("·")} policy: skipped (--no-preset)`);
+    }
+    out.push("");
+    out.push(colors.bold("AI providers"));
+    for (const probe of probes) {
+      const glyph = probe.available
+        ? colors.emerald("✓")
+        : colors.amber("⚠");
+      const status = probe.available ? "available" : "unavailable";
+      out.push(`  ${glyph} ${probe.id}: ${status}`);
+      if (!probe.available && probe.note) {
+        out.push(`      ${colors.dim(probe.note)}`);
+      }
+    }
+    out.push("");
+    out.push(colors.bold("Next steps"));
+    out.push(`  ${colors.dim("•")} \`scaffold-day today --tz Asia/Seoul\``);
+    out.push(`  ${colors.dim("•")} \`scaffold-day todo add --title \"...\"\``);
+    out.push(`  ${colors.dim("•")} \`scaffold-day event add --title \"...\" --start ...\``);
+    if (providersAvailable.includes("claude-cli")) {
+      out.push(`  ${colors.dim("•")} \`scaffold-day todo score <id> --ai\``);
+    }
+    out.push(`  ${colors.dim("•")} \`scaffold-day doctor\` to verify`);
+    console.log(out.join("\n"));
+    return 0;
+  },
 };
