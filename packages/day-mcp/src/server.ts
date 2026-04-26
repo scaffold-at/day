@@ -18,6 +18,12 @@ import { placeTodoTool } from "./tools/place-todo";
 import { queryTodosTool } from "./tools/query-todos";
 import type { Tool, ToolRegistry } from "./tools/registry";
 import { suggestPlacementTool } from "./tools/suggest-placement";
+import {
+  archiveTodoTool,
+  getTodoDetailTool,
+  getTodoSummaryTool,
+  updateTodoTool,
+} from "./tools/todo-tools";
 
 export const TOOLS: ToolRegistry = [
   healthTool as Tool<unknown, unknown>,
@@ -27,6 +33,10 @@ export const TOOLS: ToolRegistry = [
   getMonthOverviewTool as Tool<unknown, unknown>,
   queryTodosTool as Tool<unknown, unknown>,
   createTodoTool as Tool<unknown, unknown>,
+  getTodoSummaryTool as Tool<unknown, unknown>,
+  getTodoDetailTool as Tool<unknown, unknown>,
+  updateTodoTool as Tool<unknown, unknown>,
+  archiveTodoTool as Tool<unknown, unknown>,
   suggestPlacementTool as Tool<unknown, unknown>,
   placeTodoTool as Tool<unknown, unknown>,
 ];
