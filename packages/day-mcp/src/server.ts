@@ -6,10 +6,22 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { ScaffoldError } from "@scaffold/day-core";
 import { toMcpError } from "./error-mapping";
+import { createTodoTool } from "./tools/create-todo";
+import { getDayTool } from "./tools/get-day";
 import { healthTool } from "./tools/health";
+import { placeTodoTool } from "./tools/place-todo";
+import { queryTodosTool } from "./tools/query-todos";
 import type { Tool, ToolRegistry } from "./tools/registry";
+import { suggestPlacementTool } from "./tools/suggest-placement";
 
-export const TOOLS: ToolRegistry = [healthTool as Tool<unknown, unknown>];
+export const TOOLS: ToolRegistry = [
+  healthTool as Tool<unknown, unknown>,
+  getDayTool as Tool<unknown, unknown>,
+  queryTodosTool as Tool<unknown, unknown>,
+  createTodoTool as Tool<unknown, unknown>,
+  suggestPlacementTool as Tool<unknown, unknown>,
+  placeTodoTool as Tool<unknown, unknown>,
+];
 
 export type RunMcpServerOptions = {
   /** scaffold-day binary version, surfaced in the initialize handshake. */

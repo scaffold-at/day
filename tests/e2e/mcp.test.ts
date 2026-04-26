@@ -45,11 +45,88 @@ describe("MCP server scaffold (S41)", () => {
     try {
       const list = await client.listTools();
       const names = list.tools.map((t) => t.name);
+      // §S41: health
       expect(names).toContain("health");
+      // §S42: 5 P0 tools
+      expect(names).toContain("get_day");
+      expect(names).toContain("query_todos");
+      expect(names).toContain("create_todo");
+      expect(names).toContain("suggest_placement");
+      expect(names).toContain("place_todo");
       const health = list.tools.find((t) => t.name === "health")!;
       expect(typeof health.description).toBe("string");
       expect(health.description.length).toBeGreaterThan(20);
       expect(health.inputSchema.type).toBe("object");
+    } finally {
+      await close();
+    }
+  });
+
+  test("create_todo + query_todos round-trip via MCP", async () => {
+    const { client, close } = await connectClient(home);
+    try {
+      const created = await client.callTool({
+        name: "create_todo",
+        arguments: { title: "S42 todo", tags: ["#deep-work"], duration_min: 60 },
+      });
+      const detail = JSON.parse((created.content as Array<{ text: string }>)[0]!.text);
+      expect(detail.id).toMatch(/^todo_[a-z0-9]{14}$/);
+      expect(detail.title).toBe("S42 todo");
+
+      const queryRes = await client.callTool({ name: "query_todos", arguments: {} });
+      const list = JSON.parse((queryRes.content as Array<{ text: string }>)[0]!.text);
+      expect(list.total).toBe(1);
+      expect(list.items[0].id).toBe(detail.id);
+    } finally {
+      await close();
+    }
+  });
+
+  test("get_day returns DayView with free_slots[]", async () => {
+    const { client, close } = await connectClient(home);
+    try {
+      const res = await client.callTool({
+        name: "get_day",
+        arguments: { date: "2026-04-27", tz: "Asia/Seoul" },
+      });
+      const view = JSON.parse((res.content as Array<{ text: string }>)[0]!.text);
+      expect(view.date).toBe("2026-04-27");
+      expect(view.tz).toBe("Asia/Seoul");
+      expect(Array.isArray(view.free_slots)).toBe(true);
+      expect(view.summary.events_count).toBe(0);
+    } finally {
+      await close();
+    }
+  });
+
+  test("suggest_placement + place_todo lifecycle via MCP", async () => {
+    const { runCli } = await import("./_helpers");
+    await runCli(["policy", "preset", "apply", "balanced"], { home });
+
+    const { client, close } = await connectClient(home);
+    try {
+      const created = await client.callTool({
+        name: "create_todo",
+        arguments: { title: "S42 ranked", tags: ["#deep-work"], duration_min: 60 },
+      });
+      const detail = JSON.parse((created.content as Array<{ text: string }>)[0]!.text);
+
+      const sug = await client.callTool({
+        name: "suggest_placement",
+        arguments: { todo_id: detail.id, date: "2026-04-27", within: 1, max: 3 },
+      });
+      const suggestion = JSON.parse((sug.content as Array<{ text: string }>)[0]!.text);
+      expect(suggestion.candidates.length).toBeGreaterThan(0);
+
+      const placeRes = await client.callTool({
+        name: "place_todo",
+        arguments: { todo_id: detail.id, slot: suggestion.candidates[0].start },
+      });
+      const placement = JSON.parse((placeRes.content as Array<{ text: string }>)[0]!.text);
+      expect(placement.id).toMatch(/^plc_[a-z0-9]{14}$/);
+      expect(placement.todo_id).toBe(detail.id);
+      expect(placement.placed_by).toBe("ai");
+      expect(placement.policy_hash).toMatch(/^[0-9a-f]{64}$/);
     } finally {
       await close();
     }
