@@ -4,6 +4,7 @@ import type {
   FixedEvent,
   FreeSlot,
   Placement,
+  RestSuggestion,
 } from "@scaffold/day-core";
 import { computeFreeSlots } from "@scaffold/day-core";
 import { colors } from "../cli/colors";
@@ -20,6 +21,8 @@ export type DayView = {
   tz: string;
   /** Set when this view is for "today" and a heartbeat exists for it. */
   anchor: DayViewAnchor;
+  /** S61: rest-break suggestion when last night's sleep was below min. */
+  rest_suggestion: RestSuggestion | null;
   events: FixedEvent[];
   placements: Placement[];
   free_slots: FreeSlot[];
@@ -59,6 +62,7 @@ export function buildDayView(
   day: Day,
   hintTz?: string,
   anchor: DayViewAnchor = null,
+  rest_suggestion: RestSuggestion | null = null,
 ): DayView {
   const ww: WorkingWindow = defaultWorkingWindow(day.date, hintTz);
   const free = computeFreeSlots(day, {
@@ -72,6 +76,7 @@ export function buildDayView(
     date: day.date,
     tz: ww.tz,
     anchor,
+    rest_suggestion,
     events: [...day.events].sort((a, b) => a.start.localeCompare(b.start)),
     placements: [...day.placements].sort((a, b) => a.start.localeCompare(b.start)),
     free_slots: free,
@@ -101,6 +106,16 @@ export function renderDayView(view: DayView): string {
     const wall = formatLocalTime(view.anchor.anchor, view.tz);
     const tag = view.anchor.source === "explicit" || view.anchor.source === "manual" ? "" : colors.dim(` (${view.anchor.source})`);
     lines.push(colors.dim(`Day started ${wall}${tag}`));
+  }
+
+  if (view.rest_suggestion?.suggest) {
+    const slept = view.rest_suggestion.measured_sleep_hours;
+    const sleptStr = slept !== null ? `${slept.toFixed(1)}h` : "unknown";
+    lines.push(
+      colors.amber(
+        `Rest break suggested · ~${view.rest_suggestion.break_min} min (slept ${sleptStr} last night)`,
+      ),
+    );
   }
 
   if (view.events.length > 0) {

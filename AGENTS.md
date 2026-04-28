@@ -1135,3 +1135,17 @@ preset apply <name>
 ```
 *tokens_est: 23*
 
+### `get_rest_suggestion`
+
+> Compute today's rest-break suggestion from yesterday→today anchors vs sleep_budget.min_hours. Volatile (no on-disk record). Read-only.
+
+**inputSchema:**
+```json
+{
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}
+```
+*tokens_est: 34*
+

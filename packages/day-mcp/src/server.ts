@@ -8,6 +8,7 @@ import { ScaffoldError } from "@scaffold/day-core";
 import { toMcpError } from "./error-mapping";
 import {
   getMorningAnchorTool,
+  getRestSuggestionTool,
   recordMorningTool,
 } from "./tools/anchor-tools";
 import { createTodoTool } from "./tools/create-todo";
@@ -73,6 +74,7 @@ export const TOOLS: ToolRegistry = [
   computeTaskImportanceTool as Tool<unknown, unknown>,
   recordMorningTool as Tool<unknown, unknown>,
   getMorningAnchorTool as Tool<unknown, unknown>,
+  getRestSuggestionTool as Tool<unknown, unknown>,
 ];
 
 export type RunMcpServerOptions = {

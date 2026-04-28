@@ -1,8 +1,11 @@
 import {
   FsDayStore,
   ScaffoldError,
+  compilePolicy,
+  computeRestSuggestion,
   defaultHomeDir,
   readAnchorForDate,
+  readPolicyYaml,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import {
@@ -21,6 +24,12 @@ function todayDate(tz?: string): string {
     day: "2-digit",
   });
   return fmt.format(new Date());
+}
+
+/** Shift a YYYY-MM-DD date by `delta` days (negative = past). */
+function shiftDate(date: string, delta: number): string {
+  const ms = Date.parse(`${date}T00:00:00Z`);
+  return new Date(ms + delta * 86_400_000).toISOString().slice(0, 10);
 }
 
 export const todayCommand: Command = {
@@ -70,7 +79,27 @@ export const todayCommand: Command = {
     const anchor: DayViewAnchor = heartbeat
       ? { anchor: heartbeat.anchor, source: heartbeat.source }
       : null;
-    const view = buildDayView(day, tz, anchor);
+
+    // S61 rest-break: compare yesterday's anchor to today's against
+    // sleep_budget. Volatile — recomputed every call.
+    let rest = null;
+    try {
+      const yamlText = await readPolicyYaml(home);
+      const budget = yamlText
+        ? compilePolicy(yamlText).context.sleep_budget ?? null
+        : null;
+      const yesterday = shiftDate(date, -1);
+      const yesterdayHb = await readAnchorForDate(home, yesterday);
+      rest = computeRestSuggestion({
+        todayAnchor: heartbeat,
+        yesterdayAnchor: yesterdayHb,
+        budget,
+      });
+    } catch {
+      // home not initialized or policy malformed — skip suggestion
+    }
+
+    const view = buildDayView(day, tz, anchor, rest);
     if (json) {
       console.log(renderDayViewJson(view));
     } else {

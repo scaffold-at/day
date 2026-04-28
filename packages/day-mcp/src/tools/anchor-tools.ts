@@ -1,6 +1,7 @@
 import {
   buildHeartbeat,
   compilePolicy,
+  computeRestSuggestion,
   defaultHomeDir,
   now,
   readAnchorForDate,
@@ -11,6 +12,11 @@ import {
 } from "@scaffold/day-core";
 import { z } from "zod";
 import type { Tool } from "./registry";
+
+function shiftDate(date: string, delta: number): string {
+  const ms = Date.parse(`${date}T00:00:00Z`);
+  return new Date(ms + delta * 86_400_000).toISOString().slice(0, 10);
+}
 
 async function resolveTz(home: string): Promise<string> {
   const yaml = await readPolicyYaml(home);
@@ -140,6 +146,55 @@ type GetMorningAnchorOutput = {
   anchor: string | null;
   source: "explicit" | "manual" | "auto" | null;
   recorded_at: string | null;
+};
+
+// ─── get_rest_suggestion ───────────────────────────────────────────
+
+const GetRestSuggestionInputSchema = z.object({}).strict();
+type GetRestSuggestionInput = z.infer<typeof GetRestSuggestionInputSchema>;
+
+type GetRestSuggestionOutput = {
+  suggest: boolean;
+  measured_sleep_hours: number | null;
+  break_min: number;
+  reason: string;
+};
+
+export const getRestSuggestionTool: Tool<
+  GetRestSuggestionInput,
+  GetRestSuggestionOutput
+> = {
+  name: "get_rest_suggestion",
+  description:
+    "Compute today's rest-break suggestion from yesterday→today anchors vs sleep_budget.min_hours. Volatile (no on-disk record). Read-only.",
+  inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  parser: GetRestSuggestionInputSchema,
+  handler: async (_input): Promise<GetRestSuggestionOutput> => {
+    const home = defaultHomeDir();
+    const tz = await resolveTz(home);
+    const today = todayInTz(tz);
+    const yesterday = shiftDate(today, -1);
+
+    const yamlText = await readPolicyYaml(home);
+    const budget = yamlText
+      ? compilePolicy(yamlText).context.sleep_budget ?? null
+      : null;
+
+    const todayAnchor = await readAnchorForDate(home, today);
+    const yesterdayAnchor = await readAnchorForDate(home, yesterday);
+
+    const r = computeRestSuggestion({
+      todayAnchor,
+      yesterdayAnchor,
+      budget,
+    });
+    return {
+      suggest: r.suggest,
+      measured_sleep_hours: r.measured_sleep_hours,
+      break_min: r.break_min,
+      reason: r.reason,
+    };
+  },
 };
 
 export const getMorningAnchorTool: Tool<

@@ -11,3 +11,8 @@ export {
   readLatestAnchor,
   recordAnchor,
 } from "./anchor";
+export {
+  computeRestSuggestion,
+  type RestSuggestion,
+  type RestSuggestionInput,
+} from "./rest-break";
