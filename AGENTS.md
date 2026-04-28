@@ -226,12 +226,12 @@ preset apply <name>
 
 ### `scaffold-day logs` — tail or query scaffold-day operational logs
 
-- **WHAT.** Read logs/YYYY-MM/{placements,conflicts,user-decisions}.jsonl with simple filters. Outputs JSON Lines or formatted lines.
-- **WHEN.** When debugging an unexpected placement, conflict resolution, or sync event.
-- **COST.** Local read only. Streams; bounded by disk and stdout speed.
-- **INPUT.** [--since <duration>] [--kind placement|conflict|decision] [--json] [--follow]
-- **RETURN.** JSON Lines on stdout (one event per line) when --json, otherwise human-formatted lines.
-- **GOTCHA.** Logs never contain TODO content (that lives in todos/active/detail/). Tracking SLICES.md §S25 (placement log) and §S2 (entrypoint).
+- **WHAT.** Read placement / conflict / heartbeat logs from `<home>/logs/`. Filters: --since (1d / 12h / 30m / ISO date) and --kind (placement | conflict | heartbeat | decision). v0.2.1 ships read+filter+format; --follow lands in a later patch.
+- **WHEN.** When debugging an unexpected placement, a resolved conflict, or to audit when 'morning' was recorded across days.
+- **COST.** Local read only. Loads matching JSONL files into memory; corpora are small in v0.2.
+- **INPUT.** [--since <duration|date>] [--kind placement|conflict|heartbeat|decision] [--json] [--follow placeholder]
+- **RETURN.** JSON Lines on stdout when --json. Otherwise human-formatted lines, one per entry, sorted by `at` ascending.
+- **GOTCHA.** `decision` is an alias for placement+conflict (no separate decision log in v0.2). --follow currently throws DAY_USAGE; tail/follow lands in a v0.2.x slice.
 
 ### `scaffold-day telemetry` — inspect or change opt-in heartbeat telemetry preferences
 

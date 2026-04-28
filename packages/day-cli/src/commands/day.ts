@@ -264,11 +264,11 @@ async function runDayReplan(args: string[]): Promise<number> {
       command: "day replan",
       writes: [
         { path: `days/${date.slice(0, 7)}/${date}.json`, op: "update" },
-        { path: "logs/placement.jsonl", op: "update" },
+        { path: `logs/${date.slice(0, 7)}/placements.jsonl`, op: "update" },
         ...(outcome.dropped.length > 0
           ? ([
               { path: `conflicts/${date.slice(0, 7)}.json`, op: "update" },
-              { path: "logs/conflict.jsonl", op: "update" },
+              { path: `logs/${date.slice(0, 7)}/conflicts.jsonl`, op: "update" },
             ] as const)
           : []),
       ],

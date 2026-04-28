@@ -12,3 +12,10 @@ export {
   type PlacementLogEntry,
   PlacementLogEntrySchema,
 } from "./placement-log";
+export {
+  type LogKind,
+  parseSinceArg,
+  readLogs,
+  type ReadLogsOptions,
+  type UnifiedLogEntry,
+} from "./reader";

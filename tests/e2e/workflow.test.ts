@@ -293,12 +293,12 @@ describe("day months / day overview", () => {
 });
 
 describe("placeholder commands", () => {
-  // `mcp` (S41), `doctor` (S35), and `init` (S29.5) are no longer placeholders.
+  // `mcp` (S41), `doctor` (S35), `init` (S29.5), and `logs` (S63) are
+  // no longer placeholders.
   test.each([
     "feedback",
     "self-update",
     "rebuild-index",
-    "logs",
     "telemetry",
   ])("'%s' prints a placeholder message and exits 0", async (cmd) => {
     const r = await runCli([cmd], { home });

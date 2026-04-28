@@ -382,7 +382,7 @@ async function runDo(args: string[]): Promise<number> {
       command: "place do",
       writes: [
         { path: `policy-snapshots/${hash.slice(0, 12)}.yaml`, op: "create" },
-        { path: "logs/placement.jsonl", op: "update" },
+        { path: `logs/${date.slice(0, 7)}/placements.jsonl`, op: "update" },
         { path: `days/${date.slice(0, 7)}/${date}.json`, op: "update" },
         { path: `days/${date.slice(0, 7)}/manifest.json`, op: "update" },
       ],
@@ -583,7 +583,7 @@ async function runOverride(args: string[]): Promise<number> {
 
   if (isDryRun()) {
     const writes: Array<{ path: string; op: "create" | "update" | "delete" }> = [
-      { path: "logs/placement.jsonl", op: "update" },
+      { path: `logs/${newDate.slice(0, 7)}/placements.jsonl`, op: "update" },
     ];
     if (newDate === foundDate) {
       writes.push({ path: `days/${foundDate.slice(0, 7)}/${foundDate}.json`, op: "update" });

@@ -146,7 +146,7 @@ async function runResolve(args: string[]): Promise<number> {
       writes: [
         { path: `conflicts/${found.month}.json`, op: "update" },
         { path: `days/${found.conflict.date.slice(0, 7)}/${found.conflict.date}.json`, op: "update" },
-        { path: "logs/conflict.jsonl", op: "update" },
+        { path: `logs/${found.month}/conflicts.jsonl`, op: "update" },
       ],
       result: { id, status: newStatus, reason: reason ?? null, by, at: now },
     });
@@ -228,7 +228,7 @@ async function runDetect(args: string[]): Promise<number> {
       writes: [
         { path: `conflicts/${date.slice(0, 7)}.json`, op: "update" },
         { path: `days/${date.slice(0, 7)}/${date}.json`, op: "update" },
-        { path: "logs/conflict.jsonl", op: "update" },
+        { path: `logs/${date.slice(0, 7)}/conflicts.jsonl`, op: "update" },
       ],
       result: { date, detected_count: detected.length, detected },
     });
