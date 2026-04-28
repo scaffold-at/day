@@ -12,7 +12,7 @@
     <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
     <meta property="og:title" content="scaffold-day" />
-    <meta property="og:description" content="Scaffold your day with AI. CLI + MCP scheduler." />
+    <meta property="og:description" content="Scaffold your day with AI. CLI + MCP scheduler with relative time model." />
     <meta property="og:url" content="https://day.scaffold.at" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="scaffold.at" />
@@ -27,6 +27,7 @@
         --accent: #2563eb;
         --accent-soft: #eff6ff;
         --bg: #ffffff;
+        --bg-soft: #fafafa;
         --code-bg: #0b1020;
         --code-fg: #e2e8f0;
         --code-muted: #94a3b8;
@@ -40,6 +41,7 @@
           --accent: #60a5fa;
           --accent-soft: #1e293b;
           --bg: #0a0a0a;
+          --bg-soft: #111111;
           --code-bg: #0b1020;
           --border: #2a2a2e;
           --ok: #4ade80;
@@ -47,38 +49,40 @@
       }
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
       body {
-        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        font: 16px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text",
           "Segoe UI", Helvetica, Arial, sans-serif;
         color: var(--fg);
         background: var(--bg);
-        max-width: 760px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 760px) minmax(0, 240px);
+        gap: 3.5rem;
+        max-width: 1100px;
         margin: 0 auto;
         padding: 4rem 1.5rem 6rem;
       }
-      h1 {
-        font-size: 3rem;
-        margin: 0 0 0.5rem;
-        letter-spacing: -0.025em;
-        line-height: 1.05;
+      @media (max-width: 900px) {
+        .layout { grid-template-columns: 1fr; gap: 2rem; padding-top: 2rem; }
+        nav.toc { order: -1; position: static; max-height: none; border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
       }
-      .tagline { color: var(--muted); font-size: 1.2rem; margin: 0 0 2.5rem; }
+
+      main { min-width: 0; }
+      h1 { font-size: 3rem; margin: 0 0 0.5rem; letter-spacing: -0.025em; line-height: 1.05; }
       h2 {
-        font-size: 1.25rem;
-        margin: 3rem 0 0.75rem;
-        letter-spacing: -0.01em;
+        font-size: 1.55rem;
+        margin: 3.5rem 0 0.75rem;
+        letter-spacing: -0.012em;
+        scroll-margin-top: 1rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.4rem;
       }
-      h3 {
-        font-size: 1rem;
-        margin: 1.5rem 0 0.5rem;
-        color: var(--muted);
-        font-weight: 600;
-      }
+      h3 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; }
       p { margin: 0.75rem 0; }
-      .lede {
-        font-size: 1.05rem;
-        margin: 0 0 1.25rem;
-      }
+      .tagline { color: var(--muted); font-size: 1.2rem; margin: 0 0 1.5rem; }
+      .lede { font-size: 1.05rem; margin: 0 0 1.25rem; }
 
       pre {
         background: var(--code-bg);
@@ -91,6 +95,8 @@
       }
       pre .comment { color: var(--code-muted); }
       pre .prompt { color: var(--code-muted); user-select: none; }
+      pre .key { color: #93c5fd; }
+      pre .str { color: #86efac; }
       code { font: 14px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
       :not(pre) > code {
         background: var(--accent-soft);
@@ -98,11 +104,15 @@
         border-radius: 4px;
         padding: 0.1rem 0.35rem;
         font-size: 0.92em;
+        white-space: nowrap;
       }
       a { color: var(--accent); text-decoration: none; }
       a:hover { text-decoration: underline; }
-      ul { padding-left: 1.25rem; }
+      ul, ol { padding-left: 1.25rem; }
       li { margin: 0.25rem 0; }
+      table { border-collapse: collapse; margin: 0.75rem 0; width: 100%; font-size: 0.95rem; }
+      th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+      th { font-weight: 600; color: var(--muted); }
 
       .pill {
         display: inline-block;
@@ -116,10 +126,7 @@
         font-weight: 500;
       }
 
-      /* Copy-able command block */
-      .cmd {
-        position: relative;
-      }
+      .cmd { position: relative; }
       .cmd .copy {
         position: absolute;
         top: 0.5rem;
@@ -134,37 +141,18 @@
         opacity: 0;
         transition: opacity 0.12s;
       }
-      .cmd:hover .copy,
-      .cmd .copy:focus {
-        opacity: 1;
-      }
+      .cmd:hover .copy, .cmd .copy:focus { opacity: 1; }
       .cmd .copy.ok { color: var(--ok); border-color: var(--ok); }
 
-      /* Tabs (MCP client switcher) */
-      .tabs {
-        display: flex;
-        gap: 0.25rem;
-        border-bottom: 1px solid var(--border);
-        margin-bottom: 0.75rem;
-      }
+      .tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border); margin-bottom: 0.75rem; flex-wrap: wrap; }
       .tabs button {
-        background: transparent;
-        border: 0;
-        border-bottom: 2px solid transparent;
-        color: var(--muted);
-        padding: 0.5rem 0.75rem;
-        cursor: pointer;
-        font: inherit;
-        font-size: 0.9rem;
+        background: transparent; border: 0; border-bottom: 2px solid transparent;
+        color: var(--muted); padding: 0.5rem 0.75rem; cursor: pointer; font: inherit; font-size: 0.9rem;
       }
-      .tabs button[aria-selected="true"] {
-        color: var(--fg);
-        border-color: var(--accent);
-      }
+      .tabs button[aria-selected="true"] { color: var(--fg); border-color: var(--accent); }
       .tabpanel { display: none; }
       .tabpanel[data-active] { display: block; }
 
-      /* Demo terminal */
       .term {
         background: var(--code-bg);
         color: var(--code-fg);
@@ -176,6 +164,16 @@
       }
       .term .dim { color: var(--code-muted); }
       .term .ok { color: #4ade80; }
+      .term .amber { color: #fbbf24; }
+
+      .callout {
+        border-left: 3px solid var(--accent);
+        background: var(--bg-soft);
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+        border-radius: 0 6px 6px 0;
+      }
+      .callout strong { color: var(--accent); }
 
       footer {
         margin-top: 5rem;
@@ -184,78 +182,224 @@
         color: var(--muted);
         font-size: 0.9rem;
       }
+
+      /* Sticky TOC */
+      nav.toc {
+        position: sticky;
+        top: 1.5rem;
+        align-self: start;
+        max-height: calc(100vh - 3rem);
+        overflow-y: auto;
+        font-size: 0.92rem;
+      }
+      nav.toc h4 { margin: 0 0 0.5rem; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+      nav.toc ol { list-style: none; padding: 0; margin: 0; }
+      nav.toc li { margin: 0.18rem 0; }
+      nav.toc a { color: var(--muted); }
+      nav.toc a:hover { color: var(--fg); text-decoration: none; }
+      nav.toc li.sub { padding-left: 1rem; font-size: 0.88rem; }
     </style>
   </head>
   <body>
-    <h1>scaffold-day<span class="pill">v0.1 · pre-release</span></h1>
-    <p class="tagline">Scaffold your day with AI.</p>
+    <div class="layout">
+      <main>
+        <h1>scaffold-day<span class="pill">v0.2 · pre-release</span></h1>
+        <p class="tagline">Scaffold your day with AI.</p>
 
-    <p class="lede">
-      A CLI-first, MCP-ready scheduler that places your TODOs into the
-      free slots of your calendar — with AI clients (Claude Code, Cursor,
-      Claude Desktop) as a first-class user. The same surface is
-      exposed both as CLI flags and as MCP tools, so an LLM can plan
-      your day with one tool call instead of piping CLI text.
-    </p>
+        <p class="lede">
+          A CLI-first, MCP-ready scheduler that places your TODOs into the
+          free slots of your calendar — with AI clients (Claude Code,
+          Cursor, Claude Desktop) as a first-class user. Same surface via
+          CLI flags or MCP tools, so an LLM can plan your day with one
+          tool call instead of piping CLI text.
+        </p>
 
-    <h2>Install</h2>
-    <div class="cmd">
-      <pre id="cmd-install"><code>curl -fsSL https://day.scaffold.at/install.sh | sh</code></pre>
-      <button class="copy" data-copy="cmd-install" aria-label="Copy install command">copy</button>
-    </div>
-    <p style="color: var(--muted); font-size: 0.9rem;">
-      Tier 1: macOS Apple Silicon, Linux x64. v0.1 binaries are
-      <strong>unsigned</strong> (Apple notarization is post-v0.1). The
-      installer clears the macOS quarantine attribute for you. Pin a
-      version with <code>sh -s -- --version v0.1.0</code>.
-    </p>
+        <h2 id="install">Install</h2>
+        <div class="cmd">
+          <pre id="cmd-install"><code>curl -fsSL https://day.scaffold.at/install.sh | sh</code></pre>
+          <button class="copy" data-copy="cmd-install" aria-label="Copy install command">copy</button>
+        </div>
+        <p style="color: var(--muted); font-size: 0.9rem;">
+          Tier 1: macOS Apple Silicon, Linux x64. v0.2 binaries are
+          <strong>unsigned</strong> (Apple notarization is post-v0.2). The
+          installer clears the macOS quarantine attribute for you.
+        </p>
+        <p>Pin a specific version:</p>
+        <div class="cmd">
+          <pre id="cmd-install-pin"><code>curl -fsSL https://day.scaffold.at/install.sh | sh -s -- --version v0.2.0</code></pre>
+          <button class="copy" data-copy="cmd-install-pin" aria-label="Copy pinned install">copy</button>
+        </div>
 
-    <h2>Quick start</h2>
-    <div class="cmd">
-      <pre id="cmd-quick"><code><span class="prompt">$ </span>scaffold-day init                  <span class="comment"># ~/.scaffold-day + balanced policy</span>
-<span class="prompt">$ </span>scaffold-day today --tz Asia/Seoul
-<span class="prompt">$ </span>scaffold-day docs --for-ai          <span class="comment"># AI-readable surface dump</span></code></pre>
-      <button class="copy" data-copy="cmd-quick" aria-label="Copy quick-start commands">copy</button>
-    </div>
+        <h2 id="update">Update</h2>
+        <p>Re-run the installer. It always resolves the latest release tag and
+          replaces the binary in place. Existing data in <code>~/.scaffold-day/</code>
+          (todos, events, policy, anchors) is preserved.</p>
+        <div class="cmd">
+          <pre id="cmd-update"><code>curl -fsSL https://day.scaffold.at/install.sh | sh
+scaffold-day --version    <span class="comment"># confirm the new version</span>
+scaffold-day doctor       <span class="comment"># sanity check</span></code></pre>
+          <button class="copy" data-copy="cmd-update" aria-label="Copy update commands">copy</button>
+        </div>
+        <div class="callout">
+          <strong>Claude Desktop note:</strong> the MCP server respawns the
+          binary on each session, but Claude Desktop caches the tool catalog.
+          Fully quit (Cmd+Q on macOS) and reopen it after upgrading so new
+          tools (e.g. <code>record_morning</code>) appear.
+        </div>
 
-    <h2>What it looks like</h2>
-    <div class="term">scaffold-day today
-<span class="dim">─────────────────────────────────────────────</span>
-2026-04-27 (Mon) · Asia/Seoul · policy: balanced
+        <h2 id="quickstart">Quick start</h2>
+        <div class="cmd">
+          <pre id="cmd-quick"><code><span class="prompt">$ </span>scaffold-day init                  <span class="comment"># ~/.scaffold-day + balanced policy</span>
+<span class="prompt">$ </span>scaffold-day morning                <span class="comment"># anchor today (relative time t=0)</span>
+<span class="prompt">$ </span>scaffold-day todo add --title "Q2 OKR draft" --duration-min 60
+<span class="prompt">$ </span>scaffold-day place suggest &lt;todo-id&gt; --json
+<span class="prompt">$ </span>scaffold-day today --tz Asia/Seoul</code></pre>
+          <button class="copy" data-copy="cmd-quick" aria-label="Copy quick-start commands">copy</button>
+        </div>
 
-<span class="dim">events</span>
-  10:00–11:00  Standup
-  14:00–15:00  Design review
+        <h2 id="concepts">Core concepts</h2>
+        <p>scaffold-day separates <em>intent</em> from <em>commitment</em>. Three
+          object types capture different stages:</p>
+        <table>
+          <thead><tr><th>Type</th><th>Meaning</th><th>Created by</th></tr></thead>
+          <tbody>
+            <tr><td><strong>todo</strong></td><td>Work to do; no time picked yet</td><td><code>todo add</code></td></tr>
+            <tr><td><strong>event</strong></td><td>Fixed time block (meeting, appointment) — won't move</td><td><code>event add</code></td></tr>
+            <tr><td><strong>placement</strong></td><td>A todo committed to a slot — moves with <code>override</code> or <code>replan</code></td><td><code>place do</code></td></tr>
+          </tbody>
+        </table>
+        <p>So <code>todo add</code> alone does not appear in <code>today</code> — it's
+          a candidate. Use <code>place suggest</code> + <code>place do</code> to land it
+          on a slot, and the day's view picks it up.</p>
 
-<span class="dim">placements</span>
-  09:00–10:00  Draft Q2 OKR doc           <span class="ok">★ 78</span>
-  11:30–12:30  Review PR #142             <span class="ok">★ 64</span>
+        <h2 id="anchor">Morning anchor & the relative time model<span class="pill">v0.2</span></h2>
+        <p>v0.2 introduces an <strong>anchor</strong> — the wall-clock instant a user
+          "started today". It's the t=0 reference for three new policy fields,
+          all opt-in. Without them, scaffold-day behaves exactly like v0.1.</p>
 
-<span class="dim">free slots</span>
-  13:00–14:00 (1h) · 15:00–18:00 (3h)
+        <h3>Recording the anchor</h3>
+        <div class="cmd">
+          <pre id="cmd-morning"><code><span class="prompt">$ </span>scaffold-day morning                  <span class="comment"># now → explicit</span>
+<span class="prompt">$ </span>scaffold-day morning --at 07:30       <span class="comment"># custom time → manual</span>
+<span class="prompt">$ </span>scaffold-day morning --force          <span class="comment"># override existing</span></code></pre>
+          <button class="copy" data-copy="cmd-morning" aria-label="Copy morning commands">copy</button>
+        </div>
+        <p style="color: var(--muted); font-size: 0.9rem;">
+          AI clients should call the MCP <code>record_morning</code> tool whenever
+          the user greets them in the morning. The first non-init command of
+          each day also records an <code>auto</code>-source anchor as a fallback;
+          an explicit call upgrades it silently.
+        </p>
+
+        <h3>Three layered policies (all optional)</h3>
+        <table>
+          <thead><tr><th>Field</th><th>Effect</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td><code>sleep_budget</code></td><td>Reject slots that push tonight's sleep below <code>min_hours</code>; soft penalty below <code>target_hours</code></td><td>min 6h, target 8h</td></tr>
+            <tr><td><code>cognitive_load</code></td><td>Decay heavy tasks (<code>effort_min ≥ 60</code>) past the capacity window after anchor</td><td>4h window, linear -10/h</td></tr>
+            <tr><td><code>recovery_block</code></td><td>Soft penalty on next-day morning slots when yesterday had a forced-late event (≥ 2h past working hours)</td><td>2h block, -30 penalty</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Activate them</h3>
+        <div class="cmd">
+          <pre id="cmd-activate"><code><span class="prompt">$ </span>scaffold-day policy patch '[
+  {"op":"add","path":"/context/sleep_budget","value":{"target_hours":8,"min_hours":6,"soft_penalty_per_hour":15}},
+  {"op":"add","path":"/context/cognitive_load","value":{"decay":"linear","full_capacity_window_hours":4,"heavy_task_threshold_min":60,"linear_penalty_per_hour":10,"exponential_base":2}},
+  {"op":"add","path":"/context/recovery_block","value":{"late_threshold_minutes_past_working_end":120,"morning_block_hours":2,"soft_penalty":30}}
+]'</code></pre>
+          <button class="copy" data-copy="cmd-activate" aria-label="Copy activate command">copy</button>
+        </div>
+
+        <h3>What you'll see in <code>today</code></h3>
+        <div class="term"><span class="dim">──────────────────────────────────────────────</span>
+2026-04-29 · Asia/Seoul
+<span class="dim">──────────────────────────────────────────────</span>
+<span class="dim">Day started 03:00</span>
+<span class="amber">Rest break suggested · ~20 min (slept 4.0h last night)</span>
+
+<span class="dim">Free</span>
+  09:00-12:00  [free 180m]
+  13:00-18:00  [free 300m]
+
+<span class="dim">Summary: 0 events, 0 placements, 2 free slots, 0 open conflicts.</span>
 </div>
 
-    <h2>Use it from your AI client</h2>
-    <p>
-      <code>scaffold-day mcp</code> speaks the
-      <a href="https://modelcontextprotocol.io">Model Context Protocol</a>
-      over stdio — 24 tools (<code>get_day</code>,
-      <code>suggest_placement</code>, <code>place_todo</code>,
-      <code>compute_task_importance</code>, <code>replan_day</code>,
-      <code>explain_placement</code>, …). Drop one of the snippets below
-      into your client config:
-    </p>
+        <h2 id="commands">CLI command reference</h2>
+        <p>Every command honors <code>--help</code> with a 6-section template
+          (WHAT/WHEN/COST/INPUT/RETURN/GOTCHA). 22 commands total; 17 land
+          real behavior in v0.2, 5 are placeholders for v0.2.x (Phase B).</p>
 
-    <div class="tabs" role="tablist" aria-label="MCP client config">
-      <button role="tab" aria-selected="true" data-tab="claude-desktop">Claude Desktop</button>
-      <button role="tab" aria-selected="false" data-tab="claude-code">Claude Code</button>
-      <button role="tab" aria-selected="false" data-tab="cursor">Cursor</button>
-    </div>
+        <table>
+          <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>init</code></td><td>Seed <code>~/.scaffold-day</code> + balanced policy</td></tr>
+            <tr><td><code>today</code></td><td>Today's events / placements / free slots / anchor / rest hint</td></tr>
+            <tr><td><code>morning</code></td><td>Record today's anchor (or query / override)</td></tr>
+            <tr><td><code>day</code></td><td>Months / overview / get / range / replan</td></tr>
+            <tr><td><code>week</code></td><td>7-day overview</td></tr>
+            <tr><td><code>todo</code></td><td>add / list / get / update / archive / score</td></tr>
+            <tr><td><code>event</code></td><td>add (update / delete are placeholder)</td></tr>
+            <tr><td><code>place</code></td><td>suggest / do / override</td></tr>
+            <tr><td><code>policy</code></td><td>show / patch / preset apply</td></tr>
+            <tr><td><code>conflict</code></td><td>list / resolve / detect</td></tr>
+            <tr><td><code>explain</code></td><td>Show why a slot was chosen (replay)</td></tr>
+            <tr><td><code>auth</code></td><td>Manage Google OAuth token (mock-mode in v0.2)</td></tr>
+            <tr><td><code>doctor</code></td><td>Health check (env / providers / adapters / anchor)</td></tr>
+            <tr><td><code>migrate</code></td><td>Schema migration (preview default)</td></tr>
+            <tr><td><code>mcp</code></td><td>Run the MCP server over stdio</td></tr>
+            <tr><td><code>docs</code></td><td>Single-shot AI-readable surface dump</td></tr>
+          </tbody>
+        </table>
+        <p style="color: var(--muted); font-size: 0.9rem;">
+          Placeholders (print "implementation pending §S##"):
+          <code>feedback</code>, <code>self-update</code>, <code>telemetry</code>,
+          <code>logs</code>, <code>rebuild-index</code>. Real impls land in v0.2.x Phase B.
+        </p>
 
-    <div class="tabpanel" data-tab="claude-desktop" data-active>
-      <h3><code>~/Library/Application Support/Claude/claude_desktop_config.json</code></h3>
-      <div class="cmd">
-        <pre id="mcp-claude-desktop"><code>{
+        <h3>Global flags</h3>
+        <ul>
+          <li><code>--json</code> — structured output (preferred for AI clients and scripts)</li>
+          <li><code>--dry-run</code> — preview the disk effects + would-be result; <strong>no mutation</strong>. Works on every write command.</li>
+        </ul>
+
+        <h3>Common recipes</h3>
+        <div class="cmd">
+          <pre id="cmd-recipes"><code><span class="comment"># Add a TODO and place it on the best slot today</span>
+ID=$(scaffold-day todo add --title "OKR draft" --duration-min 60 --json | jq -r .id)
+SLOT=$(scaffold-day place suggest $ID --json | jq -r '.candidates[0] | "\(.start)/\(.end)"')
+scaffold-day place do $ID --slot $SLOT
+
+<span class="comment"># Move a placement to a different slot</span>
+scaffold-day place override &lt;placement-id&gt; --new-slot 2026-04-29T15:00:00+09:00
+
+<span class="comment"># Replan today (auto-shuffle unlocked placements)</span>
+scaffold-day day replan 2026-04-29 --json
+
+<span class="comment"># Explain why a placement landed where it did</span>
+scaffold-day explain &lt;placement-id&gt; --json</code></pre>
+          <button class="copy" data-copy="cmd-recipes" aria-label="Copy recipes">copy</button>
+        </div>
+
+        <h2 id="mcp">Use it from your AI client</h2>
+        <p>
+          <code>scaffold-day mcp</code> speaks the
+          <a href="https://modelcontextprotocol.io">Model Context Protocol</a>
+          over stdio. v0.2 ships <strong>27 tools</strong> covering day reads,
+          todo CRUD, placement, policy, and anchors. Drop one of the snippets
+          below into your client config, then fully restart the client.
+        </p>
+
+        <div class="tabs" role="tablist" aria-label="MCP client config">
+          <button role="tab" aria-selected="true" data-tab="claude-desktop">Claude Desktop</button>
+          <button role="tab" aria-selected="false" data-tab="claude-code">Claude Code</button>
+          <button role="tab" aria-selected="false" data-tab="cursor">Cursor</button>
+        </div>
+
+        <div class="tabpanel" data-tab="claude-desktop" data-active>
+          <h3><code>~/Library/Application Support/Claude/claude_desktop_config.json</code></h3>
+          <div class="cmd">
+            <pre id="mcp-claude-desktop"><code>{
   "mcpServers": {
     "scaffold-day": {
       "command": "scaffold-day",
@@ -263,22 +407,27 @@
     }
   }
 }</code></pre>
-        <button class="copy" data-copy="mcp-claude-desktop" aria-label="Copy Claude Desktop config">copy</button>
-      </div>
-    </div>
+            <button class="copy" data-copy="mcp-claude-desktop" aria-label="Copy Claude Desktop config">copy</button>
+          </div>
+          <p style="color: var(--muted); font-size: 0.9rem;">
+            If <code>scaffold-day</code> is not on Claude Desktop's PATH, replace
+            <code>"scaffold-day"</code> with the absolute path printed by
+            <code>which scaffold-day</code>.
+          </p>
+        </div>
 
-    <div class="tabpanel" data-tab="claude-code">
-      <h3>One command (writes <code>~/.config/claude-code/mcp.json</code> or merges)</h3>
-      <div class="cmd">
-        <pre id="mcp-claude-code"><code>claude mcp add scaffold-day -- scaffold-day mcp</code></pre>
-        <button class="copy" data-copy="mcp-claude-code" aria-label="Copy Claude Code mcp add command">copy</button>
-      </div>
-    </div>
+        <div class="tabpanel" data-tab="claude-code">
+          <h3>One command (writes / merges <code>~/.config/claude-code/mcp.json</code>)</h3>
+          <div class="cmd">
+            <pre id="mcp-claude-code"><code>claude mcp add scaffold-day -- scaffold-day mcp</code></pre>
+            <button class="copy" data-copy="mcp-claude-code" aria-label="Copy Claude Code mcp add">copy</button>
+          </div>
+        </div>
 
-    <div class="tabpanel" data-tab="cursor">
-      <h3>Cursor → Settings → MCP → Add</h3>
-      <div class="cmd">
-        <pre id="mcp-cursor"><code>{
+        <div class="tabpanel" data-tab="cursor">
+          <h3>Cursor → Settings → MCP → Add</h3>
+          <div class="cmd">
+            <pre id="mcp-cursor"><code>{
   "mcpServers": {
     "scaffold-day": {
       "command": "scaffold-day",
@@ -286,58 +435,193 @@
     }
   }
 }</code></pre>
-        <button class="copy" data-copy="mcp-cursor" aria-label="Copy Cursor MCP config">copy</button>
-      </div>
+            <button class="copy" data-copy="mcp-cursor" aria-label="Copy Cursor MCP config">copy</button>
+          </div>
+        </div>
+
+        <h3 id="agents-md">Tip: paste AGENTS.md into the system prompt</h3>
+        <p>
+          <a href="https://github.com/scaffold-at/day/blob/main/AGENTS.md">AGENTS.md</a>
+          carries JTBD recipes (<em>"a meeting moved → replan"</em>, <em>"add a TODO and place it"</em>)
+          plus the full tool surface. One paste at session start saves the LLM
+          from re-deriving call sequences. Token budget is small (~10k chars);
+          well within any modern context.
+        </p>
+
+        <h3>v0.2 morning anchor flow via MCP</h3>
+        <ol>
+          <li>User greets the AI ("Good morning!") → AI emits <code>record_morning</code></li>
+          <li>User asks "what's on my plate today?" → AI calls <code>get_day</code></li>
+          <li>User adds tasks ("OKR draft, 1 hour") → AI calls <code>create_todo</code> + <code>compute_task_importance</code> + <code>suggest_placement</code> + <code>place_todo</code> in sequence</li>
+          <li>User asks "how am I doing?" → AI calls <code>get_rest_suggestion</code> for sleep-debt awareness</li>
+        </ol>
+
+        <h2 id="policy">Policy reference</h2>
+        <p><code>~/.scaffold-day/policy/current.yaml</code> is the single source of
+          truth for scheduling decisions. The YAML codec preserves
+          comments, so hand-editing is safe.</p>
+
+        <h3>Modify with JSON Patch (RFC 6902, comments preserved)</h3>
+        <div class="cmd">
+          <pre id="cmd-patch"><code><span class="comment"># Move lunch protection from 12:00-13:00 to 12:30-13:30</span>
+scaffold-day policy patch '[
+  {"op":"replace","path":"/context/protected_ranges/0/start","value":"12:30"},
+  {"op":"replace","path":"/context/protected_ranges/0/end","value":"13:30"}
+]'</code></pre>
+          <button class="copy" data-copy="cmd-patch" aria-label="Copy patch example">copy</button>
+        </div>
+
+        <h3>Or just edit the file</h3>
+        <p>Comments survive. <code>scaffold-day today</code> picks up changes
+          on the next call.</p>
+        <div class="cmd">
+          <pre id="cmd-editor"><code>$EDITOR ~/.scaffold-day/policy/current.yaml</code></pre>
+          <button class="copy" data-copy="cmd-editor" aria-label="Copy editor cmd">copy</button>
+        </div>
+
+        <h3>Field overview</h3>
+        <table>
+          <thead><tr><th>Path</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>context.tz</code></td><td>IANA timezone for all relative-time math</td></tr>
+            <tr><td><code>context.working_hours[]</code></td><td>Per-weekday placement window (outside is blocked)</td></tr>
+            <tr><td><code>context.protected_ranges[]</code></td><td>Always-blocked windows (sleep, lunch)</td></tr>
+            <tr><td><code>context.energy_peaks[]</code></td><td>Soft hint for tag-aware preferences</td></tr>
+            <tr><td><code>context.sleep_budget</code><span class="pill">v0.2</span></td><td>Hard reject + soft penalty on tonight's sleep</td></tr>
+            <tr><td><code>context.cognitive_load</code><span class="pill">v0.2</span></td><td>Decay heavy tasks past capacity window</td></tr>
+            <tr><td><code>context.recovery_block</code><span class="pill">v0.2</span></td><td>Soft block on tomorrow morning after late events</td></tr>
+            <tr><td><code>hard_rules[]</code></td><td>Non-negotiable placement constraints</td></tr>
+            <tr><td><code>soft_preferences[]</code></td><td>Tag/time-aware score nudges</td></tr>
+            <tr><td><code>importance_weights</code></td><td>How urgency/impact/effort/etc combine into score</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="dryrun">Test changes safely<span class="pill">v0.2</span></h2>
+        <p>Every write command supports <code>--dry-run</code>. Disk is untouched;
+          stdout shows what <em>would</em> have happened.</p>
+        <div class="cmd">
+          <pre id="cmd-dry"><code><span class="prompt">$ </span>scaffold-day --dry-run todo add --title "test" --duration-min 30 --json
+{
+  <span class="key">"dry_run"</span>: <span class="str">true</span>,
+  <span class="key">"would"</span>: {
+    <span class="key">"command"</span>: <span class="str">"todo add"</span>,
+    <span class="key">"writes"</span>: [
+      { <span class="key">"path"</span>: <span class="str">"todos/active/index.json"</span>, <span class="key">"op"</span>: <span class="str">"update"</span> },
+      { <span class="key">"path"</span>: <span class="str">"todos/active/detail/&lt;new-id&gt;.json"</span>, <span class="key">"op"</span>: <span class="str">"create"</span> }
+    ],
+    <span class="key">"result"</span>: { <span class="key">"title"</span>: <span class="str">"test"</span>, <span class="key">"status"</span>: <span class="str">"open"</span>, ... }
+  }
+}</code></pre>
+          <button class="copy" data-copy="cmd-dry" aria-label="Copy dry-run example">copy</button>
+        </div>
+        <p style="color: var(--muted); font-size: 0.9rem;">
+          Read commands ignore the flag (no-op). MCP tools intentionally
+          do not have a dry-run mode — the <code>suggest_placement</code> /
+          <code>compute_task_importance</code> read tools already serve as the
+          preview path before <code>place_todo</code> / <code>create_todo</code>.
+        </p>
+
+        <h2 id="data">Where your data lives</h2>
+        <pre><code>~/.scaffold-day/
+├── .scaffold-day/schema-version.json   <span class="comment"># migration tracking</span>
+├── .secrets/                            <span class="comment"># 0700, OAuth tokens go here</span>
+├── policy/current.yaml                  <span class="comment"># the single source of truth</span>
+├── policy-snapshots/                    <span class="comment"># per-placement snapshot (replay)</span>
+├── todos/active/{index.json, detail/}   <span class="comment"># 2-tier TODO storage</span>
+├── todos/archive/                       <span class="comment"># archived todos</span>
+├── days/YYYY-MM/{manifest.json, *.json} <span class="comment"># events + placements per day</span>
+├── sync/                                <span class="comment"># Google Cal sync state (mock in v0.2)</span>
+├── conflicts/                           <span class="comment"># conflict partitions</span>
+└── logs/
+    ├── heartbeats.jsonl                 <span class="comment"># morning anchor records (v0.2)</span>
+    ├── placement.jsonl                  <span class="comment"># placement decisions (replay)</span>
+    └── conflict.jsonl                   <span class="comment"># conflict actions</span></code></pre>
+        <p>Override the location with <code>SCAFFOLD_DAY_HOME=/path/to/dir</code>.</p>
+
+        <h2 id="troubleshooting">Troubleshooting</h2>
+        <table>
+          <thead><tr><th>Symptom</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Claude Desktop doesn't show new MCP tools after upgrade</td>
+              <td>Cmd+Q, then reopen. Tool catalog is fetched on session start.</td>
+            </tr>
+            <tr>
+              <td><code>scaffold-day --version</code> still shows the old version</td>
+              <td>Check <code>which scaffold-day</code>. The installer writes to <code>~/.local/bin</code> if <code>/usr/local/bin</code> is not writable; older binaries on PATH may shadow it.</td>
+            </tr>
+            <tr>
+              <td><code>scaffold-day mcp</code> errors out under bun-darwin-arm64</td>
+              <td>Known: bun stdin needs an explicit resume on macOS. v0.2 already wires this; if you see the issue, file an issue with <code>doctor</code> output.</td>
+            </tr>
+            <tr>
+              <td>Today's anchor is wrong</td>
+              <td>Override with <code>scaffold-day morning --at 07:30 --force</code>. Future-you can also pass an ISO datetime if you need a specific instant.</td>
+            </tr>
+            <tr>
+              <td>Want to dogfood the relative time model risk-free</td>
+              <td>Pair every command with <code>--dry-run</code> until happy. Or use a sandbox home: <code>SCAFFOLD_DAY_HOME=$(mktemp -d) scaffold-day init</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="why">Why</h2>
+        <p>
+          Most calendar tools optimise for <em>displaying</em> time.
+          <code>scaffold-day</code> optimises for <em>placing</em> time:
+          take a list of TODOs, score their importance, and slot them into
+          the calendar's actual free space — under a transparent,
+          replayable policy you can edit by hand.
+        </p>
+        <p>
+          v0.2's relative time model goes one step further: instead of
+          pinning sleep to fixed clock times, you declare a <em>budget</em>,
+          and the placement engine refuses to push you below it. Heavy
+          tasks decay as the day stretches. Late nights surface a
+          recovery block tomorrow. The math is deterministic and
+          replayable; the policy is one YAML file.
+        </p>
+
+        <h2 id="links">Links</h2>
+        <ul>
+          <li><a href="https://github.com/scaffold-at/day">GitHub repo</a> — source · issues · releases</li>
+          <li><a href="https://github.com/scaffold-at/day/releases/tag/v0.2.0">v0.2.0 release notes</a></li>
+          <li><a href="https://github.com/scaffold-at/day/blob/main/CHANGELOG.md">Full CHANGELOG</a></li>
+          <li><a href="https://github.com/scaffold-at/day/blob/main/AGENTS.md">AGENTS.md</a> — paste into your AI client at session start</li>
+          <li><a href="https://github.com/scaffold-at/day/blob/main/README.md">README</a> · <a href="https://github.com/scaffold-at/day/blob/main/README.ko.md">한국어</a></li>
+          <li><a href="https://github.com/scaffold-at/day/issues/3">v0.2 progress tracker</a> · <a href="https://github.com/scaffold-at/day/issues/2">v0.2 design notes</a></li>
+          <li><a href="https://github.com/scaffold-at/day/discussions">GitHub Discussions</a> — ideas, Q&amp;A, show &amp; tell</li>
+        </ul>
+
+        <footer>
+          AGPL-3.0-or-later · part of the
+          <a href="https://scaffold.at">scaffold.at</a> products line ·
+          <span id="last-updated"></span>
+        </footer>
+      </main>
+
+      <nav class="toc" aria-label="Page outline">
+        <h4>On this page</h4>
+        <ol>
+          <li><a href="#install">Install</a></li>
+          <li><a href="#update">Update</a></li>
+          <li><a href="#quickstart">Quick start</a></li>
+          <li><a href="#concepts">Core concepts</a></li>
+          <li><a href="#anchor">Morning anchor (v0.2)</a></li>
+          <li><a href="#commands">CLI reference</a></li>
+          <li class="sub"><a href="#commands">Commands table</a></li>
+          <li class="sub"><a href="#commands">Common recipes</a></li>
+          <li><a href="#mcp">AI client (MCP)</a></li>
+          <li class="sub"><a href="#agents-md">AGENTS.md tip</a></li>
+          <li><a href="#policy">Policy reference</a></li>
+          <li><a href="#dryrun">Test safely (--dry-run)</a></li>
+          <li><a href="#data">Where data lives</a></li>
+          <li><a href="#troubleshooting">Troubleshooting</a></li>
+          <li><a href="#why">Why</a></li>
+          <li><a href="#links">Links</a></li>
+        </ol>
+      </nav>
     </div>
-
-    <p style="color: var(--muted); font-size: 0.9rem;">
-      Tip: paste
-      <a href="https://github.com/scaffold-at/day/blob/main/AGENTS.md">AGENTS.md</a>
-      into the system prompt at session start. It carries the JTBD
-      recipes (<em>"a meeting moved — replan"</em>) so the AI doesn't
-      have to derive call sequences from scratch.
-    </p>
-
-    <h2>Why</h2>
-    <p>
-      Most calendar tools optimise for <em>displaying</em> time.
-      <code>scaffold-day</code> optimises for <em>placing</em> time:
-      take a list of TODOs, score their importance, and slot them into
-      the calendar's actual free space — under a transparent,
-      replayable policy you can edit by hand.
-    </p>
-
-    <h2>Links</h2>
-    <ul>
-      <li>
-        <a href="https://github.com/scaffold-at/day">GitHub repo</a> —
-        source · issues · releases
-      </li>
-      <li>
-        <a href="https://github.com/scaffold-at/day/blob/main/AGENTS.md">AGENTS.md</a>
-        — paste into your AI client at session start
-      </li>
-      <li>
-        <a href="https://github.com/scaffold-at/day/blob/main/README.md">README</a>
-        ·
-        <a href="https://github.com/scaffold-at/day/blob/main/README.ko.md">한국어</a>
-        ·
-        <a href="https://github.com/scaffold-at/day/blob/main/CHANGELOG.md">CHANGELOG</a>
-      </li>
-      <li>
-        <a href="https://github.com/scaffold-at/day/issues/1">Walking Skeleton tracker</a>
-        — slice-by-slice progress
-      </li>
-      <li>
-        <a href="https://github.com/scaffold-at/day/discussions">GitHub Discussions</a>
-        — ideas, Q&amp;A, show &amp; tell
-      </li>
-    </ul>
-
-    <footer>
-      AGPL-3.0-or-later · part of the
-      <a href="https://scaffold.at">scaffold.at</a> products line
-    </footer>
 
     <script>
       // Copy buttons.
@@ -345,9 +629,10 @@
         btn.addEventListener('click', async () => {
           const target = document.getElementById(btn.dataset.copy);
           if (!target) return;
-          // Strip the shell prompts ("$ ") from copied text so the
-          // pasted snippet just runs.
-          const text = target.innerText.replace(/^\$ /gm, '');
+          // Strip "$ " shell prompts and inline comments from copied text.
+          let text = target.innerText.replace(/^\$ /gm, '');
+          // Drop trailing "  # comment" lines for the install / quick blocks.
+          text = text.replace(/\s+#.*$/gm, '');
           try {
             await navigator.clipboard.writeText(text);
             const prev = btn.textContent;
@@ -374,6 +659,8 @@
           }
         });
       }
+      // Footer last-updated marker (build-time string injected by the deploy).
+      document.getElementById('last-updated').textContent = 'manual for v0.2.0';
     </script>
   </body>
 </html>
