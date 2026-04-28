@@ -20,6 +20,21 @@ import { emitDryRun, isDryRun } from "../cli/runtime";
 const FEEDBACK_URL_ENV = "SCAFFOLD_DAY_FEEDBACK_URL";
 const MAX_MESSAGE_BYTES = 1024;
 
+/**
+ * Default feedback transport. Routes to the OSS project's
+ * Cloudflare Worker which forwards to the maintainer's Discord
+ * channel. Override with SCAFFOLD_DAY_FEEDBACK_URL to point to a
+ * fork's own Worker, or set to empty string to disable transport
+ * (then `feedback` falls back to GitHub Issues guidance).
+ */
+const DEFAULT_FEEDBACK_URL = "https://feedback.scaffold.at";
+
+function effectiveFeedbackUrl(): string | null {
+  const env = process.env[FEEDBACK_URL_ENV];
+  if (env === "") return null;
+  return env ?? DEFAULT_FEEDBACK_URL;
+}
+
 function usage(message: string): ScaffoldError {
   return new ScaffoldError({
     code: "DAY_USAGE",
@@ -180,7 +195,7 @@ async function runFeedback(args: string[]): Promise<number> {
     ? await buildRedactedDoctorBundle(home)
     : null;
 
-  const url = process.env[FEEDBACK_URL_ENV] ?? null;
+  const url = effectiveFeedbackUrl();
   const transportConfigured = url !== null;
 
   const payload = {

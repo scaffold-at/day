@@ -1,6 +1,6 @@
 {
   "name": "@scaffold/day-cli",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "Scaffold Day CLI — the canonical user surface.",
   "license": "AGPL-3.0-or-later",

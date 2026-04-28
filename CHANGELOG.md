@@ -11,6 +11,23 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+## [v0.2.3] - 2026-04-29
+
+Phase B 5/5 complete. `telemetry` and `feedback` ship with their
+transports wired to the maintainer's PostHog project and a
+Cloudflare Worker → Discord forwarding pipeline.
+
+### Added
+- **S65** `scaffold-day telemetry` — opt-in pseudonymous events to PostHog Cloud (US). Default is `ask` (nothing transmitted until the user opts in). install_id at `<home>/.install-id`; `show-id` / `reset-id` for user control. Event surface: `captureEvent(home, event, props)` exported for future call sites.
+- **S66** `scaffold-day feedback <message...>` — pseudonymous note routed to the maintainer Discord channel via a Cloudflare Worker (`feedback.scaffold.at`). `--include-doctor` attaches a redacted JSON bundle (no paths, no policy values, no anchor wall-clock). 1 KB cap, rate-limited per install_id (5/min · 30/hour · 100/day).
+- `apps/feedback-worker/` — Cloudflare Worker source + wrangler config + KV binding. Forwards to a Discord webhook held only as a Worker secret (never embedded in the client binary).
+
+### Changed
+- `doctor` Environment section now surfaces telemetry state + install_id (8-char prefix; full id in the JSON output).
+
+### Fork-friendly
+Both transports are env-overridable. Set `SCAFFOLD_DAY_POSTHOG_URL` / `_KEY` or `SCAFFOLD_DAY_FEEDBACK_URL` to redirect events to your own infrastructure. Empty string disables transport entirely (then `feedback` falls back to GitHub Issues guidance).
+
 ## [v0.2.2] - 2026-04-29
 
 Phase B kickoff (v0.1 placeholder commands → real). Three commands
@@ -160,7 +177,8 @@ via `curl -fsSL https://day.scaffold.at/install.sh | sh`.
 - **S51 / S52 / S53** Logo (skipped for v0.1) + scaffold.at/day landing + docs site MVP.
 - **S55 / S56 / S57** GitHub Discussions + good-first-issue labels, MCP directory registration, Show HN rehearsal.
 
-[Unreleased]: https://github.com/scaffold-at/day/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/scaffold-at/day/compare/v0.2.3...HEAD
+[v0.2.3]: https://github.com/scaffold-at/day/releases/tag/v0.2.3
 [v0.2.2]: https://github.com/scaffold-at/day/releases/tag/v0.2.2
 [v0.2.1]: https://github.com/scaffold-at/day/releases/tag/v0.2.1
 [v0.2.0]: https://github.com/scaffold-at/day/releases/tag/v0.2.0

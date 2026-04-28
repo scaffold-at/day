@@ -55,6 +55,11 @@ export async function runCli(
   if (env.SCAFFOLD_DAY_POSTHOG_KEY === undefined) {
     env.SCAFFOLD_DAY_POSTHOG_KEY = "";
   }
+  // Same for feedback transport — never POST to the live Worker
+  // from e2e tests. Empty string disables transport.
+  if (env.SCAFFOLD_DAY_FEEDBACK_URL === undefined) {
+    env.SCAFFOLD_DAY_FEEDBACK_URL = "";
+  }
 
   const proc = Bun.spawn(["bun", CLI_PATH, ...args], {
     env,
