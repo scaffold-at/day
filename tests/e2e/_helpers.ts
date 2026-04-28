@@ -45,6 +45,16 @@ export async function runCli(
   if (env.SCAFFOLD_DAY_AI_PROVIDERS === undefined) {
     env.SCAFFOLD_DAY_AI_PROVIDERS = "mock";
   }
+  // Same isolation for telemetry: the binary embeds a default
+  // PostHog endpoint + write-only project key, but tests must never
+  // POST real events. Empty string disables transport (S65). Tests
+  // that explicitly exercise transport can override.
+  if (env.SCAFFOLD_DAY_POSTHOG_URL === undefined) {
+    env.SCAFFOLD_DAY_POSTHOG_URL = "";
+  }
+  if (env.SCAFFOLD_DAY_POSTHOG_KEY === undefined) {
+    env.SCAFFOLD_DAY_POSTHOG_KEY = "";
+  }
 
   const proc = Bun.spawn(["bun", CLI_PATH, ...args], {
     env,

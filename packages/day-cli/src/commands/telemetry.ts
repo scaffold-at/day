@@ -19,6 +19,31 @@ import { emitDryRun, isDryRun } from "../cli/runtime";
 const POSTHOG_URL_ENV = "SCAFFOLD_DAY_POSTHOG_URL";
 const POSTHOG_KEY_ENV = "SCAFFOLD_DAY_POSTHOG_KEY";
 
+/**
+ * Default PostHog ingest endpoint + project API key wired into the
+ * binary. The key is PostHog's *write-only* phc_ form — it cannot
+ * read events or change project settings; embedding it in a client
+ * binary is the supported PostHog pattern.
+ *
+ * Override with env vars to redirect a fork to its own project, or
+ * with an empty string to disable transport entirely.
+ */
+const DEFAULT_POSTHOG_URL = "https://us.i.posthog.com";
+const DEFAULT_POSTHOG_KEY =
+  "phc_zDaXC9LbtdEM28pkVCEPvxaG2GoaQ3tkUif2tnjmKzXd";
+
+function effectivePostHogUrl(): string | null {
+  const env = process.env[POSTHOG_URL_ENV];
+  if (env === "") return null;
+  return env ?? DEFAULT_POSTHOG_URL;
+}
+
+function effectivePostHogKey(): string | null {
+  const env = process.env[POSTHOG_KEY_ENV];
+  if (env === "") return null;
+  return env ?? DEFAULT_POSTHOG_KEY;
+}
+
 function usage(message: string): ScaffoldError {
   return new ScaffoldError({
     code: "DAY_USAGE",
@@ -35,9 +60,9 @@ function nowIso(): string {
 async function runStatus(home: string, json: boolean): Promise<number> {
   const cfg = await readTelemetryConfig(home);
   const id = await readInstallId(home);
-  const url = process.env[POSTHOG_URL_ENV] ?? null;
-  const keySet = Boolean(process.env[POSTHOG_KEY_ENV]);
-  const transport_configured = url !== null && keySet;
+  const url = effectivePostHogUrl();
+  const key = effectivePostHogKey();
+  const transport_configured = url !== null && key !== null;
   if (json) {
     console.log(
       JSON.stringify(
@@ -49,7 +74,7 @@ async function runStatus(home: string, json: boolean): Promise<number> {
           config_path: telemetryConfigPath(home),
           transport_configured,
           posthog_url: url,
-          posthog_key_set: keySet,
+          posthog_key_set: key !== null,
         },
         null,
         2,
@@ -89,9 +114,12 @@ async function runSet(home: string, state: TelemetryState, json: boolean): Promi
     if (state === "on") {
       const id = await readInstallId(home);
       console.log(`  install_id: ${id}`);
-      const url = process.env[POSTHOG_URL_ENV];
-      if (!url) {
-        console.log(`  note:       ${POSTHOG_URL_ENV} not set — events queue locally only`);
+      const url = effectivePostHogUrl();
+      const key = effectivePostHogKey();
+      if (!url || !key) {
+        console.log(`  note:       transport disabled (env override empties URL/key)`);
+      } else {
+        console.log(`  transport:  ${url}`);
       }
     }
   }
@@ -146,8 +174,8 @@ export async function captureEvent(
   if (isDryRun()) return false;
   const cfg = await readTelemetryConfig(home);
   if (cfg.state !== "on") return false;
-  const url = process.env[POSTHOG_URL_ENV];
-  const key = process.env[POSTHOG_KEY_ENV];
+  const url = effectivePostHogUrl();
+  const key = effectivePostHogKey();
   if (!url || !key) return false;
 
   const id = await readOrCreateInstallId(home);
