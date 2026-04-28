@@ -11,6 +11,51 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+## [v0.2.0] - 2026-04-29
+
+The relative time model. v0.2 introduces the morning anchor as the
+t=0 reference for placement, plus three new policy fields layered on
+top: `sleep_budget` (hard reject + soft penalty), `cognitive_load`
+(decay heavy tasks past a capacity window), and `recovery_block`
+(soft penalty on next-day morning slots after a forced-late event).
+
+All v0.2 features are *opt-in*: a v0.1 policy without these fields
+keeps v0.1 behavior. The relative model activates as soon as the
+caller adds the matching context block.
+
+### Added — Phase A: relative time model
+
+- **S60** Morning anchor + clock injection. New CLI `scaffold-day morning [--at HH:MM | --at <ISO>] [--force] [--json]`; new MCP tools `record_morning` / `get_morning_anchor`. Storage: append-only `<home>/logs/heartbeats.jsonl`. Auto-fallback records `source: "auto"` on the first non-init command of the day; explicit calls upgrade silently. `today` displays "Day started HH:MM" and `doctor` adds an Anchor section. Test infrastructure: `SCAFFOLD_DAY_NOW` env var + in-process `setNowOverride()` for deterministic time travel.
+- **S58** `sleep_budget` policy field. Each candidate slot's implied sleep window (slot end / latest event / latest placement → projected next anchor) is checked against `min_hours` (hard reject) and `target_hours` (soft penalty proportional to shortfall). Multi-day suggest naturally surfaces tomorrow's slots when today is too tight.
+- **S59** `cognitive_load` decay. Heavy TODOs (`effort_min ≥ heavy_task_threshold_min`, default 60) past `full_capacity_window_hours` (default 4) past anchor get a soft score penalty. `decay: linear` (default) or `exponential` (opt-in). Light tasks unaffected.
+- **S61** Sleep-debt rest-break suggestion. When yesterday→today anchor gap implies measured sleep below `sleep_budget.min_hours`, `today` and the new MCP `get_rest_suggestion` tool emit a 20-minute rest break recommendation. Volatile (recomputed each call); no on-disk record.
+- **S62** Forced-late next-day recovery block. When yesterday had any event ending past `working_hours.end + 120 min` (default), today's first 2h get a soft `-30` per-slot penalty. Not a hard reject — engine still allows placement when nothing earlier fits.
+
+### Added — Phase E: UX gaps
+
+- **S83** Global `--dry-run` flag on every write CLI command (`init`, `auth login/logout/revoke`, `event add`, `todo add/update/archive/score`, `place do/override`, `policy patch`, `policy preset apply`, `migrate apply`, `morning`, `conflict resolve/detect`, `day replan`). Emits `{ "dry_run": true, "would": <preview> }` on `--json` or a structured human preview otherwise. No disk mutation.
+
+### Schema changes (additive, back-compat)
+
+- `Context.sleep_budget?` (target_hours, min_hours, soft_penalty_per_hour)
+- `Context.cognitive_load?` (decay, full_capacity_window_hours, heavy_task_threshold_min, linear_penalty_per_hour, exponential_base)
+- `Context.recovery_block?` (late_threshold_minutes_past_working_end, morning_block_hours, soft_penalty)
+- `CandidateBreakdown.sleep_budget` / `.cognitive_load` / `.recovery_block` exposed for `explain` and UX surfaces.
+
+### CI / test surface
+- 627/627 tests (was 554 at v0.1.0 release). 73 new tests across unit + e2e + MCP.
+- New tracker issue: scaffold-at/day#3 (v0.2 progress board).
+- Token corpus baseline: 1075 → 1135 (3 new MCP tools: record_morning, get_morning_anchor, get_rest_suggestion). Drift after baseline update: 3.0%.
+
+### Defaults captured in code
+Every new policy field carries a comment block with PO's 2026-04-28 rationale + tuning notes, so the next dogfood pass knows where to adjust.
+
+### Pending for v0.2.x or v0.3
+- Phase B placeholder → real impls (logs, rebuild-index, telemetry, feedback, self-update).
+- Phase C Google Calendar live mode (S70-S73), blocked on PO Cloud Client ID.
+- Phase D distribution polish (S74 Apple signing, S75 brew tap auto-bump, S76 install.sh shasum).
+- Phase E UX (S80 event update/delete, S81 place suggest --auto, S82 today sleep-debt expanded summary).
+
 ## [v0.1.0] - 2026-04-27
 
 First public Walking Skeleton release. Tier 1 binaries (macOS arm64,
@@ -81,5 +126,6 @@ via `curl -fsSL https://day.scaffold.at/install.sh | sh`.
 - **S51 / S52 / S53** Logo (skipped for v0.1) + scaffold.at/day landing + docs site MVP.
 - **S55 / S56 / S57** GitHub Discussions + good-first-issue labels, MCP directory registration, Show HN rehearsal.
 
-[Unreleased]: https://github.com/scaffold-at/day/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/scaffold-at/day/compare/v0.2.0...HEAD
+[v0.2.0]: https://github.com/scaffold-at/day/releases/tag/v0.2.0
 [v0.1.0]: https://github.com/scaffold-at/day/releases/tag/v0.1.0

@@ -16,6 +16,7 @@ import {
   ScaffoldError,
   suggestPlacements,
   type SuggestionInput,
+  todayInTz as todayInTzCore,
   writePolicySnapshot,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
@@ -38,12 +39,7 @@ function shiftDays(date: string, delta: number): string {
 }
 
 function todayInTz(tz: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+  return todayInTzCore(tz);
 }
 
 async function runSuggest(args: string[]): Promise<number> {

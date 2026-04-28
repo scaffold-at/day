@@ -226,8 +226,12 @@ describe("MCP morning anchor tools (S60)", () => {
       expect(recPayload.was_already_set).toBe(false);
       expect(recPayload.source).toBe("manual");
 
-      // Read back.
-      const after = await client.callTool({ name: "get_morning_anchor", arguments: {} });
+      // Read back. Pass the recorded date explicitly so the lookup
+      // doesn't depend on the test machine's wall clock.
+      const after = await client.callTool({
+        name: "get_morning_anchor",
+        arguments: { date: "2026-04-28" },
+      });
       const afterPayload =
         (after.structuredContent as Record<string, unknown> | undefined) ??
         JSON.parse((after.content as Array<{ text: string }>)[0]!.text);

@@ -6,6 +6,7 @@ import {
   defaultHomeDir,
   readAnchorForDate,
   readPolicyYaml,
+  todayInTz,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import {
@@ -16,14 +17,11 @@ import {
 } from "../format/day-view";
 
 function todayDate(tz?: string): string {
-  // ISO calendar date in the user's TZ.
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  return fmt.format(new Date());
+  // ISO calendar date in the user's TZ. Honors SCAFFOLD_DAY_NOW
+  // through core's todayInTz so tests can pin "today".
+  return todayInTz(
+    tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
 }
 
 /** Shift a YYYY-MM-DD date by `delta` days (negative = past). */
