@@ -9,6 +9,8 @@
       content="A CLI-first, MCP-ready scheduler that places your TODOs into the free slots of your calendar — with AI clients (Claude Code, Cursor, Claude Desktop) as a first-class user."
     />
     <link rel="canonical" href="https://day.scaffold.at" />
+    <link rel="alternate" hreflang="en" href="https://day.scaffold.at/" />
+    <link rel="alternate" hreflang="ko" href="https://day.scaffold.at/ko/" />
     <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
     <meta property="og:title" content="scaffold-day" />
@@ -183,6 +185,16 @@
         font-size: 0.9rem;
       }
 
+      .lang-switch {
+        position: absolute;
+        top: 1.25rem;
+        right: 1.5rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .lang-switch a { color: var(--muted); margin-left: 0.5rem; }
+      .lang-switch a.active { color: var(--fg); font-weight: 600; }
+
       /* Sticky TOC */
       nav.toc {
         position: sticky;
@@ -201,6 +213,11 @@
     </style>
   </head>
   <body>
+    <div class="lang-switch">
+      <a href="/" class="active">English</a>
+      <a href="/ko/">한국어</a>
+    </div>
+
     <div class="layout">
       <main>
         <h1>scaffold-day<span class="pill">v0.2 · pre-release</span></h1>
