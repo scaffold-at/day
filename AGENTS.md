@@ -217,12 +217,12 @@ preset apply <name>
 
 ### `scaffold-day rebuild-index` — rebuild local indexes from source-of-truth files
 
-- **WHAT.** Recompute todos/active/index.json and days/YYYY-MM/manifest.json from per-entity files. Useful after a manual edit, a partial restore, or when `doctor` flags index drift.
-- **WHEN.** After hand-editing files under ~/scaffold-day/, after a `restore`, or when `doctor` reports inconsistency.
-- **COST.** Reads every TODO and day file once. Bound by disk speed; typically sub-second for normal corpora.
-- **INPUT.** [--dry-run] preview changes only. [--scope todos|days] limit which index to rebuild.
-- **RETURN.** Exit 0 with counts of rebuilt indexes. Exit non-zero if a source file fails to parse.
-- **GOTCHA.** Holds the advisory lock for the duration. Cannot run while the MCP server is active. Tracking SLICES.md §S2 (placeholder).
+- **WHAT.** Recompute todos/active/index.json from per-id detail files, and days/<YYYY-MM>/manifest.json from per-day files. Used after manual edits, partial restores, or when `doctor` flags drift.
+- **WHEN.** After hand-editing files under <home>/, after a backup restore, or when `doctor` reports inconsistency.
+- **COST.** Reads every TODO and day file once. Atomic write of the new index / manifests. Bound by disk speed.
+- **INPUT.** [--scope todos|days|all] (default all) [--json] [--dry-run]
+- **RETURN.** Exit 0 with counts of rebuilt indexes + a drift summary (added / removed / changed). Detail files are never modified — they are the source of truth.
+- **GOTCHA.** Drift counts > 0 mean the index was out of sync with the detail files. v0.2 doesn't hold the advisory lock yet (S2 lock + this slice's coordination lands in a v0.3 followup); avoid running while the MCP server actively writes.
 
 ### `scaffold-day logs` — tail or query scaffold-day operational logs
 

@@ -141,6 +141,76 @@ export class FsTodoRepository implements TodoRepository {
     return index.summaries.find((s) => s.id === id) ?? null;
   }
 
+  /**
+   * Recompute `index.json` from the per-id detail files. Used by
+   * `scaffold-day rebuild-index` (S64) and by recovery flows after
+   * a manual edit. Returns counts so callers can report drift.
+   *
+   * Side effect: rewrites `index.json` (atomic). Does NOT touch
+   * detail files; they are the source of truth.
+   */
+  async rebuildIndex(options: { dryRun?: boolean } = {}): Promise<{
+    detail_count: number;
+    summaries: TodoSummary[];
+    drift: {
+      added: TodoSummary[];
+      removed: TodoSummary[];
+      changed: Array<{ id: string; before: TodoSummary; after: TodoSummary }>;
+    };
+  }> {
+    const beforeIndex = await this.readIndex();
+    const beforeById = new Map(beforeIndex.summaries.map((s) => [s.id, s]));
+
+    let entries: string[];
+    try {
+      entries = await readdir(this.detailDir());
+    } catch (err) {
+      if (isEnoent(err)) {
+        entries = [];
+      } else {
+        throw err;
+      }
+    }
+
+    const summaries: TodoSummary[] = [];
+    for (const name of entries) {
+      if (!name.endsWith(".json")) continue;
+      const id = name.slice(0, -".json".length);
+      const detail = await this.getDetail(id);
+      if (!detail) continue;
+      summaries.push(summarize(detail));
+    }
+
+    const afterById = new Map(summaries.map((s) => [s.id, s]));
+    const added: TodoSummary[] = [];
+    const removed: TodoSummary[] = [];
+    const changed: Array<{ id: string; before: TodoSummary; after: TodoSummary }> = [];
+    for (const [id, after] of afterById) {
+      const before = beforeById.get(id);
+      if (!before) {
+        added.push(after);
+      } else if (JSON.stringify(before) !== JSON.stringify(after)) {
+        changed.push({ id, before, after });
+      }
+    }
+    for (const [id, before] of beforeById) {
+      if (!afterById.has(id)) removed.push(before);
+    }
+
+    if (!options.dryRun) {
+      await this.writeIndex({
+        schema_version: beforeIndex.schema_version,
+        summaries,
+      });
+    }
+
+    return {
+      detail_count: summaries.length,
+      summaries,
+      drift: { added, removed, changed },
+    };
+  }
+
   async getDetail(id: string): Promise<TodoDetail | null> {
     try {
       const raw = await readFile(this.detailPath(id), "utf8");
