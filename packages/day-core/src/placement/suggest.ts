@@ -7,6 +7,11 @@ import {
   type HardRuleViolation,
 } from "./hard-rules";
 import {
+  evaluateSleepBudget,
+  projectAnchorForDate,
+  type SleepBudgetEvaluation,
+} from "./sleep-budget";
+import {
   computeReactivityPenalty,
   evaluateSoftPreferencesPolicy,
   type SoftPreferenceContribution,
@@ -24,6 +29,12 @@ export type SuggestionInput = {
   policy: Policy;
   /** How many top-ranked candidates to keep. */
   max?: number;
+  /**
+   * Recorded morning anchor for the *earliest* day in `daysByDate`.
+   * Used to project a per-day anchor for sleep_budget evaluation
+   * (S58). Pass `null` to skip budget evaluation entirely.
+   */
+  anchor?: { date: string; anchor: string } | null;
 };
 
 export type CandidateBreakdown = {
@@ -38,6 +49,8 @@ export type CandidateBreakdown = {
   reactivity_penalty: number;
   contributions: SoftPreferenceContribution[];
   rationale: string;
+  /** S58: sleep budget evaluation result. `null` when budget skipped. */
+  sleep_budget?: SleepBudgetEvaluation | null;
 };
 
 export type Suggestion = {
@@ -213,6 +226,25 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
         continue;
       }
 
+      // S58 sleep budget: hard violations reject; soft applies a
+      // negative score contribution; ok / skip are pass-through.
+      const budget = input.policy.context.sleep_budget ?? null;
+      const anchorOnSlotDate = projectAnchorForDate({
+        recordedAnchor: input.anchor ?? null,
+        targetDate: date,
+      });
+      const sleep = evaluateSleepBudget({
+        slot: { start: cand.start, end: cand.end },
+        anchorOnSlotDate,
+        events: day.events,
+        placements: day.placements,
+        budget,
+      });
+      if (sleep.severity === "hard") {
+        rejectionReasons.push(`${date} ${cand.start}: sleep_budget ${sleep.reason}`);
+        continue;
+      }
+
       const soft = evaluateSoftPreferencesPolicy(cand, input.policy, {
         date,
         todoTags: input.todo.tags,
@@ -221,7 +253,22 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
         tzOffset: ww.tzOffset,
       });
       const reactivity = computeReactivityPenalty(cand, input.policy.reactivity);
-      const score = input.todo.importance_score + soft.total + reactivity;
+      const score =
+        input.todo.importance_score +
+        soft.total +
+        reactivity +
+        sleep.penalty;
+
+      const sleepNote =
+        sleep.severity === "soft"
+          ? ` + sleep_budget(${sleep.penalty})`
+          : "";
+      const baseRationale =
+        soft.contributions.length === 0
+          ? `Importance ${input.todo.importance_score.toFixed(1)} carries the slot.`
+          : `Importance ${input.todo.importance_score.toFixed(1)} + ${soft.contributions
+              .map((c) => `${c.preference.kind}(${c.weight >= 0 ? "+" : ""}${c.weight})`)
+              .join(", ")}`;
 
       ranked.push({
         rank: 0, // assigned after sort
@@ -234,12 +281,8 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
         soft_total: soft.total,
         reactivity_penalty: reactivity,
         contributions: soft.contributions,
-        rationale:
-          soft.contributions.length === 0
-            ? `Importance ${input.todo.importance_score.toFixed(1)} carries the slot.`
-            : `Importance ${input.todo.importance_score.toFixed(1)} + ${soft.contributions
-                .map((c) => `${c.preference.kind}(${c.weight >= 0 ? "+" : ""}${c.weight})`)
-                .join(", ")}`,
+        rationale: `${baseRationale}${sleepNote}`,
+        sleep_budget: budget && anchorOnSlotDate ? sleep : null,
       });
     }
   }

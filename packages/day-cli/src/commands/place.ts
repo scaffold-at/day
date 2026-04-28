@@ -11,6 +11,7 @@ import {
   type Day,
   type Placement,
   policyHash,
+  readAnchorForDate,
   readPolicyYaml,
   ScaffoldError,
   suggestPlacements,
@@ -130,6 +131,13 @@ async function runSuggest(args: string[]): Promise<number> {
   }
 
   const importanceScore = detail.importance?.score ?? detail.importance_score ?? 0;
+  // S58: pull today's anchor (or the start day's) so the engine can
+  // evaluate sleep_budget. Null is fine — the engine skips budget
+  // checks then.
+  const anchorEntry = await readAnchorForDate(home, start);
+  const anchor = anchorEntry
+    ? { date: anchorEntry.date, anchor: anchorEntry.anchor }
+    : null;
   const input: SuggestionInput = {
     todo: {
       id: detail.id,
@@ -140,6 +148,7 @@ async function runSuggest(args: string[]): Promise<number> {
     daysByDate,
     policy,
     max,
+    anchor,
   };
   const suggestion = suggestPlacements(input);
 

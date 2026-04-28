@@ -11,6 +11,8 @@ export {
   DayOfWeekSchema,
   type ProtectedRange,
   ProtectedRangeSchema,
+  type SleepBudget,
+  SleepBudgetSchema,
   type TimeRange,
   TimeRangeSchema,
 } from "./context";

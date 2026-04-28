@@ -25,3 +25,10 @@ export {
   type ReplanOutcome,
   type ReplanScope,
 } from "./replan";
+export {
+  evaluateSleepBudget,
+  projectAnchorForDate,
+  type SleepBudgetEvaluation,
+  type SleepBudgetInput,
+  type SleepBudgetSeverity,
+} from "./sleep-budget";
