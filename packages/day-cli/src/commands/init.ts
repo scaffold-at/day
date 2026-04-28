@@ -17,6 +17,7 @@ import {
 import pkg from "../../package.json" with { type: "json" };
 import { colors } from "../cli/colors";
 import type { Command } from "../cli/command";
+import { emitDryRun, isDryRun } from "../cli/runtime";
 
 function usage(message: string): ScaffoldError {
   return new ScaffoldError({
@@ -79,6 +80,25 @@ export const initCommand: Command = {
         try: ["Re-run with --force to overwrite."],
         context: { home, schema_path: schemaPath },
       });
+    }
+
+    if (isDryRun()) {
+      emitDryRun(json, {
+        command: "init",
+        writes: [
+          { path: ".scaffold-day/schema-version.json", op: exists ? "update" : "create" },
+          ...(preset
+            ? [{ path: "policy/current.yaml", op: (exists ? "update" : "create") as "create" | "update" }]
+            : []),
+        ],
+        note: `would create the home layout at ${home}` + (preset ? ` with the ${preset} preset` : " (no preset)"),
+        result: {
+          home,
+          schema_version: CURRENT_SCHEMA_VERSION,
+          preset: preset ?? null,
+        },
+      });
+      return 0;
     }
 
     // Create the directory layout.

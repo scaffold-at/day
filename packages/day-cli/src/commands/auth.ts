@@ -6,6 +6,7 @@ import {
 } from "@scaffold/day-adapters";
 import { defaultHomeDir, ScaffoldError } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
+import { emitDryRun, isDryRun } from "../cli/runtime";
 
 function usage(message: string): ScaffoldError {
   return new ScaffoldError({
@@ -85,6 +86,21 @@ async function runLogin(args: string[]): Promise<number> {
     account_email: accountEmail ?? null,
     storage: "file",
   };
+
+  if (isDryRun()) {
+    emitDryRun(false, {
+      command: "auth login",
+      writes: [{ path: ".secrets/google-oauth.json", op: existing ? "update" : "create" }],
+      result: {
+        account: accountEmail ?? null,
+        scope,
+        storage: "file",
+        has_refresh_token: refreshToken.length > 0,
+      },
+    });
+    return 0;
+  }
+
   await writeGoogleOAuthToken(home, token);
 
   console.log("scaffold-day auth login");
@@ -140,6 +156,19 @@ async function runLogout(args: string[]): Promise<number> {
     if (a !== "--json") throw usage(`auth logout: unexpected argument '${a}'`);
   }
   const home = defaultHomeDir();
+
+  if (isDryRun()) {
+    const existed = await readGoogleOAuthToken(home);
+    emitDryRun(args.includes("--json"), {
+      command: "auth logout",
+      writes: existed
+        ? [{ path: ".secrets/google-oauth.json", op: "delete" }]
+        : [],
+      result: { logged_out: existed !== null },
+    });
+    return 0;
+  }
+
   const removed = await deleteGoogleOAuthToken(home);
   if (args.includes("--json")) {
     console.log(JSON.stringify({ logged_out: removed }));
@@ -158,6 +187,20 @@ async function runRevoke(args: string[]): Promise<number> {
   // adapter will additionally call Google's /oauth2/revoke endpoint
   // (B-mode); for mock we just nuke local state.
   const home = defaultHomeDir();
+
+  if (isDryRun()) {
+    const existed = await readGoogleOAuthToken(home);
+    emitDryRun(args.includes("--json"), {
+      command: "auth revoke",
+      writes: existed
+        ? [{ path: ".secrets/google-oauth.json", op: "delete" }]
+        : [],
+      note: "B-mode would also POST to https://oauth2.googleapis.com/revoke",
+      result: { revoked: existed !== null, server_call: false },
+    });
+    return 0;
+  }
+
   const removed = await deleteGoogleOAuthToken(home);
   if (args.includes("--json")) {
     console.log(JSON.stringify({ revoked: removed, server_call: false }));

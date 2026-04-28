@@ -13,6 +13,7 @@ import {
   writeConflicts,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
+import { emitDryRun, isDryRun } from "../cli/runtime";
 
 const YYYYMM_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -138,6 +139,20 @@ async function runResolve(args: string[]): Promise<number> {
   }
 
   const now = new Date().toISOString();
+
+  if (isDryRun()) {
+    emitDryRun(json, {
+      command: "conflict resolve",
+      writes: [
+        { path: `conflicts/${found.month}.json`, op: "update" },
+        { path: `days/${found.conflict.date.slice(0, 7)}/${found.conflict.date}.json`, op: "update" },
+        { path: "logs/conflict.jsonl", op: "update" },
+      ],
+      result: { id, status: newStatus, reason: reason ?? null, by, at: now },
+    });
+    return 0;
+  }
+
   const partition = await readConflicts(home, found.month);
   partition.conflicts = partition.conflicts.map((c) =>
     c.id === id
@@ -206,6 +221,20 @@ async function runDetect(args: string[]): Promise<number> {
   const dayStore = new FsDayStore(home);
   const day = await dayStore.readDay(date);
   const detected = detectConflicts(day, policy);
+
+  if (isDryRun()) {
+    emitDryRun(json, {
+      command: "conflict detect",
+      writes: [
+        { path: `conflicts/${date.slice(0, 7)}.json`, op: "update" },
+        { path: `days/${date.slice(0, 7)}/${date}.json`, op: "update" },
+        { path: "logs/conflict.jsonl", op: "update" },
+      ],
+      result: { date, detected_count: detected.length, detected },
+    });
+    return 0;
+  }
+
   const { openIdsForDate } = await syncConflicts(home, date, detected);
 
   // Update day.conflicts_open and write back.

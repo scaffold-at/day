@@ -12,6 +12,7 @@ import {
   detectConflicts,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
+import { emitDryRun, isDryRun } from "../cli/runtime";
 import {
   buildDayView,
   renderDayView,
@@ -257,6 +258,31 @@ async function runDayReplan(args: string[]): Promise<number> {
   const day = await dayStore.readDay(date);
 
   const outcome = replanDay(day, policy, scope);
+
+  if (isDryRun()) {
+    emitDryRun(json, {
+      command: "day replan",
+      writes: [
+        { path: `days/${date.slice(0, 7)}/${date}.json`, op: "update" },
+        { path: "logs/placement.jsonl", op: "update" },
+        ...(outcome.dropped.length > 0
+          ? ([
+              { path: `conflicts/${date.slice(0, 7)}.json`, op: "update" },
+              { path: "logs/conflict.jsonl", op: "update" },
+            ] as const)
+          : []),
+      ],
+      result: {
+        date,
+        scope,
+        moved: outcome.moved.length,
+        dropped: outcome.dropped.length,
+        final_placements: outcome.final_placements.length,
+        outcome,
+      },
+    });
+    return 0;
+  }
 
   // Apply: write back the new placements, log moves, emit conflicts for drops.
   const at = new Date().toISOString();

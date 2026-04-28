@@ -8,6 +8,7 @@ import {
   generateEntityId,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
+import { emitDryRun, isDryRun } from "../cli/runtime";
 
 type ParsedAddFlags = {
   title: string;
@@ -168,6 +169,19 @@ async function runEventAdd(args: string[]): Promise<number> {
   };
 
   const date = flags.start.slice(0, 10);
+
+  if (isDryRun()) {
+    emitDryRun(false, {
+      command: "event add",
+      writes: [
+        { path: `days/${date.slice(0, 7)}/${date}.json`, op: "update" },
+        { path: `days/${date.slice(0, 7)}/manifest.json`, op: "update" },
+      ],
+      result: event,
+    });
+    return 0;
+  }
+
   const day = await store.addEvent(date, event);
 
   console.log(`scaffold-day event add`);

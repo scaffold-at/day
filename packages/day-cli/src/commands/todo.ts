@@ -16,6 +16,7 @@ import {
   type TodoStatus,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
+import { emitDryRun, isDryRun } from "../cli/runtime";
 
 function usage(message: string): ScaffoldError {
   return new ScaffoldError({
@@ -111,6 +112,24 @@ async function runAdd(args: string[]): Promise<number> {
   }
 
   if (!title) throw usage("todo add: --title is required");
+
+  if (isDryRun()) {
+    emitDryRun(json, {
+      command: "todo add",
+      writes: [
+        { path: "todos/active/index.json", op: "update" },
+        { path: "todos/active/detail/<new-id>.json", op: "create" },
+      ],
+      result: {
+        title,
+        status: status ?? "open",
+        tags,
+        duration_min: durationMin ?? null,
+        target_date: targetDate ?? null,
+      },
+    });
+    return 0;
+  }
 
   const repo = new FsTodoRepository(defaultHomeDir());
   const created = await repo.create({
@@ -296,6 +315,30 @@ async function runUpdate(args: string[]): Promise<number> {
   }
   if (!id) throw usage("todo update: <id> argument is required");
 
+  if (isDryRun()) {
+    emitDryRun(false, {
+      command: "todo update",
+      writes: [
+        { path: "todos/active/index.json", op: "update" },
+        { path: `todos/active/detail/${id}.json`, op: "update" },
+      ],
+      result: {
+        id,
+        patch: {
+          title,
+          status,
+          tags: tagsTouched ? tags : undefined,
+          duration_min: durationMin,
+          target_date: targetDate,
+          description,
+          reasoning,
+          notes,
+        },
+      },
+    });
+    return 0;
+  }
+
   const repo = new FsTodoRepository(defaultHomeDir());
   const updated = await repo.update(id, {
     title,
@@ -328,6 +371,19 @@ async function runArchive(args: string[]): Promise<number> {
     else throw usage(`todo archive: unexpected argument '${a}'`);
   }
   if (!id) throw usage("todo archive: <id> argument is required");
+
+  if (isDryRun()) {
+    emitDryRun(false, {
+      command: "todo archive",
+      writes: [
+        { path: "todos/active/index.json", op: "update" },
+        { path: `todos/active/detail/${id}.json`, op: "delete" },
+        { path: `todos/archive/${id}.json`, op: "create" },
+      ],
+      result: { id, reason: reason ?? null },
+    });
+    return 0;
+  }
 
   const repo = new FsTodoRepository(defaultHomeDir());
   const archived = await repo.archive(id, { reason });
@@ -513,6 +569,21 @@ async function runScore(args: string[]): Promise<number> {
       reasoning: reasoning ?? "manual scoring",
       computedBy,
     });
+  }
+
+  if (isDryRun()) {
+    emitDryRun(json, {
+      command: "todo score",
+      writes: [
+        { path: "todos/active/index.json", op: "update" },
+        { path: `todos/active/detail/${id}.json`, op: "update" },
+      ],
+      note: aiMode
+        ? "AI provider was actually called (read-only side); only the disk update was skipped"
+        : undefined,
+      result: { id, importance },
+    });
+    return 0;
   }
 
   const repo = new FsTodoRepository(home);

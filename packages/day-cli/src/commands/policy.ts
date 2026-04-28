@@ -11,6 +11,7 @@ import {
   writePolicyYaml,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
+import { emitDryRun, isDryRun } from "../cli/runtime";
 
 function usage(message: string): ScaffoldError {
   return new ScaffoldError({
@@ -100,6 +101,20 @@ async function runPatch(args: string[]): Promise<number> {
   if (!yamlText) throw notInitialized();
 
   const newYaml = applyPolicyPatchPreservingFormatting(yamlText, ops);
+
+  if (isDryRun()) {
+    emitDryRun(json, {
+      command: "policy patch",
+      writes: [{ path: "policy/current.yaml", op: "update" }],
+      result: {
+        applied: ops.length,
+        ops,
+        new_yaml_preview: newYaml.length > 1000 ? `${newYaml.slice(0, 1000)}\n…` : newYaml,
+      },
+    });
+    return 0;
+  }
+
   await writePolicyYaml(home, newYaml);
 
   if (json) {
@@ -135,6 +150,16 @@ async function runPreset(args: string[]): Promise<number> {
   const yamlText = serializePolicy(preset, { headerComment: header });
 
   const home = defaultHomeDir();
+
+  if (isDryRun()) {
+    emitDryRun(false, {
+      command: "policy preset apply",
+      writes: [{ path: "policy/current.yaml", op: "update" }],
+      result: { preset: name, lines: yamlText.split("\n").length },
+    });
+    return 0;
+  }
+
   await writePolicyYaml(home, yamlText);
 
   console.log(`scaffold-day policy preset apply ${name}`);

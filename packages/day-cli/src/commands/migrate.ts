@@ -11,11 +11,16 @@ import {
   writeSchemaVersionFile,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
+import { isDryRun } from "../cli/runtime";
 
 type Mode = "dry-run" | "apply";
 
 function parseFlags(args: string[]): Mode {
-  const dry = args.includes("--dry-run");
+  // Global `--dry-run` is stripped from `args` by the dispatcher and
+  // surfaced via `isDryRun()`. Either form (legacy `migrate --dry-run`
+  // or new `scaffold-day --dry-run migrate`) lights up dry-run here,
+  // and either still conflicts with `--apply`.
+  const dry = args.includes("--dry-run") || isDryRun();
   const apply = args.includes("--apply");
   if (dry && apply) {
     throw new ScaffoldError({

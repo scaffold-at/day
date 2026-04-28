@@ -4,11 +4,26 @@ import pkg from "../package.json" with { type: "json" };
 import { handleCliError } from "./cli/error-handler";
 import { formatCommandHelp, formatRootHelp } from "./cli/help";
 import { commands, findCommand } from "./cli/registry";
+import { setDryRun } from "./cli/runtime";
 
 const VERSION = pkg.version;
 
 async function dispatch(argv: string[]): Promise<number> {
-  const args = argv.slice(2);
+  const argv2 = argv.slice(2);
+
+  // `--dry-run` is global — pull it out wherever it appears, set the
+  // process-scope flag, and never let inner commands see it. (S83)
+  // Compatible with `migrate --dry-run` since that command's default
+  // mode is already dry-run; observing the flag does not change its
+  // behavior.
+  const args: string[] = [];
+  for (const a of argv2) {
+    if (a === "--dry-run") {
+      setDryRun(true);
+      continue;
+    }
+    args.push(a);
+  }
 
   if (args.length === 0) {
     console.log(formatRootHelp(VERSION, commands));

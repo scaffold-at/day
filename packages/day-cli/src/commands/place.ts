@@ -18,6 +18,7 @@ import {
   writePolicySnapshot,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
+import { emitDryRun, isDryRun } from "../cli/runtime";
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -343,8 +344,39 @@ async function runDo(args: string[]): Promise<number> {
     }
   }
 
-  const hash = await writePolicySnapshot(home, policy);
   const placedAt = new Date().toISOString();
+
+  if (isDryRun()) {
+    const hash = await policyHash(policy);
+    const placement: Placement = {
+      id: generateEntityId("placement"),
+      todo_id: detail.id,
+      start: slot,
+      end: slotEnd,
+      title: detail.title,
+      tags: [...detail.tags],
+      importance_score: detail.importance?.score ?? detail.importance_score ?? null,
+      importance_at_placement: detail.importance ?? null,
+      duration_min: detail.duration_min,
+      placed_by: by === "user" || by === "ai" || by === "auto" ? (by as "user" | "ai" | "auto") : "user",
+      placed_at: placedAt,
+      policy_hash: hash,
+      locked: lock,
+    };
+    emitDryRun(json, {
+      command: "place do",
+      writes: [
+        { path: `policy-snapshots/${hash.slice(0, 12)}.yaml`, op: "create" },
+        { path: "logs/placement.jsonl", op: "update" },
+        { path: `days/${date.slice(0, 7)}/${date}.json`, op: "update" },
+        { path: `days/${date.slice(0, 7)}/manifest.json`, op: "update" },
+      ],
+      result: placement,
+    });
+    return 0;
+  }
+
+  const hash = await writePolicySnapshot(home, policy);
   const placement: Placement = {
     id: generateEntityId("placement"),
     todo_id: detail.id,
@@ -533,6 +565,24 @@ async function runOverride(args: string[]): Promise<number> {
     start: newSlot,
     end: newSlotEnd,
   };
+
+  if (isDryRun()) {
+    const writes: Array<{ path: string; op: "create" | "update" | "delete" }> = [
+      { path: "logs/placement.jsonl", op: "update" },
+    ];
+    if (newDate === foundDate) {
+      writes.push({ path: `days/${foundDate.slice(0, 7)}/${foundDate}.json`, op: "update" });
+    } else {
+      writes.push({ path: `days/${foundDate.slice(0, 7)}/${foundDate}.json`, op: "update" });
+      writes.push({ path: `days/${newDate.slice(0, 7)}/${newDate}.json`, op: "update" });
+    }
+    emitDryRun(json, {
+      command: "place override",
+      writes,
+      result: { placement: updated, previous, reason: reason ?? null },
+    });
+    return 0;
+  }
 
   // Log first.
   await appendPlacementLog(home, {
