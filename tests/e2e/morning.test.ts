@@ -21,7 +21,7 @@ function fixedClock(now: string): Record<string, string> {
 
 describe("scaffold-day morning (S60)", () => {
   test("first call records an explicit anchor at the fixed clock instant", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     const r = await runCli(["morning", "--json"], {
       home,
       env: fixedClock(KST_NOW_8AM),
@@ -44,7 +44,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("second call without --force is idempotent (no new line, returns existing)", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     await runCli(["morning"], { home, env: fixedClock(KST_NOW_8AM) });
     const r = await runCli(["morning", "--json"], {
       home,
@@ -61,7 +61,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("--force overrides the existing anchor", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     await runCli(["morning"], { home, env: fixedClock(KST_NOW_8AM) });
     const r = await runCli(["morning", "--force", "--json"], {
       home,
@@ -75,7 +75,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("--at HH:MM records a manual anchor for today (in policy TZ)", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     const r = await runCli(["morning", "--at", "07:30", "--json"], {
       home,
       env: fixedClock(KST_NOW_8AM),
@@ -87,7 +87,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("auto fallback fires on the first non-init command, then explicit silently upgrades", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     // First non-init command — should record auto-anchor.
     await runCli(["today", "--tz", "Asia/Seoul"], {
       home,
@@ -117,7 +117,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("init itself does NOT trigger the auto fallback (no heartbeats.jsonl)", async () => {
-    await runCli(["init"], { home, env: fixedClock(KST_NOW_8AM) });
+    await runCli(["init", "--force"], { home, env: fixedClock(KST_NOW_8AM) });
     let exists = true;
     try {
       await stat(path.join(home, "logs/heartbeats.jsonl"));
@@ -128,7 +128,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("--dry-run does not write the heartbeats file", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     const r = await runCli(["morning", "--dry-run", "--json"], {
       home,
       env: fixedClock(KST_NOW_8AM),
@@ -148,7 +148,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("today displays a 'Day started' line when an anchor exists", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     await runCli(["morning"], { home, env: fixedClock(KST_NOW_8AM) });
     const r = await runCli(["today", "--tz", "Asia/Seoul"], {
       home,
@@ -159,7 +159,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("today --json carries the anchor field", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     await runCli(["morning"], { home, env: fixedClock(KST_NOW_8AM) });
     const r = await runCli(["today", "--json", "--tz", "Asia/Seoul"], {
       home,
@@ -173,7 +173,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("doctor surfaces today's anchor (or warns when missing)", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     // No anchor yet → warn line.
     const r1 = await runCli(["doctor"], {
       home,
@@ -192,7 +192,7 @@ describe("scaffold-day morning (S60)", () => {
   });
 
   test("a fresh day re-runs auto fallback (one heartbeat per day)", async () => {
-    await runCli(["init"], { home });
+    await runCli(["init", "--force"], { home });
     await runCli(["today", "--tz", "Asia/Seoul"], {
       home,
       env: fixedClock(KST_NOW_8AM),

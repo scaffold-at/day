@@ -205,10 +205,18 @@ describe("MCP server scaffold (S41)", () => {
 
 describe("MCP morning anchor tools (S60)", () => {
   test("record_morning + get_morning_anchor round-trip", async () => {
+    // Seed a policy with Asia/Seoul TZ so the anchor's date key is
+    // computed in KST regardless of where this test runs (CI = UTC).
+    const { runCli } = await import("./_helpers");
+    await runCli(["init", "--force"], { home });
+
     const { client, close } = await connectClient(home);
     try {
       // Pre-state: no anchor.
-      const before = await client.callTool({ name: "get_morning_anchor", arguments: {} });
+      const before = await client.callTool({
+        name: "get_morning_anchor",
+        arguments: { date: "2026-04-28" },
+      });
       const beforePayload =
         (before.structuredContent as Record<string, unknown> | undefined) ??
         JSON.parse((before.content as Array<{ text: string }>)[0]!.text);
