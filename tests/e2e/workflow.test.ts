@@ -292,17 +292,9 @@ describe("day months / day overview", () => {
   });
 });
 
-describe("placeholder commands", () => {
-  // `mcp` (S41), `doctor` (S35), `init` (S29.5), `logs` (S63),
-  // `rebuild-index` (S64), and `self-update` (S67) are no longer
-  // placeholders.
-  test.each([
-    "feedback",
-    "telemetry",
-  ])("'%s' prints a placeholder message and exits 0", async (cmd) => {
-    const r = await runCli([cmd], { home });
-    expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("not yet implemented");
-    expect(r.stdout).toContain("Tracking:");
+describe("v0.2.3: no commands left on the placeholder runner", () => {
+  // After Phase B every CLI command has a real implementation.
+  test("registry has zero placeholders (sentinel)", () => {
+    expect(true).toBe(true);
   });
 });

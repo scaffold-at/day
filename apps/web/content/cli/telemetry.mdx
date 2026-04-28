@@ -13,26 +13,26 @@ command: telemetry
 
 ## WHAT
 
-Read or set the telemetry preference. Telemetry, if on, sends an anonymous install_id and event-kind counters only — never TODO or calendar content.
+Read or set the telemetry preference. Pseudonymous: events are tagged with an install_id (UUID per home), never TODO content / calendar / paths. Transport is PostHog Cloud when SCAFFOLD_DAY_POSTHOG_URL + SCAFFOLD_DAY_POSTHOG_KEY are set; otherwise events queue silently.
 
 ## WHEN
 
-Whenever you want to opt in, opt out, or check the current state.
+Whenever you want to opt in, opt out, check status, or rotate the install_id.
 
 ## COST
 
-Local config write only. The first heartbeat (after opt-in) is one HTTPS POST.
+Local config write only. Each captured event (state=on, transport configured) is one HTTPS POST to PostHog.
 
 ## INPUT
 
 ```
-on | off | ask | status
+status (default) | on | off | ask | show-id | reset-id [--json] [--dry-run]
 ```
 
 ## RETURN
 
-Exit 0 with the new state printed.
+Exit 0. JSON mirrors the on-disk config plus transport state.
 
 ## GOTCHA
 
-Default is 'ask' on first run — nothing is sent until you actively opt in. Tracking SLICES.md §S45.
+Default is `ask` — nothing is sent until you opt in. Even with state=on, transport is a no-op until SCAFFOLD_DAY_POSTHOG_URL + _KEY are set. Tracking SLICES.md §S45 / issue #3 §S65.

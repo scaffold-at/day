@@ -199,12 +199,12 @@ preset apply <name>
 
 ### `scaffold-day feedback` — send anonymous feedback to the scaffold-day maintainers
 
-- **WHAT.** Send a short anonymous note to the project maintainers. Optionally attaches the redacted output of `scaffold-day doctor` so the team can reproduce the context.
-- **WHEN.** When something is great, broken, surprising, or unclear — and you don't want to file a public issue.
-- **COST.** One HTTPS POST to the project feedback endpoint. No tokens. No content beyond what you type.
-- **INPUT.** <message...> [--include-doctor] [--no-confirm]
-- **RETURN.** Exit 0 with a thank-you and a reference id on success.
-- **GOTCHA.** Shows you the exact JSON before sending and waits for confirmation. Read it. Tracking SLICES.md §S2 (placeholder).
+- **WHAT.** Send a short pseudonymous note to the maintainer feedback channel. Tagged with your install_id (UUID per home) for rate-limit checks; it is NOT anonymous. With --include-doctor, attach a redacted JSON bundle (no paths, no policy values, no per-day counts).
+- **WHEN.** When something feels great, broken, surprising, or unclear — and you don't want to file a public issue.
+- **COST.** One HTTPS POST to the configured feedback URL. No transmission when SCAFFOLD_DAY_FEEDBACK_URL is unset.
+- **INPUT.** <message...> [--include-doctor] [--no-confirm] [--json] [--dry-run]
+- **RETURN.** Exit 0 with a redacted preview, then a confirm prompt (skip with --no-confirm). Falls back to GitHub Issues guidance when transport is unconfigured.
+- **GOTCHA.** TTY required for the confirm prompt; pipelines must pass --no-confirm. Tracking issue #3 §S66.
 
 ### `scaffold-day self-update` — check for and install a newer scaffold-day binary
 
@@ -235,12 +235,12 @@ preset apply <name>
 
 ### `scaffold-day telemetry` — inspect or change opt-in heartbeat telemetry preferences
 
-- **WHAT.** Read or set the telemetry preference. Telemetry, if on, sends an anonymous install_id and event-kind counters only — never TODO or calendar content.
-- **WHEN.** Whenever you want to opt in, opt out, or check the current state.
-- **COST.** Local config write only. The first heartbeat (after opt-in) is one HTTPS POST.
-- **INPUT.** on | off | ask | status
-- **RETURN.** Exit 0 with the new state printed.
-- **GOTCHA.** Default is 'ask' on first run — nothing is sent until you actively opt in. Tracking SLICES.md §S45.
+- **WHAT.** Read or set the telemetry preference. Pseudonymous: events are tagged with an install_id (UUID per home), never TODO content / calendar / paths. Transport is PostHog Cloud when SCAFFOLD_DAY_POSTHOG_URL + SCAFFOLD_DAY_POSTHOG_KEY are set; otherwise events queue silently.
+- **WHEN.** Whenever you want to opt in, opt out, check status, or rotate the install_id.
+- **COST.** Local config write only. Each captured event (state=on, transport configured) is one HTTPS POST to PostHog.
+- **INPUT.** status (default) | on | off | ask | show-id | reset-id [--json] [--dry-run]
+- **RETURN.** Exit 0. JSON mirrors the on-disk config plus transport state.
+- **GOTCHA.** Default is `ask` — nothing is sent until you opt in. Even with state=on, transport is a no-op until SCAFFOLD_DAY_POSTHOG_URL + _KEY are set. Tracking SLICES.md §S45 / issue #3 §S65.
 
 ## MCP tools
 

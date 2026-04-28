@@ -1,0 +1,15 @@
+name = "scaffold-day-feedback"
+main = "src/worker.ts"
+compatibility_date = "2026-04-01"
+
+# Public route. PO can override via custom domain.
+# routes = [{ pattern = "feedback.scaffold.at", custom_domain = true }]
+
+# Rate-limit + dedup KV.
+# [[kv_namespaces]]
+# binding = "RATE"
+# id = "<populated by wrangler kv:namespace create>"
+
+# Secrets (set with `wrangler secret put DISCORD_WEBHOOK_URL`):
+#   - DISCORD_WEBHOOK_URL  (full https://discord.com/api/webhooks/... URL)
+#   - SHARED_TOKEN         (optional; if set, requires X-Scaffold-Day-Token header on POSTs)

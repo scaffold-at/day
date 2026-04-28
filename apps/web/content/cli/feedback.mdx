@@ -13,26 +13,26 @@ command: feedback
 
 ## WHAT
 
-Send a short anonymous note to the project maintainers. Optionally attaches the redacted output of `scaffold-day doctor` so the team can reproduce the context.
+Send a short pseudonymous note to the maintainer feedback channel. Tagged with your install_id (UUID per home) for rate-limit checks; it is NOT anonymous. With --include-doctor, attach a redacted JSON bundle (no paths, no policy values, no per-day counts).
 
 ## WHEN
 
-When something is great, broken, surprising, or unclear — and you don't want to file a public issue.
+When something feels great, broken, surprising, or unclear — and you don't want to file a public issue.
 
 ## COST
 
-One HTTPS POST to the project feedback endpoint. No tokens. No content beyond what you type.
+One HTTPS POST to the configured feedback URL. No transmission when SCAFFOLD_DAY_FEEDBACK_URL is unset.
 
 ## INPUT
 
 ```
-<message...> [--include-doctor] [--no-confirm]
+<message...> [--include-doctor] [--no-confirm] [--json] [--dry-run]
 ```
 
 ## RETURN
 
-Exit 0 with a thank-you and a reference id on success.
+Exit 0 with a redacted preview, then a confirm prompt (skip with --no-confirm). Falls back to GitHub Issues guidance when transport is unconfigured.
 
 ## GOTCHA
 
-Shows you the exact JSON before sending and waits for confirmation. Read it. Tracking SLICES.md §S2 (placeholder).
+TTY required for the confirm prompt; pipelines must pass --no-confirm. Tracking issue #3 §S66.

@@ -6,8 +6,10 @@ import {
   pathExists,
   type ProviderProbeResult,
   readAnchorForDate,
+  readInstallId,
   readPolicyYaml,
   readSchemaVersionFile,
+  readTelemetryConfig,
   ScaffoldError,
   schemaVersionPath,
   todayInTz,
@@ -126,6 +128,21 @@ async function buildEnvironmentSection(home: string): Promise<Section> {
 
   lines.push({ status: "info", text: `bun: ${Bun.version}` });
   lines.push({ status: "info", text: `current binary: scaffold-day v${pkg.version}` });
+
+  // Telemetry / install_id (S65). Always rendered: it's a privacy
+  // touchpoint — surfacing the state explicitly is the point.
+  try {
+    const tcfg = await readTelemetryConfig(home);
+    const id = await readInstallId(home);
+    const idLabel = id ? `${id.slice(0, 8)}…` : "(none)";
+    lines.push({
+      status: tcfg.state === "on" ? "ok" : "info",
+      text: `telemetry: ${tcfg.state} · install_id: ${idLabel}`,
+      detail: id ? [`full id: ${id}`] : ["run `scaffold-day telemetry on` to opt in"],
+    });
+  } catch {
+    // tolerate
+  }
   return { title: "Environment", lines };
 }
 

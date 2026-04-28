@@ -13,3 +13,4 @@ export * from "./policy";
 export * from "./schema";
 export * from "./todo";
 export * from "./util";
+export * from "./identity";
