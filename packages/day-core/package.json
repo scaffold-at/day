@@ -1,6 +1,6 @@
 {
   "name": "@scaffold/day-core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Scaffold Day domain core: schemas, repositories, scheduler. INTERNAL until v1.0.",
   "license": "AGPL-3.0-or-later",

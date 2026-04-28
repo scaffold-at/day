@@ -16,6 +16,7 @@ export {
   SCHEMA_VERSION_FILE,
   type SchemaVersionFile,
   schemaVersionPath,
+  updateLastSeenBinaryVersion,
   writeSchemaVersionFile,
 } from "./storage";
 export {

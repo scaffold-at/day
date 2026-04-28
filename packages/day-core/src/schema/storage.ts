@@ -5,10 +5,20 @@ import { ScaffoldError } from "../error";
 import { CURRENT_SCHEMA_VERSION, isSchemaVersion, type SchemaVersion } from "./version";
 
 export type SchemaVersionFile = {
+  /** Data-format version (todos / days / policy / heartbeats / …). */
   schema_version: SchemaVersion;
+  /** When the home was first initialized. */
   created_at: string;
+  /** Last time a schema migrator ran. */
   last_migrated_at: string | null;
+  /** Binary that *first wrote* this file (immutable fingerprint). */
   scaffold_day_version: string;
+  /**
+   * Binary that most recently *touched* this home (auto-updated on
+   * every CLI / MCP invocation). Optional for back-compat with v0.2.0
+   * homes that pre-date this field.
+   */
+  last_seen_binary_version?: string;
 };
 
 export const SCAFFOLD_DAY_HOME_ENV = "SCAFFOLD_DAY_HOME";
@@ -95,7 +105,42 @@ export async function readSchemaVersionFile(home: string): Promise<SchemaVersion
     last_migrated_at: typeof file.last_migrated_at === "string" ? file.last_migrated_at : null,
     scaffold_day_version:
       typeof file.scaffold_day_version === "string" ? file.scaffold_day_version : "unknown",
+    last_seen_binary_version:
+      typeof file.last_seen_binary_version === "string"
+        ? file.last_seen_binary_version
+        : undefined,
   };
+}
+
+/**
+ * Update `last_seen_binary_version` on the home's schema-version
+ * file when it differs from the current binary. Best-effort —
+ * silently no-ops on:
+ *   - missing home (caller is `init` or there's nothing to track)
+ *   - read / write errors (we never fail user commands over a
+ *     fingerprint update)
+ */
+export async function updateLastSeenBinaryVersion(
+  home: string,
+  binaryVersion: string,
+): Promise<void> {
+  const p = schemaVersionPath(home);
+  if (!(await pathExists(p))) return;
+  let file: SchemaVersionFile;
+  try {
+    file = await readSchemaVersionFile(home);
+  } catch {
+    return;
+  }
+  if (file.last_seen_binary_version === binaryVersion) return;
+  try {
+    await writeSchemaVersionFile(home, {
+      ...file,
+      last_seen_binary_version: binaryVersion,
+    });
+  } catch {
+    // ignore — fingerprint is non-critical
+  }
 }
 
 export async function writeSchemaVersionFile(
@@ -113,5 +158,6 @@ export function defaultSchemaVersionFile(scaffoldDayVersion: string): SchemaVers
     created_at: new Date().toISOString(),
     last_migrated_at: null,
     scaffold_day_version: scaffoldDayVersion,
+    last_seen_binary_version: scaffoldDayVersion,
   };
 }

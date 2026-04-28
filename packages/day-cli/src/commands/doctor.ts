@@ -73,22 +73,28 @@ async function buildEnvironmentSection(home: string): Promise<Section> {
   if (await pathExists(schemaPath)) {
     try {
       const file = await readSchemaVersionFile(home);
+      const detail: string[] = [
+        `initialized by: scaffold-day v${file.scaffold_day_version}`,
+      ];
+      if (file.last_seen_binary_version) {
+        detail.push(`last seen by:   scaffold-day v${file.last_seen_binary_version}`);
+      }
       lines.push({
         status: "ok",
-        text: `schema_version: ${file.schema_version}`,
-        detail: [`scaffold_day_version: ${file.scaffold_day_version}`],
+        text: `data schema: ${file.schema_version}`,
+        detail,
       });
     } catch (err) {
       lines.push({
         status: "error",
-        text: `schema_version: malformed`,
+        text: `data schema: malformed schema-version.json`,
         detail: [(err as Error).message],
       });
     }
   } else {
     lines.push({
       status: "warn",
-      text: "schema_version: missing",
+      text: "data schema: missing schema-version.json",
       detail: ["initialize the home with `scaffold-day init`"],
     });
   }
@@ -119,7 +125,7 @@ async function buildEnvironmentSection(home: string): Promise<Section> {
   }
 
   lines.push({ status: "info", text: `bun: ${Bun.version}` });
-  lines.push({ status: "info", text: `scaffold-day: ${pkg.version}` });
+  lines.push({ status: "info", text: `current binary: scaffold-day v${pkg.version}` });
   return { title: "Environment", lines };
 }
 

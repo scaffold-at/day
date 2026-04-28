@@ -11,6 +11,23 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+## [v0.2.1] - 2026-04-29
+
+Patch release. Clarifies version reporting in `doctor` and adds a
+`last_seen_binary_version` fingerprint that auto-updates on every
+CLI / MCP invocation.
+
+### Changed
+- **`doctor` Environment section** — labels are now self-explanatory:
+  - `data schema: 0.1.0` (was `schema_version: 0.1.0`)
+  - `initialized by: scaffold-day v0.1.0` (was `scaffold_day_version: 0.1.0`, indented detail)
+  - `last seen by: scaffold-day v0.2.1` *(new)*
+  - `current binary: scaffold-day v0.2.1` (was `scaffold-day: 0.2.0`)
+- **`schema-version.json`** gains an optional `last_seen_binary_version` field. v0.2.0 homes still load fine; the field is populated on the next non-init command after upgrading.
+
+### Why
+`doctor` showed three different version-shaped strings (`schema_version`, `scaffold_day_version`, `scaffold-day`) without explaining what each meant. After upgrading from v0.1.0 to v0.2.0 the schema-version.json fingerprint stayed at `0.1.0` (the binary that *first wrote* the file), making it look like the upgrade didn't take. Now: data schema vs. initialized-by vs. last-seen vs. current-binary are four distinct labels with distinct lifetimes.
+
 ## [v0.2.0] - 2026-04-29
 
 The relative time model. v0.2 introduces the morning anchor as the
@@ -126,6 +143,7 @@ via `curl -fsSL https://day.scaffold.at/install.sh | sh`.
 - **S51 / S52 / S53** Logo (skipped for v0.1) + scaffold.at/day landing + docs site MVP.
 - **S55 / S56 / S57** GitHub Discussions + good-first-issue labels, MCP directory registration, Show HN rehearsal.
 
-[Unreleased]: https://github.com/scaffold-at/day/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/scaffold-at/day/compare/v0.2.1...HEAD
+[v0.2.1]: https://github.com/scaffold-at/day/releases/tag/v0.2.1
 [v0.2.0]: https://github.com/scaffold-at/day/releases/tag/v0.2.0
 [v0.1.0]: https://github.com/scaffold-at/day/releases/tag/v0.1.0

@@ -1,5 +1,9 @@
 #!/usr/bin/env bun
-import { defaultHomeDir, ScaffoldError } from "@scaffold/day-core";
+import {
+  defaultHomeDir,
+  ScaffoldError,
+  updateLastSeenBinaryVersion,
+} from "@scaffold/day-core";
 import pkg from "../package.json" with { type: "json" };
 import { handleCliError } from "./cli/error-handler";
 import { formatCommandHelp, formatRootHelp } from "./cli/help";
@@ -91,6 +95,13 @@ async function dispatch(argv: string[]): Promise<number> {
   if (rest.includes("--help") || rest.includes("-h")) {
     console.log(formatCommandHelp(cmd));
     return 0;
+  }
+
+  // Update the home's last_seen_binary_version fingerprint so doctor
+  // can show "this home was last touched by binary X". Skipped on
+  // init (file doesn't exist yet) and dry-run.
+  if (cmd.name !== "init" && !isDryRun()) {
+    await updateLastSeenBinaryVersion(defaultHomeDir(), VERSION);
   }
 
   // Auto-fallback morning anchor (§S60). Skips:

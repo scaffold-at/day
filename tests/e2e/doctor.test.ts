@@ -17,7 +17,7 @@ describe("doctor (S35)", () => {
     expect(r.stdout).toContain("Environment");
     expect(r.stdout).toContain("AI Providers");
     expect(r.stdout).toContain("Adapters");
-    expect(r.stdout).toContain("schema_version: 0.1.0");
+    expect(r.stdout).toContain("data schema: 0.1.0");
     expect(r.stdout).toContain("bun:");
     expect(r.stdout).toContain("Summary:");
   });
@@ -75,7 +75,7 @@ describe("doctor (S35)", () => {
       const out = JSON.parse(r.stdout);
       const env = out.sections.find((s: { title: string }) => s.title === "Environment");
       const schemaLine = env.lines.find((l: { text: string }) =>
-        l.text.includes("schema_version"),
+        l.text.includes("data schema"),
       );
       expect(schemaLine.status).toBe("warn");
     } finally {
