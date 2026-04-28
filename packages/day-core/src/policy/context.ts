@@ -25,6 +25,45 @@ export const ProtectedRangeSchema = z
 export type ProtectedRange = z.infer<typeof ProtectedRangeSchema>;
 
 /**
+ * Cognitive load decay (PRD v0.2 §S59, design issue #2).
+ *
+ * Heavy tasks placed late in the day (i.e. many hours after the
+ * morning anchor) get a soft score penalty. Light tasks are
+ * unaffected. The penalty is *not* a hard reject — the engine still
+ * lets the user place the slot if nothing else fits, just ranks it
+ * below earlier candidates.
+ *
+ * Defaults (chosen by PO 2026-04-28; revisit on first dogfood pass):
+ *   decay = "linear"             — predictable; exponential reserved
+ *                                  for users who prefer steeper falloff
+ *   full_capacity_window_hours = 4
+ *                                  — first 4h after anchor are
+ *                                    "no penalty" zone
+ *   heavy_task_threshold_min = 60
+ *                                  — TODOs whose duration_min ≥ 60 are
+ *                                    "heavy"; tweak if v0.2 dogfooding
+ *                                    shows this is too aggressive
+ *   linear_penalty_per_hour = 10  — score points per hour past the
+ *                                    capacity window (linear mode only)
+ *   exponential_base = 2          — 2^overshoot - 1 hour-by-hour
+ *                                    growth (exp mode only); not the
+ *                                    default but kept as an opt-in
+ *
+ * Optional. When absent, the engine skips cognitive_load evaluation
+ * (back-compat for v0.1 + v0.2-without-S59 policies).
+ */
+export const CognitiveLoadSchema = z
+  .object({
+    decay: z.enum(["linear", "exponential"]).default("linear"),
+    full_capacity_window_hours: z.number().min(0).max(24).default(4),
+    heavy_task_threshold_min: z.number().int().min(1).default(60),
+    linear_penalty_per_hour: z.number().min(0).default(10),
+    exponential_base: z.number().min(1).default(2),
+  })
+  .strict();
+export type CognitiveLoad = z.infer<typeof CognitiveLoadSchema>;
+
+/**
  * Sleep budget (PRD v0.2 §S58, design issue #2).
  *
  * The relative time model: instead of pinning sleep to absolute clock
@@ -58,6 +97,7 @@ export const ContextSchema = z
     energy_peaks: z.array(TimeRangeSchema).default([]),
     protected_ranges: z.array(ProtectedRangeSchema).default([]),
     sleep_budget: SleepBudgetSchema.optional(),
+    cognitive_load: CognitiveLoadSchema.optional(),
   })
   .strict();
 export type Context = z.infer<typeof ContextSchema>;

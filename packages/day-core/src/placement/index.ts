@@ -32,3 +32,9 @@ export {
   type SleepBudgetInput,
   type SleepBudgetSeverity,
 } from "./sleep-budget";
+export {
+  evaluateCognitiveLoad,
+  type CognitiveLoadEvaluation,
+  type CognitiveLoadInput,
+  type CognitiveLoadSeverity,
+} from "./cognitive-load";

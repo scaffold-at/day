@@ -7,6 +7,10 @@ import {
   type HardRuleViolation,
 } from "./hard-rules";
 import {
+  evaluateCognitiveLoad,
+  type CognitiveLoadEvaluation,
+} from "./cognitive-load";
+import {
   evaluateSleepBudget,
   projectAnchorForDate,
   type SleepBudgetEvaluation,
@@ -23,6 +27,8 @@ export type SuggestionInput = {
     tags: readonly string[];
     duration_min: number;
     importance_score: number;
+    /** Effort in minutes; used by cognitive_load (S59) for heavy/light gate. */
+    effort_min?: number | null;
   };
   /** Day files keyed by `YYYY-MM-DD`, in the order they should be considered. */
   daysByDate: ReadonlyMap<string, Day>;
@@ -51,6 +57,8 @@ export type CandidateBreakdown = {
   rationale: string;
   /** S58: sleep budget evaluation result. `null` when budget skipped. */
   sleep_budget?: SleepBudgetEvaluation | null;
+  /** S59: cognitive load decay evaluation. `null` when skipped. */
+  cognitive_load?: CognitiveLoadEvaluation | null;
 };
 
 export type Suggestion = {
@@ -253,15 +261,33 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
         tzOffset: ww.tzOffset,
       });
       const reactivity = computeReactivityPenalty(cand, input.policy.reactivity);
+
+      // S59 cognitive load: heavy tasks placed late get a soft
+      // penalty proportional to the decay curve. Light tasks pass
+      // through (severity=ok, penalty=0).
+      const cogPolicy = input.policy.context.cognitive_load ?? null;
+      const cog = evaluateCognitiveLoad({
+        slot: { start: cand.start },
+        anchorOnSlotDate,
+        effortMin:
+          input.todo.effort_min ?? input.todo.duration_min ?? null,
+        cognitiveLoad: cogPolicy,
+      });
+
       const score =
         input.todo.importance_score +
         soft.total +
         reactivity +
-        sleep.penalty;
+        sleep.penalty +
+        cog.penalty;
 
       const sleepNote =
         sleep.severity === "soft"
           ? ` + sleep_budget(${sleep.penalty})`
+          : "";
+      const cogNote =
+        cog.severity === "soft"
+          ? ` + cognitive_load(${cog.penalty})`
           : "";
       const baseRationale =
         soft.contributions.length === 0
@@ -281,8 +307,9 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
         soft_total: soft.total,
         reactivity_penalty: reactivity,
         contributions: soft.contributions,
-        rationale: `${baseRationale}${sleepNote}`,
+        rationale: `${baseRationale}${sleepNote}${cogNote}`,
         sleep_budget: budget && anchorOnSlotDate ? sleep : null,
+        cognitive_load: cogPolicy && anchorOnSlotDate ? cog : null,
       });
     }
   }

@@ -9,6 +9,8 @@ export {
   DAYS_OF_WEEK,
   type DayOfWeek,
   DayOfWeekSchema,
+  type CognitiveLoad,
+  CognitiveLoadSchema,
   type ProtectedRange,
   ProtectedRangeSchema,
   type SleepBudget,
