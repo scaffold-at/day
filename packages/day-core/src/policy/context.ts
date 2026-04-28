@@ -25,6 +25,40 @@ export const ProtectedRangeSchema = z
 export type ProtectedRange = z.infer<typeof ProtectedRangeSchema>;
 
 /**
+ * Recovery block (PRD v0.2 §S62, design issue #2).
+ *
+ * When yesterday had a "forced-late" event — an event that ran past
+ * working_hours.end + a soft threshold — today's morning window is
+ * marked as a soft recovery block. Slots inside it accumulate a
+ * negative score contribution, *not* a hard reject. The user can
+ * still place there if needed; the engine just ranks them below.
+ *
+ * Defaults (chosen 2026-04-28):
+ *   late_threshold_minutes_past_working_end = 120
+ *                       — events ending 2h+ after working_hours.end
+ *                         count as "forced late"
+ *   morning_block_hours = 2
+ *                       — first 2h of working_hours protected
+ *   soft_penalty = 30   — score contribution per slot inside the
+ *                         recovery window. Negative; engine adds it
+ *                         when severity = "soft".
+ *
+ * Optional. Absent → engine skips evaluation.
+ */
+export const RecoveryBlockSchema = z
+  .object({
+    late_threshold_minutes_past_working_end: z
+      .number()
+      .int()
+      .min(0)
+      .default(120),
+    morning_block_hours: z.number().min(0).max(12).default(2),
+    soft_penalty: z.number().min(0).default(30),
+  })
+  .strict();
+export type RecoveryBlock = z.infer<typeof RecoveryBlockSchema>;
+
+/**
  * Cognitive load decay (PRD v0.2 §S59, design issue #2).
  *
  * Heavy tasks placed late in the day (i.e. many hours after the
@@ -98,6 +132,7 @@ export const ContextSchema = z
     protected_ranges: z.array(ProtectedRangeSchema).default([]),
     sleep_budget: SleepBudgetSchema.optional(),
     cognitive_load: CognitiveLoadSchema.optional(),
+    recovery_block: RecoveryBlockSchema.optional(),
   })
   .strict();
 export type Context = z.infer<typeof ContextSchema>;

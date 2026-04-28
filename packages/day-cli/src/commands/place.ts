@@ -130,6 +130,15 @@ async function runSuggest(args: string[]): Promise<number> {
     daysByDate.set(d, await dayStore.readDay(d));
   }
 
+  // S62: pull yesterday-of-each-day events so the engine can apply
+  // the recovery_block soft penalty when yesterday ran late.
+  const previousDayByToday = new Map<string, readonly import("@scaffold/day-core").FixedEvent[]>();
+  for (let i = 0; i < days; i++) {
+    const d = shiftDays(start, i);
+    const yesterday = shiftDays(d, -1);
+    previousDayByToday.set(d, (await dayStore.readDay(yesterday)).events);
+  }
+
   const importanceScore = detail.importance?.score ?? detail.importance_score ?? 0;
   // S58: pull today's anchor (or the start day's) so the engine can
   // evaluate sleep_budget. Null is fine — the engine skips budget
@@ -149,6 +158,7 @@ async function runSuggest(args: string[]): Promise<number> {
     policy,
     max,
     anchor,
+    previousDayByToday,
   };
   const suggestion = suggestPlacements(input);
 

@@ -38,3 +38,9 @@ export {
   type CognitiveLoadInput,
   type CognitiveLoadSeverity,
 } from "./cognitive-load";
+export {
+  evaluateRecoveryBlock,
+  type RecoveryBlockEvaluation,
+  type RecoveryBlockInput,
+  type RecoveryBlockSeverity,
+} from "./recovery-block";

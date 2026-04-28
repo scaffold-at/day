@@ -11,6 +11,10 @@ import {
   type CognitiveLoadEvaluation,
 } from "./cognitive-load";
 import {
+  evaluateRecoveryBlock,
+  type RecoveryBlockEvaluation,
+} from "./recovery-block";
+import {
   evaluateSleepBudget,
   projectAnchorForDate,
   type SleepBudgetEvaluation,
@@ -41,6 +45,13 @@ export type SuggestionInput = {
    * (S58). Pass `null` to skip budget evaluation entirely.
    */
   anchor?: { date: string; anchor: string } | null;
+  /**
+   * S62: yesterday's events keyed by *today's* date. The engine
+   * checks each candidate against the recovery_block window when
+   * yesterday triggered the threshold. Optional — when absent, the
+   * recovery block is skipped.
+   */
+  previousDayByToday?: ReadonlyMap<string, ReadonlyArray<import("../day").FixedEvent>>;
 };
 
 export type CandidateBreakdown = {
@@ -59,6 +70,8 @@ export type CandidateBreakdown = {
   sleep_budget?: SleepBudgetEvaluation | null;
   /** S59: cognitive load decay evaluation. `null` when skipped. */
   cognitive_load?: CognitiveLoadEvaluation | null;
+  /** S62: recovery block evaluation. `null` when skipped. */
+  recovery_block?: RecoveryBlockEvaluation | null;
 };
 
 export type Suggestion = {
@@ -128,6 +141,26 @@ function workingWindow(
         windowEnd: `${date}T${wh.end}:00${tzOffset}`,
         tzOffset,
       };
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve yesterday's working_hours.end as an ISO instant for use by
+ * the recovery_block evaluator. Picks the first matching schedule
+ * for yesterday's day-of-week; returns null if yesterday had no
+ * working window.
+ */
+function yesterdayWorkingEnd(date: string, policy: Policy): string | null {
+  const yesterday = new Date(`${date}T00:00:00Z`);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const ymd = yesterday.toISOString().slice(0, 10);
+  const tzOffset = offsetFor(ymd, policy.context.tz);
+  const dow = dayOfWeek(ymd, policy.context.tz);
+  for (const wh of policy.context.working_hours) {
+    if (wh.days.includes(dow)) {
+      return `${ymd}T${wh.end}:00${tzOffset}`;
     }
   }
   return null;
@@ -274,12 +307,28 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
         cognitiveLoad: cogPolicy,
       });
 
+      // S62 recovery block: if yesterday had a forced-late event,
+      // today's morning window pays a soft penalty. Only evaluated
+      // when the caller passed previousDayByToday.
+      const recoveryPolicy = input.policy.context.recovery_block ?? null;
+      const yesterdayEvents = input.previousDayByToday?.get(date) ?? null;
+      const recovery = yesterdayEvents
+        ? evaluateRecoveryBlock({
+            slot: { start: cand.start },
+            yesterdayEvents,
+            yesterdayWorkingEnd: yesterdayWorkingEnd(date, input.policy),
+            todayWorkingStart: ww.windowStart,
+            policy: recoveryPolicy,
+          })
+        : null;
+
       const score =
         input.todo.importance_score +
         soft.total +
         reactivity +
         sleep.penalty +
-        cog.penalty;
+        cog.penalty +
+        (recovery?.penalty ?? 0);
 
       const sleepNote =
         sleep.severity === "soft"
@@ -288,6 +337,10 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
       const cogNote =
         cog.severity === "soft"
           ? ` + cognitive_load(${cog.penalty})`
+          : "";
+      const recoveryNote =
+        recovery?.severity === "soft"
+          ? ` + recovery_block(${recovery.penalty})`
           : "";
       const baseRationale =
         soft.contributions.length === 0
@@ -307,9 +360,10 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
         soft_total: soft.total,
         reactivity_penalty: reactivity,
         contributions: soft.contributions,
-        rationale: `${baseRationale}${sleepNote}${cogNote}`,
+        rationale: `${baseRationale}${sleepNote}${cogNote}${recoveryNote}`,
         sleep_budget: budget && anchorOnSlotDate ? sleep : null,
         cognitive_load: cogPolicy && anchorOnSlotDate ? cog : null,
+        recovery_block: recovery,
       });
     }
   }

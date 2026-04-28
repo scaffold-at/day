@@ -13,6 +13,8 @@ export {
   CognitiveLoadSchema,
   type ProtectedRange,
   ProtectedRangeSchema,
+  type RecoveryBlock,
+  RecoveryBlockSchema,
   type SleepBudget,
   SleepBudgetSchema,
   type TimeRange,
