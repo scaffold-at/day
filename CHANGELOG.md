@@ -11,6 +11,23 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+## [v0.2.2] - 2026-04-29
+
+Phase B kickoff (v0.1 placeholder commands → real). Three commands
+land in this release: `logs`, `rebuild-index`, and `self-update`.
+
+### Added
+- **S63** `scaffold-day logs [--since <duration|date>] [--kind placement|conflict|heartbeat|decision] [--json]` — read placement / conflict / heartbeat logs with filters. Default 14-day window. Decision is an alias for placement+conflict (no separate decision log in v0.2). `--follow` deferred to a tail/watch slice.
+- **S64** `scaffold-day rebuild-index [--scope todos|days|all] [--json] [--dry-run]` — recompute `index.json` from per-id detail files and `manifest.json` from per-day files, with a drift report (added / removed / changed). Detail files are never modified.
+- **S67** `scaffold-day self-update [--check] [--rollback] [--json] [--dry-run]` — resolve the latest GitHub release, sha256 verify, atomic-replace the running binary, keep a sibling backup for `--rollback`. Refuses brew-managed paths and `bun run` dev invocations.
+
+### Side fixes
+- `--dry-run` preview blocks for `place do` / `place override` / `day replan` / `conflict resolve` / `conflict detect` now point at `logs/<YYYY-MM>/placements.jsonl` (plural, partitioned). Real disk writes were always partitioned; the earlier preview strings were singular by mistake.
+
+### Pending Phase B
+- **S65 telemetry** — paused; endpoint architecture pending design discussion
+- **S66 feedback** — paused; same
+
 ## [v0.2.1] - 2026-04-29
 
 Patch release. Clarifies version reporting in `doctor` and adds a
@@ -143,7 +160,8 @@ via `curl -fsSL https://day.scaffold.at/install.sh | sh`.
 - **S51 / S52 / S53** Logo (skipped for v0.1) + scaffold.at/day landing + docs site MVP.
 - **S55 / S56 / S57** GitHub Discussions + good-first-issue labels, MCP directory registration, Show HN rehearsal.
 
-[Unreleased]: https://github.com/scaffold-at/day/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/scaffold-at/day/compare/v0.2.2...HEAD
+[v0.2.2]: https://github.com/scaffold-at/day/releases/tag/v0.2.2
 [v0.2.1]: https://github.com/scaffold-at/day/releases/tag/v0.2.1
 [v0.2.0]: https://github.com/scaffold-at/day/releases/tag/v0.2.0
 [v0.1.0]: https://github.com/scaffold-at/day/releases/tag/v0.1.0

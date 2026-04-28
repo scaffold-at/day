@@ -1,6 +1,6 @@
 {
   "name": "@scaffold/day-mcp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Scaffold Day MCP server — thin wrapper over the CLI surface.",
   "license": "AGPL-3.0-or-later",
