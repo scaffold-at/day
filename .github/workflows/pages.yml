@@ -35,6 +35,17 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Stamp site version into manuals
+        run: |
+          # Read the canonical version from the root package.json so the
+          # live manual always matches the binary that ships with this
+          # commit. Replace the __SITE_VERSION__ placeholder in every
+          # manual page (en + ko + future locales).
+          VERSION=$(node -e "process.stdout.write(require('./package.json').version)")
+          echo "stamping site version: $VERSION"
+          find apps/web/public -name '*.html' -print0 | \
+            xargs -0 sed -i "s/__SITE_VERSION__/${VERSION}/g"
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

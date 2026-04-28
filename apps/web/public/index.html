@@ -243,7 +243,7 @@
         </p>
         <p>Pin a specific version:</p>
         <div class="cmd">
-          <pre id="cmd-install-pin"><code>curl -fsSL https://day.scaffold.at/install.sh | sh -s -- --version v0.2.0</code></pre>
+          <pre id="cmd-install-pin"><code>curl -fsSL https://day.scaffold.at/install.sh | sh -s -- --version v0.2.3</code></pre>
           <button class="copy" data-copy="cmd-install-pin" aria-label="Copy pinned install">copy</button>
         </div>
 
@@ -602,7 +602,7 @@ scaffold-day policy patch '[
         <h2 id="links">Links</h2>
         <ul>
           <li><a href="https://github.com/scaffold-at/day">GitHub repo</a> — source · issues · releases</li>
-          <li><a href="https://github.com/scaffold-at/day/releases/tag/v0.2.0">v0.2.0 release notes</a></li>
+          <li><a href="https://github.com/scaffold-at/day/releases/latest">Latest release notes</a></li>
           <li><a href="https://github.com/scaffold-at/day/blob/main/CHANGELOG.md">Full CHANGELOG</a></li>
           <li><a href="https://github.com/scaffold-at/day/blob/main/AGENTS.md">AGENTS.md</a> — paste into your AI client at session start</li>
           <li><a href="https://github.com/scaffold-at/day/blob/main/README.md">README</a> · <a href="https://github.com/scaffold-at/day/blob/main/README.ko.md">한국어</a></li>
@@ -677,7 +677,9 @@ scaffold-day policy patch '[
         });
       }
       // Footer last-updated marker (build-time string injected by the deploy).
-      document.getElementById('last-updated').textContent = 'manual for v0.2.0';
+      // The footer string is rewritten at deploy time by the pages
+      // workflow so each release stamps the live site automatically.
+      document.getElementById('last-updated').textContent = 'manual for v__SITE_VERSION__';
     </script>
   </body>
 </html>
