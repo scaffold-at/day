@@ -43,6 +43,15 @@ scaffold-day docs --for-ai   # this document
 - **RETURN.** Exit 0. Human format ≤40 lines (PRD §6.3). JSON includes the freshly computed free_slots[] each time.
 - **GOTCHA.** Working window defaults to 09:00-18:00 in the user's system TZ until Policy lands (§S13). Lunch 12:00-13:00 is protected. Tracking SLICES.md §S12.
 
+### `scaffold-day morning` — record today's morning anchor (the t=0 of the relative time model)
+
+- **WHAT.** Record (or query) today's morning anchor — the wall-clock instant the user 'started today'. The anchor is the t=0 reference for sleep_budget (S58), cognitive_load decay (S59), and rest-break suggestion (S61). v0.1 storage: append-only `<home>/logs/heartbeats.jsonl`; the latest entry for a given date wins.
+- **WHEN.** First action of the day, or when an AI client receives a 'good morning' message and emits MCP `record_morning`. Auto-fallback: if no explicit call landed yet, the first scaffold-day CLI / MCP invocation of the day records `source: "auto"`.
+- **COST.** Local file I/O only. Append-only single-line write to `logs/heartbeats.jsonl`. No network.
+- **INPUT.** [--at HH:MM | --at <ISO 8601 + TZ>] [--force] [--json]
+- **RETURN.** Exit 0 on success. If today's anchor is already set and --force is not given, prints a non-error notice and exits 0. JSON shape: { anchor, date, source, was_already_set, forced }.
+- **GOTCHA.** Auto-fallback runs on every command (except `morning` itself); explicit `morning` always wins by replacing or no-op'ing the auto entry depending on --force. Tracking SLICES.md / issue #3 §S60.
+
 ### `scaffold-day init` — create the local scaffold-day home and seed default policy
 
 - **WHAT.** Initialize <home>/ with the scaffold-day directory layout: <home>/.scaffold-day/schema-version.json, days/, todos/, policy/, sync/, conflicts/, logs/. Seeds policy/current.yaml with the named preset (default: balanced) and prints a list of detected AI providers + next-step suggestions.
@@ -1082,4 +1091,47 @@ preset apply <name>
 }
 ```
 *tokens_est: 65*
+
+### `record_morning`
+
+> Record today's morning anchor (t=0 of the relative time model). Call on the user's morning greeting. Idempotent w/o force; auto-anchors silently upgrade.
+
+**inputSchema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "at": {
+      "type": "string",
+      "description": "Optional ISO 8601 datetime with TZ. If omitted, the current wall-clock instant is used."
+    },
+    "force": {
+      "type": "boolean",
+      "description": "Overwrite an existing explicit/manual anchor for today."
+    }
+  },
+  "additionalProperties": false
+}
+```
+*tokens_est: 39*
+
+### `get_morning_anchor`
+
+> Read the morning anchor for a date (default: today). Null if not yet recorded. Read-only.
+
+**inputSchema:**
+```json
+{
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "YYYY-MM-DD; defaults to today."
+    }
+  },
+  "additionalProperties": false
+}
+```
+*tokens_est: 23*
 

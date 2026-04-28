@@ -1,13 +1,16 @@
 import {
+  compilePolicy,
   defaultHomeDir,
   detectAvailableProviders,
   MockAIProvider,
   pathExists,
   type ProviderProbeResult,
+  readAnchorForDate,
   readPolicyYaml,
   readSchemaVersionFile,
   ScaffoldError,
   schemaVersionPath,
+  todayInTz,
 } from "@scaffold/day-core";
 import path from "node:path";
 import pkg from "../../package.json" with { type: "json" };
@@ -206,6 +209,41 @@ async function runRoundtrip(id: string): Promise<{ ms: number; note: string }> {
   });
 }
 
+async function buildAnchorSection(home: string): Promise<Section> {
+  const lines: Line[] = [];
+  let tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  try {
+    const yaml = await readPolicyYaml(home);
+    if (yaml) {
+      const policy = compilePolicy(yaml);
+      if (policy.context?.tz) tz = policy.context.tz;
+    }
+  } catch {
+    // ignore — fall back to system tz
+  }
+  const today = todayInTz(tz);
+  const entry = await readAnchorForDate(home, today);
+  if (!entry) {
+    lines.push({
+      status: "warn",
+      text: `today's anchor: not set (${today})`,
+      detail: [
+        "the relative time model (§S58/S59/S61) needs an anchor",
+        "set one with `scaffold-day morning` or let the auto-fallback record it on the next command",
+      ],
+    });
+    return { title: "Anchor", lines };
+  }
+  const wall = entry.anchor.slice(11, 16);
+  const status: Status = entry.source === "auto" ? "info" : "ok";
+  lines.push({
+    status,
+    text: `today's anchor: ${wall} (${entry.source})`,
+    detail: [`recorded_at: ${entry.recorded_at}`],
+  });
+  return { title: "Anchor", lines };
+}
+
 function buildAdaptersSection(): Section {
   return {
     title: "Adapters",
@@ -257,9 +295,10 @@ export const doctorCommand: Command = {
     const home = defaultHomeDir();
 
     const env = await buildEnvironmentSection(home);
+    const anchor = await buildAnchorSection(home);
     const providers = await buildProvidersSection(probe);
     const adapters = buildAdaptersSection();
-    const sections = [env, providers.section, adapters];
+    const sections = [env, anchor, providers.section, adapters];
     const counts = summarize(sections);
 
     if (json) {

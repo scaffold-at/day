@@ -1,11 +1,25 @@
-import type { Day, FixedEvent, FreeSlot, Placement } from "@scaffold/day-core";
+import type {
+  AnchorSource,
+  Day,
+  FixedEvent,
+  FreeSlot,
+  Placement,
+} from "@scaffold/day-core";
 import { computeFreeSlots } from "@scaffold/day-core";
 import { colors } from "../cli/colors";
 import { defaultWorkingWindow, type WorkingWindow } from "./working-window";
 
+export type DayViewAnchor = {
+  /** ISO 8601 instant the user "started today". */
+  anchor: string;
+  source: AnchorSource;
+} | null;
+
 export type DayView = {
   date: string;
   tz: string;
+  /** Set when this view is for "today" and a heartbeat exists for it. */
+  anchor: DayViewAnchor;
   events: FixedEvent[];
   placements: Placement[];
   free_slots: FreeSlot[];
@@ -41,7 +55,11 @@ function pad(s: string, n: number): string {
   return s + " ".repeat(n - s.length);
 }
 
-export function buildDayView(day: Day, hintTz?: string): DayView {
+export function buildDayView(
+  day: Day,
+  hintTz?: string,
+  anchor: DayViewAnchor = null,
+): DayView {
   const ww: WorkingWindow = defaultWorkingWindow(day.date, hintTz);
   const free = computeFreeSlots(day, {
     windowStart: ww.windowStart,
@@ -53,6 +71,7 @@ export function buildDayView(day: Day, hintTz?: string): DayView {
   return {
     date: day.date,
     tz: ww.tz,
+    anchor,
     events: [...day.events].sort((a, b) => a.start.localeCompare(b.start)),
     placements: [...day.placements].sort((a, b) => a.start.localeCompare(b.start)),
     free_slots: free,
@@ -77,6 +96,12 @@ export function renderDayView(view: DayView): string {
   lines.push(colors.cyan(rule));
   lines.push(colors.bold(`${view.date} · ${view.tz}`));
   lines.push(colors.cyan(rule));
+
+  if (view.anchor) {
+    const wall = formatLocalTime(view.anchor.anchor, view.tz);
+    const tag = view.anchor.source === "explicit" || view.anchor.source === "manual" ? "" : colors.dim(` (${view.anchor.source})`);
+    lines.push(colors.dim(`Day started ${wall}${tag}`));
+  }
 
   if (view.events.length > 0) {
     lines.push("");

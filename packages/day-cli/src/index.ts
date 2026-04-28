@@ -1,10 +1,11 @@
 #!/usr/bin/env bun
-import { ScaffoldError } from "@scaffold/day-core";
+import { defaultHomeDir, ScaffoldError } from "@scaffold/day-core";
 import pkg from "../package.json" with { type: "json" };
 import { handleCliError } from "./cli/error-handler";
 import { formatCommandHelp, formatRootHelp } from "./cli/help";
 import { commands, findCommand } from "./cli/registry";
-import { setDryRun } from "./cli/runtime";
+import { isDryRun, setDryRun } from "./cli/runtime";
+import { tryRecordAutoHeartbeat } from "./commands/morning";
 
 const VERSION = pkg.version;
 
@@ -90,6 +91,18 @@ async function dispatch(argv: string[]): Promise<number> {
   if (rest.includes("--help") || rest.includes("-h")) {
     console.log(formatCommandHelp(cmd));
     return 0;
+  }
+
+  // Auto-fallback morning anchor (§S60). Skips:
+  //   - `morning` itself (the explicit path; it owns the field)
+  //   - `init` (environment setup, not "started today")
+  //   - `doctor` (read-only diagnostics, not user activity)
+  //   - `mcp` (daemon startup; the LLM emits record_morning instead)
+  //   - dry-run (the anchor write is itself a mutation)
+  // Best-effort: silently no-ops on any fs error.
+  const FALLBACK_SKIP = new Set(["morning", "init", "doctor", "mcp"]);
+  if (!FALLBACK_SKIP.has(cmd.name) && !isDryRun()) {
+    await tryRecordAutoHeartbeat(defaultHomeDir());
   }
 
   return await cmd.run(rest);

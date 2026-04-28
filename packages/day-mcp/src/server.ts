@@ -6,6 +6,10 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { ScaffoldError } from "@scaffold/day-core";
 import { toMcpError } from "./error-mapping";
+import {
+  getMorningAnchorTool,
+  recordMorningTool,
+} from "./tools/anchor-tools";
 import { createTodoTool } from "./tools/create-todo";
 import {
   getDaysRangeTool,
@@ -67,6 +71,8 @@ export const TOOLS: ToolRegistry = [
   explainPlacementTool as Tool<unknown, unknown>,
   resolveConflictTool as Tool<unknown, unknown>,
   computeTaskImportanceTool as Tool<unknown, unknown>,
+  recordMorningTool as Tool<unknown, unknown>,
+  getMorningAnchorTool as Tool<unknown, unknown>,
 ];
 
 export type RunMcpServerOptions = {

@@ -30,6 +30,7 @@ describe("doctor (S35)", () => {
     expect(Array.isArray(out.sections)).toBe(true);
     expect(out.sections.map((s: { title: string }) => s.title)).toEqual([
       "Environment",
+      "Anchor",
       "AI Providers",
       "Adapters",
     ]);

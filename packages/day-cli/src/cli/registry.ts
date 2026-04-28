@@ -10,6 +10,7 @@ import { initCommand } from "../commands/init";
 import { logsCommand } from "../commands/logs";
 import { mcpCommand } from "../commands/mcp";
 import { migrateCommand } from "../commands/migrate";
+import { morningCommand } from "../commands/morning";
 import { placeCommand } from "../commands/place";
 import { policyCommand } from "../commands/policy";
 import { rebuildIndexCommand } from "../commands/rebuild-index";
@@ -22,6 +23,7 @@ import type { Command } from "./command";
 
 export const commands: Command[] = [
   todayCommand,
+  morningCommand,
   initCommand,
   authCommand,
   doctorCommand,

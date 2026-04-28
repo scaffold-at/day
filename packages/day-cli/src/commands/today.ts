@@ -1,9 +1,15 @@
-import { FsDayStore, ScaffoldError, defaultHomeDir } from "@scaffold/day-core";
+import {
+  FsDayStore,
+  ScaffoldError,
+  defaultHomeDir,
+  readAnchorForDate,
+} from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import {
   buildDayView,
   renderDayView,
   renderDayViewJson,
+  type DayViewAnchor,
 } from "../format/day-view";
 
 function todayDate(tz?: string): string {
@@ -57,9 +63,14 @@ export const todayCommand: Command = {
     }
 
     const date = todayDate(tz);
-    const store = new FsDayStore(defaultHomeDir());
+    const home = defaultHomeDir();
+    const store = new FsDayStore(home);
     const day = await store.readDay(date);
-    const view = buildDayView(day, tz);
+    const heartbeat = await readAnchorForDate(home, date);
+    const anchor: DayViewAnchor = heartbeat
+      ? { anchor: heartbeat.anchor, source: heartbeat.source }
+      : null;
+    const view = buildDayView(day, tz, anchor);
     if (json) {
       console.log(renderDayViewJson(view));
     } else {

@@ -202,3 +202,50 @@ describe("MCP server scaffold (S41)", () => {
     }
   });
 });
+
+describe("MCP morning anchor tools (S60)", () => {
+  test("record_morning + get_morning_anchor round-trip", async () => {
+    const { client, close } = await connectClient(home);
+    try {
+      // Pre-state: no anchor.
+      const before = await client.callTool({ name: "get_morning_anchor", arguments: {} });
+      const beforePayload =
+        (before.structuredContent as Record<string, unknown> | undefined) ??
+        JSON.parse((before.content as Array<{ text: string }>)[0]!.text);
+      expect(beforePayload.anchor).toBeNull();
+
+      // Record explicit.
+      const rec = await client.callTool({
+        name: "record_morning",
+        arguments: { at: "2026-04-28T08:00:00+09:00" },
+      });
+      const recPayload =
+        (rec.structuredContent as Record<string, unknown> | undefined) ??
+        JSON.parse((rec.content as Array<{ text: string }>)[0]!.text);
+      expect(recPayload.recorded).toBe(true);
+      expect(recPayload.was_already_set).toBe(false);
+      expect(recPayload.source).toBe("manual");
+
+      // Read back.
+      const after = await client.callTool({ name: "get_morning_anchor", arguments: {} });
+      const afterPayload =
+        (after.structuredContent as Record<string, unknown> | undefined) ??
+        JSON.parse((after.content as Array<{ text: string }>)[0]!.text);
+      expect(afterPayload.anchor).toBe("2026-04-28T08:00:00+09:00");
+      expect(afterPayload.source).toBe("manual");
+
+      // Second record without force is a no-op.
+      const second = await client.callTool({
+        name: "record_morning",
+        arguments: { at: "2026-04-28T09:00:00+09:00" },
+      });
+      const secondPayload =
+        (second.structuredContent as Record<string, unknown> | undefined) ??
+        JSON.parse((second.content as Array<{ text: string }>)[0]!.text);
+      expect(secondPayload.was_already_set).toBe(true);
+      expect(secondPayload.recorded).toBe(false);
+    } finally {
+      await close();
+    }
+  });
+});
