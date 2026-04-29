@@ -21,3 +21,12 @@ export {
   tokenFilePath,
   writeGoogleOAuthToken,
 } from "./token-storage";
+export {
+  effectiveClientId,
+  effectiveClientSecret,
+  generatePkceVerifier,
+  generateState,
+  pkceChallenge,
+  type OAuthDesktopOptions,
+  runOAuthDesktopFlow,
+} from "./oauth-desktop";

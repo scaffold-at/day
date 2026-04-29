@@ -198,8 +198,8 @@ describe("auth (S29)", () => {
     expect(r.stdout).toContain("/oauth2/revoke");
   });
 
-  test("auth login without tokens → DAY_USAGE (v0.1 mock-mode requires --access-token + --refresh-token)", async () => {
-    const r = await runCli(["auth", "login"], { home });
+  test("auth login --non-interactive without tokens → DAY_USAGE (S70 browser flow disabled)", async () => {
+    const r = await runCli(["auth", "login", "--non-interactive"], { home });
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toContain("DAY_USAGE");
     expect(r.stderr).toContain("--access-token");

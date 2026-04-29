@@ -65,10 +65,13 @@ jobs:
           echo "tag $tag ↔ package.json $got — OK"
 
       - name: Compile
+        env:
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
         run: |
           mkdir -p dist
           bun build \
             --compile \
+            --define 'process.env.SCAFFOLD_DAY_GOOGLE_CLIENT_SECRET="'"${GOOGLE_OAUTH_CLIENT_SECRET:-}"'"' \
             --target=${{ matrix.target }} \
             ./packages/day-cli/src/index.ts \
             --outfile=dist/${{ matrix.asset }}

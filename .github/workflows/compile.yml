@@ -45,11 +45,19 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Compile single binary
+        env:
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
         run: |
           mkdir -p dist
+          # Build-time injection of the Google OAuth client_secret so
+          # the secret never lives in the repo. Fork CIs without the
+          # secret produce a binary whose live OAuth path errors with
+          # a clear "client credentials not configured" message; the
+          # explicit-token login still works.
           bun build \
             --compile \
             --target=${{ matrix.target }} \
+            --define 'process.env.SCAFFOLD_DAY_GOOGLE_CLIENT_SECRET="'"${GOOGLE_OAUTH_CLIENT_SECRET:-}"'"' \
             ./packages/day-cli/src/index.ts \
             --outfile=dist/${{ matrix.artifact }}
 

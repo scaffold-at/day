@@ -2,6 +2,7 @@ import {
   deleteGoogleOAuthToken,
   type GoogleOAuthToken,
   readGoogleOAuthToken,
+  runOAuthDesktopFlow,
   writeGoogleOAuthToken,
 } from "@scaffold/day-adapters";
 import { defaultHomeDir, ScaffoldError } from "@scaffold/day-core";
@@ -33,6 +34,7 @@ async function runLogin(args: string[]): Promise<number> {
   let accountEmail: string | undefined;
   let scope = "https://www.googleapis.com/auth/calendar";
   let force = false;
+  let nonInteractive = false;
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
@@ -41,6 +43,7 @@ async function runLogin(args: string[]): Promise<number> {
     else if (a === "--account-email") { accountEmail = takeValue(args, i, "--account-email"); i++; }
     else if (a === "--scope") { scope = takeValue(args, i, "--scope"); i++; }
     else if (a === "--force") { force = true; }
+    else if (a === "--non-interactive") { nonInteractive = true; }
     else throw usage(`auth login: unexpected argument '${a}'`);
   }
 
@@ -58,44 +61,57 @@ async function runLogin(args: string[]): Promise<number> {
     });
   }
 
-  if (!accessToken || !refreshToken) {
-    // v0.1 mock-mode A: live OAuth desktop flow lands in §S27 B-mode.
-    // The non-interactive path is the only supported login until then;
-    // we make it explicit so tests / scripts can pre-seed tokens
-    // without spawning a browser.
+  // S70: when neither token is provided, run the live PKCE desktop
+  // flow (browser handoff). --non-interactive forces an error
+  // instead, useful for CI / scripts that must not spawn a browser.
+  let token: GoogleOAuthToken;
+  if (accessToken && refreshToken) {
+    token = {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      token_type: "Bearer",
+      expiry_at: null,
+      scope,
+      account_email: accountEmail ?? null,
+      storage: "file",
+    };
+  } else if (nonInteractive) {
     throw new ScaffoldError({
       code: "DAY_USAGE",
-      summary: {
-        en: "auth login: --access-token and --refresh-token are required (v0.1 mock-mode)",
-      },
-      cause:
-        "The interactive browser OAuth flow lands in §S27 B-mode after PO supplies a Google Cloud OAuth Client ID. v0.1 only ships the explicit-token path.",
-      try: [
-        "Pass --access-token <AT> --refresh-token <RT> [--account-email <addr>].",
-        "See memory:project_test_strategy for the mock-first plan.",
-      ],
+      summary: { en: "auth login: --access-token + --refresh-token required when --non-interactive" },
+      cause: "Browser OAuth flow is the default; --non-interactive disables it.",
+      try: ["Drop --non-interactive, or pass both tokens explicitly."],
     });
+  } else {
+    if (isDryRun()) {
+      emitDryRun(false, {
+        command: "auth login",
+        writes: [{ path: ".secrets/google-oauth.json", op: existing ? "update" : "create" }],
+        note: "would open the browser for OAuth desktop flow",
+        result: { mode: "browser", scope },
+      });
+      return 0;
+    }
+    console.log("scaffold-day auth login");
+    console.log("  starting browser OAuth flow…");
+    token = await runOAuthDesktopFlow({
+      scopes: [scope, "openid", "email"],
+      onAuthUrl: (url) => {
+        console.log(`  if the browser doesn't open, visit:\n    ${url}`);
+      },
+    });
+    if (accountEmail) token.account_email = accountEmail;
   }
-
-  const token: GoogleOAuthToken = {
-    access_token: accessToken,
-    refresh_token: refreshToken,
-    token_type: "Bearer",
-    expiry_at: null,
-    scope,
-    account_email: accountEmail ?? null,
-    storage: "file",
-  };
 
   if (isDryRun()) {
     emitDryRun(false, {
       command: "auth login",
       writes: [{ path: ".secrets/google-oauth.json", op: existing ? "update" : "create" }],
       result: {
-        account: accountEmail ?? null,
-        scope,
+        account: token.account_email,
+        scope: token.scope,
         storage: "file",
-        has_refresh_token: refreshToken.length > 0,
+        has_refresh_token: token.refresh_token.length > 0,
       },
     });
     return 0;
@@ -104,8 +120,8 @@ async function runLogin(args: string[]): Promise<number> {
   await writeGoogleOAuthToken(home, token);
 
   console.log("scaffold-day auth login");
-  console.log(`  account: ${accountEmail ?? "(unknown)"}`);
-  console.log(`  scope:   ${scope}`);
+  console.log(`  account: ${token.account_email ?? "(unknown)"}`);
+  console.log(`  scope:   ${token.scope}`);
   console.log(`  storage: file`);
   return 0;
 }
