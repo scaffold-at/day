@@ -13,7 +13,7 @@ command: event
 
 ## WHAT
 
-Add, update, or delete a fixed event on the calendar. v0.1 ships `event add` (manual source) end-to-end; update / delete are scaffolded as placeholders pending the Google Calendar push slices.
+Add, update, or delete a fixed event on the calendar. `add` creates a `manual`-source event; `update` patches any field (re-partitioning the day file when --start crosses days); `delete` removes by id.
 
 ## WHEN
 
@@ -21,20 +21,20 @@ When recording a meeting, appointment, or any block of time the placement engine
 
 ## COST
 
-Local file I/O on the relevant day file (`days/YYYY-MM/YYYY-MM-DD.json`). No network for `manual` source.
+Local file I/O on the relevant day file(s). No network for `manual` source. `update` / `delete` scan all day files when --date is omitted.
 
 ## INPUT
 
 ```
 add --title <text> --start <ISO datetime+TZ> --end <ISO datetime+TZ> [--all-day] [--location <text>] [--notes <text>] [--tag <#tag>]…
-update <id> ...     (placeholder, §S31b)
-delete <id>         (placeholder, §S31c)
+update <id> [--title <t>] [--start <ISO>] [--end <ISO>] [--all-day | --no-all-day] [--location <t> | --clear-location] [--notes <t> | --clear-notes] [--tag <#t>… | --clear-tags] [--date <YYYY-MM-DD>] [--json]
+delete <id> [--date <YYYY-MM-DD>] [--json]
 ```
 
 ## RETURN
 
-Exit 0 on success. Prints the new event id and the day file it landed in. DAY_USAGE on missing flags. DAY_INVALID_INPUT on bad date/time/tag.
+Exit 0 on success. DAY_USAGE on missing flags. DAY_INVALID_INPUT on bad date/time/tag. DAY_NOT_FOUND when the event id is unknown.
 
 ## GOTCHA
 
-The day partition (`YYYY-MM-DD.json`) is derived from the date prefix of `--start`. Events that span midnight in the user's TZ land in the start day. Tracking SLICES.md §S9 (add) / §S31a-c (update + delete + Google Calendar push).
+The day partition (`YYYY-MM-DD.json`) is derived from `--start`. `update` re-partitions the file when --start moves the event across midnight in its TZ. Tracking SLICES.md §S9 (add) / §S80 (update + delete).

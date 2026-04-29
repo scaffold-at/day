@@ -194,25 +194,302 @@ async function runEventAdd(args: string[]): Promise<number> {
   return 0;
 }
 
-function placeholderSubcommand(name: string, slice: string): () => number {
-  return () => {
-    console.log(`scaffold-day event ${name}: not yet implemented (placeholder).`);
-    console.log(`Run \`scaffold-day event --help\` to see the contract.`);
-    console.log(`Tracking: ${slice}`);
+async function findEvent(
+  store: FsDayStore,
+  id: string,
+  hintDate?: string,
+): Promise<{ event: FixedEvent; date: string } | null> {
+  if (hintDate) {
+    const day = await store.readDay(hintDate);
+    const ev = day.events.find((e) => e.id === id);
+    if (ev) return { event: ev, date: hintDate };
+    return null;
+  }
+  // No hint — scan every month / day for the event id. v0.2 N is small.
+  const months = await store.listMonths();
+  for (const m of months) {
+    const dates = await store.listMonth(m);
+    for (const d of dates) {
+      const day = await store.readDay(d);
+      const ev = day.events.find((e) => e.id === id);
+      if (ev) return { event: ev, date: d };
+    }
+  }
+  return null;
+}
+
+type ParsedUpdateFlags = {
+  title?: string;
+  start?: string;
+  end?: string;
+  allDay?: boolean;
+  location?: string | null;
+  notes?: string | null;
+  tags?: string[];
+  date?: string;
+  json: boolean;
+};
+
+function parseUpdateFlags(args: string[]): ParsedUpdateFlags {
+  const out: ParsedUpdateFlags = { json: false };
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i] ?? "";
+    switch (a) {
+      case "--title":
+        out.title = takeValue(args, i, "--title");
+        i++;
+        break;
+      case "--start":
+        out.start = takeValue(args, i, "--start");
+        i++;
+        break;
+      case "--end":
+        out.end = takeValue(args, i, "--end");
+        i++;
+        break;
+      case "--all-day":
+        out.allDay = true;
+        break;
+      case "--no-all-day":
+        out.allDay = false;
+        break;
+      case "--location":
+        out.location = takeValue(args, i, "--location");
+        i++;
+        break;
+      case "--clear-location":
+        out.location = null;
+        break;
+      case "--notes":
+        out.notes = takeValue(args, i, "--notes");
+        i++;
+        break;
+      case "--clear-notes":
+        out.notes = null;
+        break;
+      case "--tag": {
+        const v = takeValue(args, i, "--tag");
+        out.tags = out.tags ?? [];
+        out.tags.push(v);
+        i++;
+        break;
+      }
+      case "--clear-tags":
+        out.tags = [];
+        break;
+      case "--date":
+        out.date = takeValue(args, i, "--date");
+        i++;
+        break;
+      case "--json":
+        out.json = true;
+        break;
+      default:
+        if (a.startsWith("--")) throw usage(`event update: unknown option '${a}'`);
+        throw usage(`event update: unexpected argument '${a}'`);
+    }
+  }
+  return out;
+}
+
+async function runEventUpdate(args: string[]): Promise<number> {
+  const id = args[0];
+  if (!id || id.startsWith("--")) {
+    throw usage("event update: <event-id> argument is required");
+  }
+  const flags = parseUpdateFlags(args.slice(1));
+
+  const home = defaultHomeDir();
+  const store = new FsDayStore(home);
+  const found = await findEvent(store, id, flags.date);
+  if (!found) {
+    throw new ScaffoldError({
+      code: "DAY_NOT_FOUND",
+      summary: { en: `event '${id}' not found` },
+      cause: flags.date
+        ? `No event with this id exists on ${flags.date}.`
+        : "No event with this id exists in any day file.",
+      try: ["Run `scaffold-day day overview <YYYY-MM>` to inspect.", "Or pass --date <YYYY-MM-DD> if you know the day."],
+      context: { id },
+    });
+  }
+
+  // Build the proposed event after applying patches.
+  const next: FixedEvent = { ...found.event };
+  if (flags.title !== undefined) next.title = flags.title.trim();
+  if (flags.start !== undefined) {
+    const c = ISODateTimeSchema.safeParse(flags.start);
+    if (!c.success) {
+      throw new ScaffoldError({
+        code: "DAY_INVALID_INPUT",
+        summary: { en: `--start is not a valid ISO 8601 datetime with TZ` },
+        cause: c.error.message,
+        try: ["Use a value like 2026-04-26T10:00:00+09:00 (TZ required)."],
+        context: { value: flags.start },
+      });
+    }
+    next.start = flags.start;
+  }
+  if (flags.end !== undefined) {
+    const c = ISODateTimeSchema.safeParse(flags.end);
+    if (!c.success) {
+      throw new ScaffoldError({
+        code: "DAY_INVALID_INPUT",
+        summary: { en: `--end is not a valid ISO 8601 datetime with TZ` },
+        cause: c.error.message,
+        try: ["Use a value like 2026-04-26T11:00:00+09:00 (TZ required)."],
+        context: { value: flags.end },
+      });
+    }
+    next.end = flags.end;
+  }
+  if (Date.parse(next.end) <= Date.parse(next.start)) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: "--end must be after --start" },
+      cause: `start: ${next.start}\nend:   ${next.end}`,
+      try: ["Pick an --end value strictly later than --start."],
+      context: { start: next.start, end: next.end },
+    });
+  }
+  if (flags.allDay !== undefined) next.all_day = flags.allDay;
+  if (flags.location !== undefined) next.location = flags.location;
+  if (flags.notes !== undefined) next.notes = flags.notes;
+  if (flags.tags !== undefined) {
+    const parsed: string[] = [];
+    for (const raw of flags.tags) {
+      const c = TagSchema.safeParse(raw);
+      if (!c.success) {
+        throw new ScaffoldError({
+          code: "DAY_INVALID_INPUT",
+          summary: { en: `tag '${raw}' is not a valid Tag` },
+          cause: c.error.message,
+          try: ["Tags look like `#kebab-name` or `#deadline:2026-05-01`."],
+          context: { value: raw },
+        });
+      }
+      parsed.push(c.data);
+    }
+    next.tags = parsed;
+  }
+  next.synced_at = new Date().toISOString();
+
+  // The day file may need to change if --start crosses a day boundary.
+  const newDate = next.start.slice(0, 10);
+
+  if (isDryRun()) {
+    const writes: Array<{ path: string; op: "create" | "update" | "delete" }> = [];
+    writes.push({ path: `days/${found.date.slice(0, 7)}/${found.date}.json`, op: "update" });
+    if (newDate !== found.date) {
+      writes.push({ path: `days/${newDate.slice(0, 7)}/${newDate}.json`, op: "update" });
+    }
+    emitDryRun(flags.json, {
+      command: "event update",
+      writes,
+      result: { event: next, previous_date: found.date, new_date: newDate },
+    });
     return 0;
-  };
+  }
+
+  if (newDate === found.date) {
+    const day = await store.readDay(found.date);
+    day.events = day.events.map((e) => (e.id === id ? next : e));
+    await store.writeDay(day);
+  } else {
+    const oldDay = await store.readDay(found.date);
+    oldDay.events = oldDay.events.filter((e) => e.id !== id);
+    await store.writeDay(oldDay);
+    await store.addEvent(newDate, next);
+  }
+
+  if (flags.json) {
+    console.log(JSON.stringify({ event: next, previous_date: found.date, new_date: newDate }, null, 2));
+    return 0;
+  }
+  console.log("scaffold-day event update");
+  console.log(`  id:    ${next.id}`);
+  console.log(`  title: ${next.title}`);
+  console.log(`  when:  ${next.start} → ${next.end}${next.all_day ? "  (all-day)" : ""}`);
+  if (next.location) console.log(`  where: ${next.location}`);
+  if (next.tags.length > 0) console.log(`  tags:  ${next.tags.join(" ")}`);
+  if (newDate !== found.date) {
+    console.log(`  moved: ${found.date} → ${newDate}`);
+  }
+  return 0;
+}
+
+async function runEventDelete(args: string[]): Promise<number> {
+  const id = args[0];
+  if (!id || id.startsWith("--")) {
+    throw usage("event delete: <event-id> argument is required");
+  }
+  let date: string | undefined;
+  let json = false;
+  for (let i = 1; i < args.length; i++) {
+    const a = args[i] ?? "";
+    if (a === "--date") {
+      date = takeValue(args, i, "--date");
+      i++;
+    } else if (a === "--json") {
+      json = true;
+    } else if (a.startsWith("--")) {
+      throw usage(`event delete: unknown option '${a}'`);
+    } else {
+      throw usage(`event delete: unexpected argument '${a}'`);
+    }
+  }
+
+  const home = defaultHomeDir();
+  const store = new FsDayStore(home);
+  const found = await findEvent(store, id, date);
+  if (!found) {
+    throw new ScaffoldError({
+      code: "DAY_NOT_FOUND",
+      summary: { en: `event '${id}' not found` },
+      cause: date
+        ? `No event with this id exists on ${date}.`
+        : "No event with this id exists in any day file.",
+      try: ["Run `scaffold-day day overview <YYYY-MM>` to inspect.", "Or pass --date <YYYY-MM-DD> if you know the day."],
+      context: { id },
+    });
+  }
+
+  if (isDryRun()) {
+    emitDryRun(json, {
+      command: "event delete",
+      writes: [
+        { path: `days/${found.date.slice(0, 7)}/${found.date}.json`, op: "update" },
+      ],
+      result: { id, date: found.date, title: found.event.title },
+    });
+    return 0;
+  }
+
+  const day = await store.readDay(found.date);
+  day.events = day.events.filter((e) => e.id !== id);
+  await store.writeDay(day);
+
+  if (json) {
+    console.log(JSON.stringify({ id, date: found.date, title: found.event.title }, null, 2));
+    return 0;
+  }
+  console.log("scaffold-day event delete");
+  console.log(`  id:    ${id}`);
+  console.log(`  title: ${found.event.title}`);
+  console.log(`  date:  ${found.date}`);
+  return 0;
 }
 
 export const eventCommand: Command = {
   name: "event",
   summary: "manage fixed events on the calendar (add / update / delete)",
   help: {
-    what: "Add, update, or delete a fixed event on the calendar. v0.1 ships `event add` (manual source) end-to-end; update / delete are scaffolded as placeholders pending the Google Calendar push slices.",
+    what: "Add, update, or delete a fixed event on the calendar. `add` creates a `manual`-source event; `update` patches any field (re-partitioning the day file when --start crosses days); `delete` removes by id.",
     when: "When recording a meeting, appointment, or any block of time the placement engine must work around.",
-    cost: "Local file I/O on the relevant day file (`days/YYYY-MM/YYYY-MM-DD.json`). No network for `manual` source.",
-    input: "add --title <text> --start <ISO datetime+TZ> --end <ISO datetime+TZ> [--all-day] [--location <text>] [--notes <text>] [--tag <#tag>]…\nupdate <id> ...     (placeholder, §S31b)\ndelete <id>         (placeholder, §S31c)",
-    return: "Exit 0 on success. Prints the new event id and the day file it landed in. DAY_USAGE on missing flags. DAY_INVALID_INPUT on bad date/time/tag.",
-    gotcha: "The day partition (`YYYY-MM-DD.json`) is derived from the date prefix of `--start`. Events that span midnight in the user's TZ land in the start day. Tracking SLICES.md §S9 (add) / §S31a-c (update + delete + Google Calendar push).",
+    cost: "Local file I/O on the relevant day file(s). No network for `manual` source. `update` / `delete` scan all day files when --date is omitted.",
+    input: "add --title <text> --start <ISO datetime+TZ> --end <ISO datetime+TZ> [--all-day] [--location <text>] [--notes <text>] [--tag <#tag>]…\nupdate <id> [--title <t>] [--start <ISO>] [--end <ISO>] [--all-day | --no-all-day] [--location <t> | --clear-location] [--notes <t> | --clear-notes] [--tag <#t>… | --clear-tags] [--date <YYYY-MM-DD>] [--json]\ndelete <id> [--date <YYYY-MM-DD>] [--json]",
+    return: "Exit 0 on success. DAY_USAGE on missing flags. DAY_INVALID_INPUT on bad date/time/tag. DAY_NOT_FOUND when the event id is unknown.",
+    gotcha: "The day partition (`YYYY-MM-DD.json`) is derived from `--start`. `update` re-partitions the file when --start moves the event across midnight in its TZ. Tracking SLICES.md §S9 (add) / §S80 (update + delete).",
   },
   run: async (args) => {
     const sub = args[0];
@@ -220,8 +497,8 @@ export const eventCommand: Command = {
       throw usage("event: missing subcommand. try `event add` (or --help for the full contract)");
     }
     if (sub === "add") return runEventAdd(args.slice(1));
-    if (sub === "update") return placeholderSubcommand("update", "SLICES.md §S31b")();
-    if (sub === "delete") return placeholderSubcommand("delete", "SLICES.md §S31c")();
+    if (sub === "update") return runEventUpdate(args.slice(1));
+    if (sub === "delete") return runEventDelete(args.slice(1));
     throw usage(`event: unknown subcommand '${sub}'`);
   },
 };

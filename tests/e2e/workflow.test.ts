@@ -144,6 +144,168 @@ describe("event add", () => {
   });
 });
 
+describe("event update / delete (S80)", () => {
+  async function addReturningId(opts: {
+    title: string;
+    date: string;
+    start: string;
+    end: string;
+  }): Promise<string> {
+    const r = await runCli(
+      [
+        "event",
+        "add",
+        "--title",
+        opts.title,
+        "--start",
+        `${opts.date}T${opts.start}:00${KST}`,
+        "--end",
+        `${opts.date}T${opts.end}:00${KST}`,
+      ],
+      { home },
+    );
+    expect(r.exitCode, r.stderr).toBe(0);
+    const m = /id:\s+(evt_[a-z0-9]{14})/.exec(r.stdout);
+    expect(m, r.stdout).not.toBeNull();
+    return m![1] as string;
+  }
+
+  test("update patches title in place and bumps synced_at", async () => {
+    const id = await addReturningId({
+      title: "Standup",
+      date: "2026-04-26",
+      start: "09:00",
+      end: "09:30",
+    });
+    const before = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-26.json"), "utf8"),
+    );
+    const beforeSynced = before.events[0].synced_at;
+
+    const r = await runCli(
+      ["event", "update", id, "--title", "Standup (renamed)", "--json"],
+      { home },
+    );
+    expect(r.exitCode, r.stderr).toBe(0);
+    const out = JSON.parse(r.stdout);
+    expect(out.event.title).toBe("Standup (renamed)");
+    expect(out.previous_date).toBe("2026-04-26");
+    expect(out.new_date).toBe("2026-04-26");
+
+    const after = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-26.json"), "utf8"),
+    );
+    expect(after.events).toHaveLength(1);
+    expect(after.events[0].title).toBe("Standup (renamed)");
+    expect(after.events[0].synced_at >= beforeSynced).toBe(true);
+  });
+
+  test("update --start moving across midnight repartitions to a new day file", async () => {
+    const id = await addReturningId({
+      title: "Late session",
+      date: "2026-04-26",
+      start: "20:00",
+      end: "21:00",
+    });
+
+    const r = await runCli(
+      [
+        "event",
+        "update",
+        id,
+        "--start",
+        `2026-04-27T09:00:00${KST}`,
+        "--end",
+        `2026-04-27T10:00:00${KST}`,
+      ],
+      { home },
+    );
+    expect(r.exitCode, r.stderr).toBe(0);
+
+    const oldDay = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-26.json"), "utf8"),
+    );
+    expect(oldDay.events).toHaveLength(0);
+
+    const newDay = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
+    );
+    expect(newDay.events).toHaveLength(1);
+    expect(newDay.events[0].id).toBe(id);
+    expect(newDay.events[0].start).toBe(`2026-04-27T09:00:00${KST}`);
+  });
+
+  test("update with --end <= --start → DAY_INVALID_INPUT", async () => {
+    const id = await addReturningId({
+      title: "x",
+      date: "2026-04-26",
+      start: "09:00",
+      end: "10:00",
+    });
+    const r = await runCli(
+      [
+        "event",
+        "update",
+        id,
+        "--end",
+        `2026-04-26T08:00:00${KST}`,
+      ],
+      { home },
+    );
+    expect(r.exitCode).toBe(65);
+    expect(r.stderr).toContain("DAY_INVALID_INPUT");
+    expect(r.stderr).toContain("--end must be after --start");
+  });
+
+  test("update on unknown id → DAY_NOT_FOUND", async () => {
+    const r = await runCli(
+      ["event", "update", "evt_00000000000000", "--title", "y"],
+      { home },
+    );
+    expect(r.exitCode).toBe(66);
+    expect(r.stderr).toContain("DAY_NOT_FOUND");
+  });
+
+  test("delete removes the event from its day file", async () => {
+    const id = await addReturningId({
+      title: "drop",
+      date: "2026-04-26",
+      start: "13:00",
+      end: "13:30",
+    });
+    const r = await runCli(["event", "delete", id, "--json"], { home });
+    expect(r.exitCode, r.stderr).toBe(0);
+    const out = JSON.parse(r.stdout);
+    expect(out.id).toBe(id);
+    expect(out.date).toBe("2026-04-26");
+
+    const after = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-26.json"), "utf8"),
+    );
+    expect(after.events).toHaveLength(0);
+  });
+
+  test("delete on unknown id → DAY_NOT_FOUND", async () => {
+    const r = await runCli(["event", "delete", "evt_00000000000000"], { home });
+    expect(r.exitCode).toBe(66);
+    expect(r.stderr).toContain("DAY_NOT_FOUND");
+  });
+
+  test("delete --date short-circuits the cross-month scan", async () => {
+    const id = await addReturningId({
+      title: "scoped",
+      date: "2026-04-26",
+      start: "14:00",
+      end: "14:30",
+    });
+    const r = await runCli(
+      ["event", "delete", id, "--date", "2026-04-26"],
+      { home },
+    );
+    expect(r.exitCode, r.stderr).toBe(0);
+  });
+});
+
 describe("day get / today / week — JSON contracts", () => {
   test("day get <date> --json returns DayView with events + free_slots", async () => {
     await addEvent({ title: "Standup", date: "2026-04-26", start: "09:00", end: "09:15" });
