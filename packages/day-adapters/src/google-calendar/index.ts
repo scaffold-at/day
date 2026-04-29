@@ -30,3 +30,7 @@ export {
   type OAuthDesktopOptions,
   runOAuthDesktopFlow,
 } from "./oauth-desktop";
+export {
+  type LiveAdapterOptions,
+  LiveGoogleCalendarAdapter,
+} from "./live-adapter";
