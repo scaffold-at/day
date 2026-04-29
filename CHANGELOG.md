@@ -11,6 +11,24 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+Phase C (Google Calendar live mode) 3/4 + Phase E (UX gaps) 4/4 land
+on `main` and ship in the next minor cut.
+
+### Added — Phase C: Google Calendar live mode
+- **S70** PKCE OAuth desktop flow (`oauth-desktop.ts`). Local `Bun.serve` callback, browser hand-off, token + userinfo email exchange. Client secret injected at build time via `bun build --define` so GitHub secret scanning never sees it.
+- **S71 + S72** `LiveGoogleCalendarAdapter` — pull (events.list w/ syncToken pagination, 410 → token reset), push (create/update/delete with etag, 412 → retryable), Last-Wins reconcile parity with the mock adapter. Refresh-token rotation w/ 30s skew.
+- `scaffold-day auth login` defaults to the browser PKCE flow when no `--access-token` / `--refresh-token` are passed; `--non-interactive` keeps the v0.1 manual-paste behaviour for CI / scripted setups.
+
+### Added — Phase E: UX gaps
+- **S76** `install.sh` now downloads `<asset>.sha256`, verifies via sha256sum / shasum / openssl (POSIX-portable), aborts on mismatch.
+- **S82** `today` surfaces measured sleep + target / deficit alongside the existing rest-break suggestion. Reads `policy.context.sleep_budget` to populate `sleep_target` so `--json` carries it for downstream agents.
+- **S81** `place suggest --auto` commits the top-ranked candidate in one call (recurses into `place do --by auto`). UTC instants from the suggestion engine are converted to the policy's local-tz ISO before recursing so wall-clock hard rules evaluate correctly.
+- **S80** `event update <id>` (patch any field, repartition the day file when `--start` crosses midnight) + `event delete <id>`. Both honour `--date` hint, `--json`, and `--dry-run`. Replaces the v0.1 placeholders.
+
+### Pending
+- **S73** keytar / Keychain refresh-token storage (deferred to v0.3+).
+- `scaffold-day sync` orchestration command (open design question) — wires `LiveGoogleCalendarAdapter` into a one-shot or watch-mode user flow.
+
 ## [v0.2.3] - 2026-04-29
 
 Phase B 5/5 complete. `telemetry` and `feedback` ship with their
