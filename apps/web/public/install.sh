@@ -104,12 +104,45 @@ tmp=$(mktemp -d 2>/dev/null || mktemp -d -t scaffold-day)
 trap 'rm -rf "$tmp"' EXIT
 
 dest_tmp="${tmp}/${BIN_NAME}"
+sum_tmp="${tmp}/${BIN_NAME}.sha256"
 echo "install.sh: downloading ${URL}"
 if ! curl -fsSL "$URL" -o "$dest_tmp"; then
   echo "install.sh: download failed. Check that ${VERSION} has a ${asset} asset:" >&2
   echo "  https://github.com/${REPO}/releases/tag/${VERSION}" >&2
   exit 1
 fi
+
+# ─── sha256 verify (S76) ──────────────────────────────────────────
+echo "install.sh: verifying sha256"
+if ! curl -fsSL "${URL}.sha256" -o "$sum_tmp"; then
+  echo "install.sh: failed to download .sha256 sidecar from ${URL}.sha256" >&2
+  echo "  Cannot verify integrity; aborting." >&2
+  exit 1
+fi
+expected=$(awk '{print $1}' "$sum_tmp" | tr '[:upper:]' '[:lower:]')
+if [ -z "$expected" ]; then
+  echo "install.sh: .sha256 sidecar was empty or malformed" >&2
+  exit 1
+fi
+if command -v sha256sum >/dev/null 2>&1; then
+  actual=$(sha256sum "$dest_tmp" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
+elif command -v shasum >/dev/null 2>&1; then
+  actual=$(shasum -a 256 "$dest_tmp" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
+elif command -v openssl >/dev/null 2>&1; then
+  actual=$(openssl dgst -sha256 "$dest_tmp" | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')
+else
+  echo "install.sh: no sha256 tool found (need sha256sum / shasum / openssl). Aborting." >&2
+  exit 1
+fi
+if [ "$expected" != "$actual" ]; then
+  echo "install.sh: SHA-256 MISMATCH" >&2
+  echo "  expected: $expected" >&2
+  echo "  actual:   $actual" >&2
+  echo "  Binary not installed. If this repeats, file a security issue." >&2
+  exit 1
+fi
+echo "install.sh: sha256 ok"
+
 chmod +x "$dest_tmp"
 
 # macOS quarantine — v0.1 ships unsigned binaries; Gatekeeper would

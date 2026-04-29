@@ -42,12 +42,51 @@ function todayInTz(tz: string): string {
   return todayInTzCore(tz);
 }
 
+function offsetForTz(date: string, tz: string): string {
+  try {
+    const sample = new Date(`${date}T12:00:00Z`);
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "shortOffset",
+      hour: "numeric",
+    });
+    const part = fmt.formatToParts(sample).find((p) => p.type === "timeZoneName");
+    if (!part || part.value === "GMT") return "+00:00";
+    const m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(part.value);
+    if (!m) return "+00:00";
+    const sign = m[1] ?? "+";
+    const hh = (m[2] ?? "0").padStart(2, "0");
+    const mm = (m[3] ?? "00").padStart(2, "0");
+    return `${sign}${hh}:${mm}`;
+  } catch {
+    return "+00:00";
+  }
+}
+
+// Suggestion candidates are emitted in UTC ("…Z") form. `place do`
+// derives the wall-clock-vs-rule check from the slot's offset suffix,
+// so feeding a Z-suffixed instant trips local-time rules (e.g.
+// 22:00-07:00 no_placement_in) when the slot is fine in the user's TZ.
+function utcToLocalIso(utcIso: string, tz: string): string {
+  const ms = Date.parse(utcIso);
+  if (!Number.isFinite(ms)) return utcIso;
+  const dateForOffset = new Date(ms).toISOString().slice(0, 10);
+  const offset = offsetForTz(dateForOffset, tz);
+  const sign = offset[0] === "-" ? -1 : 1;
+  const hh = Number.parseInt(offset.slice(1, 3), 10);
+  const mm = Number.parseInt(offset.slice(4, 6), 10);
+  const offsetMs = sign * (hh * 60 + mm) * 60_000;
+  const wall = new Date(ms + offsetMs).toISOString().slice(0, 19);
+  return `${wall}${offset}`;
+}
+
 async function runSuggest(args: string[]): Promise<number> {
   let id: string | undefined;
   let startDate: string | undefined;
   let days = 7;
   let max = 5;
   let json = false;
+  let autoCommit = false;
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
@@ -55,7 +94,9 @@ async function runSuggest(args: string[]): Promise<number> {
       id = a;
       continue;
     }
-    if (a === "--date") {
+    if (a === "--auto") {
+      autoCommit = true;
+    } else if (a === "--date") {
       startDate = ISODateSchema.parse(args[i + 1]);
       i++;
     } else if (a === "--within") {
@@ -157,6 +198,31 @@ async function runSuggest(args: string[]): Promise<number> {
     previousDayByToday,
   };
   const suggestion = suggestPlacements(input);
+
+  // S81: --auto commits the top candidate (if any) by recursing into
+  // `place do`. The suggestion still prints (or returns JSON) so the
+  // caller sees the full ranking.
+  if (autoCommit) {
+    if (suggestion.candidates.length === 0) {
+      throw new ScaffoldError({
+        code: "DAY_NOT_FOUND",
+        summary: { en: "place suggest --auto: no candidate slot fits" },
+        cause: suggestion.no_fit_reason ?? "Empty candidate set.",
+        try: ["Adjust --within / --max, or relax policy hard rules."],
+      });
+    }
+    const top = suggestion.candidates[0]!;
+    const localSlot = utcToLocalIso(top.start, policy.context.tz);
+    if (json) {
+      console.log(
+        JSON.stringify({ ...suggestion, auto_committed: { rank: 1, slot: localSlot } }, null, 2),
+      );
+    } else {
+      console.log(`scaffold-day place suggest ${id} --auto`);
+      console.log(`  committing top candidate: ${localSlot} (rank 1, score ${top.score.toFixed(2)})`);
+    }
+    return runDo([id, "--slot", localSlot, "--by", "auto", ...(json ? ["--json"] : [])]);
+  }
 
   if (json) {
     console.log(JSON.stringify(suggestion, null, 2));

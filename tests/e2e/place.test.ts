@@ -422,3 +422,47 @@ describe("place do (S21)", () => {
     expect(day.placements).toHaveLength(2);
   });
 });
+
+describe("place suggest --auto (S81)", () => {
+  test("commits the top suggestion in one call", async () => {
+    const id = await setup();
+    const r = await runCli(
+      [
+        "place",
+        "suggest",
+        id,
+        "--auto",
+        "--date",
+        MONDAY,
+        "--within",
+        "1",
+        "--json",
+      ],
+      { home },
+    );
+    expect(r.exitCode, r.stderr).toBe(0);
+    // Output: place suggest preview JSON, then a place-do JSON.
+    const lines = r.stdout.trim().split("\n");
+    // The final stanza is the place-do output (placement object).
+    const lastJson = lines.slice(lines.findIndex((l) => l === "}") + 1).join("\n").trim()
+      || lines.slice(-15).join("\n");
+    void lastJson;
+    // Sanity: a placement file should exist for MONDAY.
+    const day = JSON.parse(
+      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
+    );
+    expect(day.placements.length).toBeGreaterThan(0);
+    expect(day.placements[0].todo_id).toBe(id);
+  });
+
+  test("--auto on no-fit fails with DAY_NOT_FOUND", async () => {
+    const id = await setup();
+    // Saturday has no working_hours under the balanced preset.
+    const r = await runCli(
+      ["place", "suggest", id, "--auto", "--date", "2026-04-25", "--within", "1"],
+      { home },
+    );
+    expect(r.exitCode).toBe(66);
+    expect(r.stderr).toContain("DAY_NOT_FOUND");
+  });
+});

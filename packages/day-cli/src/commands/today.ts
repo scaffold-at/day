@@ -78,14 +78,19 @@ export const todayCommand: Command = {
       ? { anchor: heartbeat.anchor, source: heartbeat.source }
       : null;
 
-    // S61 rest-break: compare yesterday's anchor to today's against
-    // sleep_budget. Volatile — recomputed every call.
+    // S61 rest-break + S82 sleep_target: compare yesterday's anchor
+    // to today's against sleep_budget. Volatile — recomputed every
+    // call.
     let rest = null;
+    let sleepTarget: { target_hours: number; min_hours: number } | null = null;
     try {
       const yamlText = await readPolicyYaml(home);
       const budget = yamlText
         ? compilePolicy(yamlText).context.sleep_budget ?? null
         : null;
+      if (budget) {
+        sleepTarget = { target_hours: budget.target_hours, min_hours: budget.min_hours };
+      }
       const yesterday = shiftDate(date, -1);
       const yesterdayHb = await readAnchorForDate(home, yesterday);
       rest = computeRestSuggestion({
@@ -97,7 +102,7 @@ export const todayCommand: Command = {
       // home not initialized or policy malformed — skip suggestion
     }
 
-    const view = buildDayView(day, tz, anchor, rest);
+    const view = buildDayView(day, tz, anchor, rest, sleepTarget);
     if (json) {
       console.log(renderDayViewJson(view));
     } else {

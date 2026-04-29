@@ -23,6 +23,12 @@ export type DayView = {
   anchor: DayViewAnchor;
   /** S61: rest-break suggestion when last night's sleep was below min. */
   rest_suggestion: RestSuggestion | null;
+  /**
+   * S82: sleep budget context surfaced alongside the rest suggestion
+   * (target / min hours). Null when policy.context.sleep_budget is
+   * absent.
+   */
+  sleep_target: { target_hours: number; min_hours: number } | null;
   events: FixedEvent[];
   placements: Placement[];
   free_slots: FreeSlot[];
@@ -63,6 +69,7 @@ export function buildDayView(
   hintTz?: string,
   anchor: DayViewAnchor = null,
   rest_suggestion: RestSuggestion | null = null,
+  sleep_target: { target_hours: number; min_hours: number } | null = null,
 ): DayView {
   const ww: WorkingWindow = defaultWorkingWindow(day.date, hintTz);
   const free = computeFreeSlots(day, {
@@ -77,6 +84,7 @@ export function buildDayView(
     tz: ww.tz,
     anchor,
     rest_suggestion,
+    sleep_target,
     events: [...day.events].sort((a, b) => a.start.localeCompare(b.start)),
     placements: [...day.placements].sort((a, b) => a.start.localeCompare(b.start)),
     free_slots: free,
@@ -108,12 +116,25 @@ export function renderDayView(view: DayView): string {
     lines.push(colors.dim(`Day started ${wall}${tag}`));
   }
 
-  if (view.rest_suggestion?.suggest) {
+  // S82: sleep summary line. Always surface measured sleep when we
+  // have it (regardless of whether a rest break is suggested), so
+  // users see their own pattern. The rest-break line stays separate
+  // and only renders on `suggest=true`.
+  if (view.rest_suggestion?.measured_sleep_hours !== null && view.rest_suggestion?.measured_sleep_hours !== undefined) {
     const slept = view.rest_suggestion.measured_sleep_hours;
-    const sleptStr = slept !== null ? `${slept.toFixed(1)}h` : "unknown";
+    const targetTxt = view.sleep_target
+      ? ` / target ${view.sleep_target.target_hours.toFixed(0)}h`
+      : "";
+    const deficit = view.sleep_target
+      ? Math.max(0, view.sleep_target.target_hours - slept)
+      : 0;
+    const deficitTxt = deficit > 0 ? ` · deficit ${deficit.toFixed(1)}h` : "";
+    lines.push(colors.dim(`Sleep ~${slept.toFixed(1)}h last night${targetTxt}${deficitTxt}`));
+  }
+  if (view.rest_suggestion?.suggest) {
     lines.push(
       colors.amber(
-        `Rest break suggested · ~${view.rest_suggestion.break_min} min (slept ${sleptStr} last night)`,
+        `Rest break suggested · ~${view.rest_suggestion.break_min} min`,
       ),
     );
   }
