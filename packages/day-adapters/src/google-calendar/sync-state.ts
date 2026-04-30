@@ -22,8 +22,10 @@ export const GoogleCalendarSyncStateSchema = z
     /** scaffold-day FixedEvent.id ↔ Google event id map. */
     event_id_map: z.record(z.string()).default({}),
     last_sync_at: z.string().nullable().default(null),
-    /** Pointer back into the OAuth token file (storage backend). */
-    oauth_ref: z.enum(["keytar", "file"]).default("file"),
+    /** Pointer back into the OAuth token file (storage backend).
+     * Pre-S73 builds wrote "keytar"; v0.3+ writes "keychain". Both
+     * are accepted on read. */
+    oauth_ref: z.enum(["keychain", "keytar", "file"]).default("file"),
   })
   .strict();
 

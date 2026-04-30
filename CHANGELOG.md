@@ -11,23 +11,35 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
-Phase C (Google Calendar live mode) 3/4 + Phase E (UX gaps) 4/4 land
-on `main` and ship in the next minor cut.
+## [v0.3.0] - 2026-04-30
 
-### Added — Phase C: Google Calendar live mode
+Phase C (Google Calendar live mode) closes 4/4 and Phase E (UX
+gaps) closes 4/4. `scaffold-day sync` lands as the first user-facing
+entry point for the live adapter; `auth login` now stores refresh
+tokens in the OS Keychain by default.
+
+### Added — Phase C: Google Calendar live mode (4/4)
 - **S70** PKCE OAuth desktop flow (`oauth-desktop.ts`). Local `Bun.serve` callback, browser hand-off, token + userinfo email exchange. Client secret injected at build time via `bun build --define` so GitHub secret scanning never sees it.
-- **S71 + S72** `LiveGoogleCalendarAdapter` — pull (events.list w/ syncToken pagination, 410 → token reset), push (create/update/delete with etag, 412 → retryable), Last-Wins reconcile parity with the mock adapter. Refresh-token rotation w/ 30s skew.
-- `scaffold-day auth login` defaults to the browser PKCE flow when no `--access-token` / `--refresh-token` are passed; `--non-interactive` keeps the v0.1 manual-paste behaviour for CI / scripted setups.
+- **S71 + S72** `LiveGoogleCalendarAdapter` — pull (`events.list` w/ syncToken pagination, 410 → token reset), push (create / update / delete with etag, 412 → retryable), Last-Wins reconcile parity with the mock adapter. Refresh-token rotation w/ 30s skew.
+- **S73** OS-native refresh-token storage. macOS uses `security` (Keychain), Linux uses `secret-tool` (libsecret) — both wrapped via subprocess, no native modules so `bun --compile` is happy. Auto-detected at write time; the file becomes a `keychain://google-oauth/<email>` sentinel pointer with the secret in the OS vault. Falls back to file storage when the CLI is unreachable. `auth login --no-keychain` and `SCAFFOLD_DAY_DISABLE_KEYCHAIN=1` force file mode.
+- **`scaffold-day sync`** — pull-only one-way sync from Google Calendar into the local day files. Default window is today − 7d → today + 30d (system TZ). For each remote event: insert under matching day (new `external_id`) or apply Last-Wins reconcile. `--start` / `--end` / `--account` / `--json` / `--dry-run` flags.
 
-### Added — Phase E: UX gaps
-- **S76** `install.sh` now downloads `<asset>.sha256`, verifies via sha256sum / shasum / openssl (POSIX-portable), aborts on mismatch.
-- **S82** `today` surfaces measured sleep + target / deficit alongside the existing rest-break suggestion. Reads `policy.context.sleep_budget` to populate `sleep_target` so `--json` carries it for downstream agents.
+### Added — Phase E: UX gaps (4/4)
+- **S76** `install.sh` now downloads `<asset>.sha256`, verifies via `sha256sum` / `shasum` / `openssl` (POSIX-portable), aborts on mismatch.
+- **S82** `today` surfaces measured sleep + target / deficit alongside the existing rest-break suggestion. Reads `policy.context.sleep_budget` to populate `sleep_target` so `today --json` carries it for downstream agents.
 - **S81** `place suggest --auto` commits the top-ranked candidate in one call (recurses into `place do --by auto`). UTC instants from the suggestion engine are converted to the policy's local-tz ISO before recursing so wall-clock hard rules evaluate correctly.
 - **S80** `event update <id>` (patch any field, repartition the day file when `--start` crosses midnight) + `event delete <id>`. Both honour `--date` hint, `--json`, and `--dry-run`. Replaces the v0.1 placeholders.
 
-### Pending
-- **S73** keytar / Keychain refresh-token storage (deferred to v0.3+).
-- `scaffold-day sync` orchestration command (open design question) — wires `LiveGoogleCalendarAdapter` into a one-shot or watch-mode user flow.
+### Changed
+- `auth login` defaults to the browser PKCE flow when no `--access-token` / `--refresh-token` are passed; output now reports `storage: keychain` or `storage: file`. `--non-interactive` keeps the v0.1 manual-paste behaviour for CI / scripted setups.
+- `sync-state` schema accepts both `oauth_ref: "keychain"` (v0.3+) and the legacy `"keytar"` value (v0.2 builds) on read so existing homes load without migration.
+- E2E test harness defaults `SCAFFOLD_DAY_DISABLE_KEYCHAIN=1` so test runs never touch the developer's real OS Keychain.
+
+### Pending (deferred to v0.3.x)
+- `scaffold-day sync --push` — needs a local change-log to know what to push.
+- **S74** Apple codesigning + notarization — blocked on PO-supplied 5 secrets.
+- **S75** Homebrew tap auto-bump — blocked on PO-supplied `HOMEBREW_TAP_TOKEN`.
+- `logs --follow` (deferred from S63).
 
 ## [v0.2.3] - 2026-04-29
 
@@ -195,7 +207,8 @@ via `curl -fsSL https://day.scaffold.at/install.sh | sh`.
 - **S51 / S52 / S53** Logo (skipped for v0.1) + scaffold.at/day landing + docs site MVP.
 - **S55 / S56 / S57** GitHub Discussions + good-first-issue labels, MCP directory registration, Show HN rehearsal.
 
-[Unreleased]: https://github.com/scaffold-at/day/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/scaffold-at/day/compare/v0.3.0...HEAD
+[v0.3.0]: https://github.com/scaffold-at/day/releases/tag/v0.3.0
 [v0.2.3]: https://github.com/scaffold-at/day/releases/tag/v0.2.3
 [v0.2.2]: https://github.com/scaffold-at/day/releases/tag/v0.2.2
 [v0.2.1]: https://github.com/scaffold-at/day/releases/tag/v0.2.1

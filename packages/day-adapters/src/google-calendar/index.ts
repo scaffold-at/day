@@ -20,7 +20,19 @@ export {
   SECRETS_DIR,
   tokenFilePath,
   writeGoogleOAuthToken,
+  type WriteOptions as TokenWriteOptions,
 } from "./token-storage";
+export {
+  detectKeychainBackend,
+  type KeychainBackend,
+  keychainDelete,
+  keychainRetrieve,
+  keychainStore,
+  KEYCHAIN_REFRESH_SENTINEL_PREFIX,
+  makeKeychainSentinel,
+  parseKeychainSentinel,
+  _resetKeychainCache,
+} from "./keychain";
 export {
   effectiveClientId,
   effectiveClientSecret,

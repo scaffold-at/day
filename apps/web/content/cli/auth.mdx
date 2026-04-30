@@ -26,7 +26,7 @@ Local file I/O only (mode 0600). No network in v0.1.
 ## INPUT
 
 ```
-login --access-token <AT> --refresh-token <RT> [--account-email <addr>] [--scope <s>] [--force]
+login [--access-token <AT> --refresh-token <RT>] [--account-email <addr>] [--scope <s>] [--force] [--non-interactive] [--no-keychain]
 list [--json]
 logout [--json]
 revoke [--json]
@@ -38,4 +38,4 @@ Exit 0. DAY_INVALID_INPUT if login conflicts with an existing token (use --force
 
 ## GOTCHA
 
-v0.1 stores tokens to disk only — keytar lands behind §R1's bun --compile compatibility test. Tracking SLICES.md §S29 + §S27/§S28.
+Without `--access-token`/`--refresh-token` the browser PKCE flow runs (S70). Refresh tokens land in the OS Keychain (macOS `security`, Linux `secret-tool`) when reachable — `--no-keychain` or `SCAFFOLD_DAY_DISABLE_KEYCHAIN=1` forces file storage. `auth list --json` reports which backend is active. Tracking SLICES.md §S70 / §S73.

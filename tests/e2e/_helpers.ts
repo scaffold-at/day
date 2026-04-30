@@ -60,6 +60,13 @@ export async function runCli(
   if (env.SCAFFOLD_DAY_FEEDBACK_URL === undefined) {
     env.SCAFFOLD_DAY_FEEDBACK_URL = "";
   }
+  // S73: never touch the developer's real OS Keychain from a test.
+  // The token-storage layer transparently falls back to file mode
+  // when this env is set. Tests that exercise the keychain path
+  // explicitly opt back in.
+  if (env.SCAFFOLD_DAY_DISABLE_KEYCHAIN === undefined) {
+    env.SCAFFOLD_DAY_DISABLE_KEYCHAIN = "1";
+  }
 
   const proc = Bun.spawn(["bun", CLI_PATH, ...args], {
     env,

@@ -15,6 +15,7 @@ import { placeCommand } from "../commands/place";
 import { policyCommand } from "../commands/policy";
 import { rebuildIndexCommand } from "../commands/rebuild-index";
 import { selfUpdateCommand } from "../commands/self-update";
+import { syncCommand } from "../commands/sync";
 import { telemetryCommand } from "../commands/telemetry";
 import { todayCommand } from "../commands/today";
 import { todoCommand } from "../commands/todo";
@@ -43,6 +44,7 @@ export const commands: Command[] = [
   rebuildIndexCommand,
   logsCommand,
   telemetryCommand,
+  syncCommand,
 ];
 
 export function findCommand(name: string): Command | undefined {

@@ -15,15 +15,21 @@ afterEach(async () => {
 });
 
 async function seedToken(home: string, email = "u@example.com"): Promise<void> {
-  await writeGoogleOAuthToken(home, {
-    access_token: "ya29.dummy",
-    refresh_token: "1//refresh-dummy",
-    token_type: "Bearer",
-    expiry_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    scope: "https://www.googleapis.com/auth/calendar",
-    account_email: email,
-    storage: "file",
-  });
+  // preferFile=true keeps the test isolated to the temp home — no
+  // OS Keychain side effects when running on a developer machine.
+  await writeGoogleOAuthToken(
+    home,
+    {
+      access_token: "ya29.dummy",
+      refresh_token: "1//refresh-dummy",
+      token_type: "Bearer",
+      expiry_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      scope: "https://www.googleapis.com/auth/calendar",
+      account_email: email,
+      storage: "file",
+    },
+    { preferFile: true },
+  );
 }
 
 function makeFetch(responder: (req: Request) => Response | Promise<Response>): typeof fetch {

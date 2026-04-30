@@ -1,6 +1,6 @@
 {
   "name": "@scaffold/feedback-worker",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "private": true,
   "description": "Cloudflare Worker that receives scaffold-day feedback POSTs and forwards to a Discord channel webhook (S66).",
   "license": "AGPL-3.0-or-later",

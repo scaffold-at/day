@@ -35,6 +35,7 @@ async function runLogin(args: string[]): Promise<number> {
   let scope = "https://www.googleapis.com/auth/calendar";
   let force = false;
   let nonInteractive = false;
+  let noKeychain = false;
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
@@ -44,6 +45,7 @@ async function runLogin(args: string[]): Promise<number> {
     else if (a === "--scope") { scope = takeValue(args, i, "--scope"); i++; }
     else if (a === "--force") { force = true; }
     else if (a === "--non-interactive") { nonInteractive = true; }
+    else if (a === "--no-keychain") { noKeychain = true; }
     else throw usage(`auth login: unexpected argument '${a}'`);
   }
 
@@ -117,12 +119,14 @@ async function runLogin(args: string[]): Promise<number> {
     return 0;
   }
 
-  await writeGoogleOAuthToken(home, token);
+  const persisted = await writeGoogleOAuthToken(home, token, {
+    preferFile: noKeychain,
+  });
 
   console.log("scaffold-day auth login");
-  console.log(`  account: ${token.account_email ?? "(unknown)"}`);
-  console.log(`  scope:   ${token.scope}`);
-  console.log(`  storage: file`);
+  console.log(`  account: ${persisted.account_email ?? "(unknown)"}`);
+  console.log(`  scope:   ${persisted.scope}`);
+  console.log(`  storage: ${persisted.storage}`);
   return 0;
 }
 
@@ -239,9 +243,9 @@ export const authCommand: Command = {
     what: "v0.1 mock-mode helper around <home>/.secrets/google-oauth.json. Login is non-interactive (pass tokens as flags); the live browser OAuth flow lands in §S27 B-mode.",
     when: "After supplying tokens manually for testing, or to inspect / clear the stored auth.",
     cost: "Local file I/O only (mode 0600). No network in v0.1.",
-    input: "login --access-token <AT> --refresh-token <RT> [--account-email <addr>] [--scope <s>] [--force]\nlist [--json]\nlogout [--json]\nrevoke [--json]",
+    input: "login [--access-token <AT> --refresh-token <RT>] [--account-email <addr>] [--scope <s>] [--force] [--non-interactive] [--no-keychain]\nlist [--json]\nlogout [--json]\nrevoke [--json]",
     return: "Exit 0. DAY_INVALID_INPUT if login conflicts with an existing token (use --force) or if a malformed token file is present.",
-    gotcha: "v0.1 stores tokens to disk only — keytar lands behind §R1's bun --compile compatibility test. Tracking SLICES.md §S29 + §S27/§S28.",
+    gotcha: "Without `--access-token`/`--refresh-token` the browser PKCE flow runs (S70). Refresh tokens land in the OS Keychain (macOS `security`, Linux `secret-tool`) when reachable — `--no-keychain` or `SCAFFOLD_DAY_DISABLE_KEYCHAIN=1` forces file storage. `auth list --json` reports which backend is active. Tracking SLICES.md §S70 / §S73.",
   },
   run: async (args) => {
     const sub = args[0];

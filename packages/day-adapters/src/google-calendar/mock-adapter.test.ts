@@ -41,15 +41,19 @@ afterEach(async () => {
 
 describe("token-storage round-trip", () => {
   test("write + read returns identical payload with mode 0600", async () => {
-    await writeGoogleOAuthToken(home, {
-      access_token: "AT",
-      refresh_token: "RT",
-      token_type: "Bearer",
-      expiry_at: "2026-04-26T18:00:00Z",
-      scope: "https://www.googleapis.com/auth/calendar",
-      account_email: "test@example.com",
-      storage: "file",
-    });
+    await writeGoogleOAuthToken(
+      home,
+      {
+        access_token: "AT",
+        refresh_token: "RT",
+        token_type: "Bearer",
+        expiry_at: "2026-04-26T18:00:00Z",
+        scope: "https://www.googleapis.com/auth/calendar",
+        account_email: "test@example.com",
+        storage: "file",
+      },
+      { preferFile: true },
+    );
     const back = await readGoogleOAuthToken(home);
     expect(back).not.toBeNull();
     expect(back!.access_token).toBe("AT");
