@@ -11,6 +11,28 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+## [v0.3.1] - 2026-05-08
+
+Bi-directional sync + auto-sync polish + `logs --follow` lands.
+Closes the v0.3.x backlog identified at the v0.3.0 retro.
+
+### Added
+- **`scaffold-day sync --push`** — push side of the bi-directional sync. `event add/update/delete` auto-record pending mutations to `<home>/sync/google-calendar-pending.jsonl` whenever a Google Calendar token exists; `--push` replays them through the live adapter. On create-success the local event is upgraded with `source: "google-calendar"` + the new `external_id`. Retryable errors stay queued (max 3 attempts); non-retryable errors are reported and dropped.
+- **Auto-sync on stale calendar** — `place suggest` now runs a best-effort pull when `last_sync_at` is older than 60 minutes (default). Failures degrade to a stderr warning. Opt-out: `--no-sync` flag or `SCAFFOLD_DAY_AUTO_SYNC=0`.
+- **`scaffold-day logs --follow`** — tail mode for the placement / conflict / heartbeat logs. Polls every `--poll <ms>` (default 1000, range 100-60000); starts from "now" (tail-f semantics). Ctrl+C to exit cleanly.
+
+### Changed
+- `scaffold-day-adapters` exports `pending-changes` helpers (`recordPendingChange`, `readPendingChanges`, `compactPendingChanges`) for adapter authors that want to mirror the queue pattern.
+- `runSyncWithAdapter` gains a `silent: true` option so callers (auto-sync, future MCP tools) don't pollute primary command output.
+
+### Dropped from scope
+- **S74** Apple codesigning — `install.sh`'s sha256 verification + `xattr -d com.apple.quarantine` already covers the install path. No Apple Developer Program subscription needed unless `brew install` becomes a primary download channel.
+- **S75** Homebrew tap auto-bump — the `scaffold-at/homebrew-day` tap was never created. `install.sh` is the official channel; revisit only if/when a tap exists.
+
+### Internal
+- `.claude/` runtime files now gitignored.
+- Issue #3 (v0.2 progress tracker) closed; v0.3.x work tracked in CHANGELOG only.
+
 ## [v0.3.0] - 2026-04-30
 
 Phase C (Google Calendar live mode) closes 4/4 and Phase E (UX
@@ -207,7 +229,8 @@ via `curl -fsSL https://day.scaffold.at/install.sh | sh`.
 - **S51 / S52 / S53** Logo (skipped for v0.1) + scaffold.at/day landing + docs site MVP.
 - **S55 / S56 / S57** GitHub Discussions + good-first-issue labels, MCP directory registration, Show HN rehearsal.
 
-[Unreleased]: https://github.com/scaffold-at/day/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/scaffold-at/day/compare/v0.3.1...HEAD
+[v0.3.1]: https://github.com/scaffold-at/day/releases/tag/v0.3.1
 [v0.3.0]: https://github.com/scaffold-at/day/releases/tag/v0.3.0
 [v0.2.3]: https://github.com/scaffold-at/day/releases/tag/v0.2.3
 [v0.2.2]: https://github.com/scaffold-at/day/releases/tag/v0.2.2
