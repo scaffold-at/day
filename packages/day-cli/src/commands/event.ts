@@ -1,4 +1,8 @@
 import {
+  readGoogleOAuthToken,
+  recordPendingChange,
+} from "@scaffold/day-adapters";
+import {
   type FixedEvent,
   FsDayStore,
   ISODateTimeSchema,
@@ -9,6 +13,24 @@ import {
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
+
+/**
+ * Record a pending push entry when a Google Calendar token is
+ * present. No-op otherwise (no auth → nothing to push). Wrapped in
+ * try/catch so a sync-state hiccup never blocks the local mutation.
+ */
+async function maybeQueuePush(
+  home: string,
+  change: Parameters<typeof recordPendingChange>[1],
+): Promise<void> {
+  try {
+    const token = await readGoogleOAuthToken(home);
+    if (!token) return;
+    await recordPendingChange(home, change);
+  } catch {
+    /* swallow — sync queue is best-effort, local write already succeeded */
+  }
+}
 
 type ParsedAddFlags = {
   title: string;
@@ -183,6 +205,15 @@ async function runEventAdd(args: string[]): Promise<number> {
   }
 
   const day = await store.addEvent(date, event);
+
+  await maybeQueuePush(home, {
+    at: new Date().toISOString(),
+    kind: "create",
+    event_id: event.id,
+    external_id: null,
+    snapshot: event as unknown as Record<string, unknown>,
+    patch: null,
+  });
 
   console.log(`scaffold-day event add`);
   console.log(`  id:    ${event.id}`);
@@ -402,6 +433,27 @@ async function runEventUpdate(args: string[]): Promise<number> {
     await store.addEvent(newDate, next);
   }
 
+  // Compute the field-level patch for the push side. Only fields the
+  // user actually touched are sent, so the Calendar API doesn't get
+  // a redundant full-event payload that could clobber server-side
+  // changes between sync runs.
+  const patch: Record<string, unknown> = {};
+  if (flags.title !== undefined) patch.title = next.title;
+  if (flags.start !== undefined) patch.start = next.start;
+  if (flags.end !== undefined) patch.end = next.end;
+  if (flags.allDay !== undefined) patch.all_day = next.all_day;
+  if (flags.location !== undefined) patch.location = next.location;
+  if (flags.notes !== undefined) patch.notes = next.notes;
+  if (flags.tags !== undefined) patch.tags = next.tags;
+  await maybeQueuePush(home, {
+    at: new Date().toISOString(),
+    kind: "update",
+    event_id: next.id,
+    external_id: next.external_id,
+    snapshot: null,
+    patch: Object.keys(patch).length > 0 ? patch : null,
+  });
+
   if (flags.json) {
     console.log(JSON.stringify({ event: next, previous_date: found.date, new_date: newDate }, null, 2));
     return 0;
@@ -468,6 +520,15 @@ async function runEventDelete(args: string[]): Promise<number> {
   const day = await store.readDay(found.date);
   day.events = day.events.filter((e) => e.id !== id);
   await store.writeDay(day);
+
+  await maybeQueuePush(home, {
+    at: new Date().toISOString(),
+    kind: "delete",
+    event_id: id,
+    external_id: found.event.external_id,
+    snapshot: null,
+    patch: null,
+  });
 
   if (json) {
     console.log(JSON.stringify({ id, date: found.date, title: found.event.title }, null, 2));

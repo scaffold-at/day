@@ -1,22 +1,30 @@
-// `scaffold-day sync` — orchestrate one pull from the configured
-// calendar source into the local day files. v0.3 ships pull-only;
-// push-from-local-changes lands in v0.3.x once the local change-log
-// is in place.
+// `scaffold-day sync` — orchestrate pull / push between the local
+// day files and the configured calendar source.
 //
-// Wire-up: reads <home>/.secrets/google-oauth.json (transparently
-// merging the keychain refresh token), spins up the
-// LiveGoogleCalendarAdapter, pulls a window around today, then
-// reconciles each remote event against the matching local event by
-// `external_id`. Reconciliation = Last-Wins (parity with the mock
-// adapter): if remote.synced_at > local.synced_at, the local copy
-// is replaced.
+// Pull (default, v0.3.0): reads <home>/.secrets/google-oauth.json,
+// spins up the LiveGoogleCalendarAdapter, pulls a window around
+// today, then reconciles each remote event against the matching
+// local event by `external_id`. Reconciliation = Last-Wins parity
+// with the mock adapter.
+//
+// Push (--push, v0.3.1): reads the pending-changes queue
+// (<home>/sync/google-calendar-pending.jsonl) populated by
+// `event add/update/delete`, replays each entry through
+// adapter.push(), updates the local event with the new external_id
+// on create-success, and compacts the queue.
 //
 // All disk writes are scoped to the day file partitions
-// (days/YYYY-MM/YYYY-MM-DD.json). No secret material is logged.
+// (days/YYYY-MM/YYYY-MM-DD.json) plus the pending-changes file. No
+// secret material is logged.
 
 import {
+  compactPendingChanges,
   LiveGoogleCalendarAdapter,
+  type LocalEventChange,
+  type PendingChange,
+  type PushResult,
   readGoogleOAuthToken,
+  readPendingChanges,
   type ExternalEvent,
   type SyncAdapter,
 } from "@scaffold/day-adapters";
@@ -30,6 +38,8 @@ import {
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
+
+const MAX_PUSH_ATTEMPTS = 3;
 
 function usage(message: string): ScaffoldError {
   return new ScaffoldError({
@@ -52,10 +62,11 @@ type ParsedFlags = {
   end?: string;
   account?: string;
   json: boolean;
+  push: boolean;
 };
 
 function parseFlags(args: string[]): ParsedFlags {
-  const out: ParsedFlags = { json: false };
+  const out: ParsedFlags = { json: false, push: false };
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
     if (a === "--start") {
@@ -75,6 +86,8 @@ function parseFlags(args: string[]): ParsedFlags {
       i++;
     } else if (a === "--json") {
       out.json = true;
+    } else if (a === "--push") {
+      out.push = true;
     } else if (a.startsWith("--")) {
       throw usage(`sync: unknown option '${a}'`);
     } else {
@@ -180,6 +193,195 @@ async function applyRemote(
   });
 }
 
+// ─── push side ────────────────────────────────────────────────────
+
+export type PushSummary = {
+  account: string;
+  attempted: number;
+  created: number;
+  updated: number;
+  deleted: number;
+  retried: number;
+  abandoned: number;
+  events: Array<{
+    event_id: string;
+    external_id: string | null;
+    kind: PendingChange["kind"];
+    action: "ok" | "retry" | "abandoned";
+    reason?: string;
+  }>;
+};
+
+function pendingToChange(p: PendingChange): LocalEventChange {
+  if (p.kind === "create") {
+    return { kind: "create", event: p.snapshot as unknown as FixedEvent };
+  }
+  if (p.kind === "delete") {
+    return { kind: "delete", event_id: p.external_id ?? p.event_id };
+  }
+  return {
+    kind: "update",
+    event_id: p.external_id ?? p.event_id,
+    patch: (p.patch ?? {}) as Partial<FixedEvent>,
+  };
+}
+
+async function locateLocal(
+  store: FsDayStore,
+  eventId: string,
+): Promise<{ event: FixedEvent; date: string } | null> {
+  const months = await store.listMonths();
+  for (const m of months) {
+    const dates = await store.listMonth(m);
+    for (const d of dates) {
+      const day = await store.readDay(d);
+      const ev = day.events.find((e) => e.id === eventId);
+      if (ev) return { event: ev, date: d };
+    }
+  }
+  return null;
+}
+
+async function attachExternalId(
+  store: FsDayStore,
+  eventId: string,
+  externalId: string,
+  syncedAt: string,
+): Promise<void> {
+  const found = await locateLocal(store, eventId);
+  if (!found) return;
+  const day = await store.readDay(found.date);
+  day.events = day.events.map((e) =>
+    e.id === eventId
+      ? { ...e, source: "google-calendar", external_id: externalId, synced_at: syncedAt }
+      : e,
+  );
+  await store.writeDay(day);
+}
+
+/**
+ * Replay pending local changes through the adapter. Exposed for unit
+ * tests with an injected adapter; the CLI entry point uses
+ * LiveGoogleCalendarAdapter. Compacts the queue at the end.
+ */
+export async function runPushWithAdapter(opts: {
+  home: string;
+  account: string;
+  adapter: SyncAdapter;
+  json: boolean;
+  dryRun: boolean;
+}): Promise<{ exitCode: number; summary: PushSummary }> {
+  const pending = await readPendingChanges(opts.home);
+  const store = new FsDayStore(opts.home);
+  const summary: PushSummary = {
+    account: opts.account,
+    attempted: pending.length,
+    created: 0,
+    updated: 0,
+    deleted: 0,
+    retried: 0,
+    abandoned: 0,
+    events: [],
+  };
+
+  if (opts.dryRun) {
+    for (const p of pending) {
+      summary.events.push({
+        event_id: p.event_id,
+        external_id: p.external_id,
+        kind: p.kind,
+        action: "ok",
+        reason: "dry-run",
+      });
+      if (p.kind === "create") summary.created += 1;
+      if (p.kind === "update") summary.updated += 1;
+      if (p.kind === "delete") summary.deleted += 1;
+    }
+    emitDryRun(opts.json, {
+      command: "sync --push",
+      writes: pending.map((p) => ({
+        path: "sync/google-calendar-pending.jsonl",
+        op: "update" as const,
+      })),
+      result: summary,
+    });
+    return { exitCode: 0, summary };
+  }
+
+  const survivors: PendingChange[] = [];
+  for (const p of pending) {
+    const change = pendingToChange(p);
+    let result: PushResult;
+    try {
+      const [r] = await opts.adapter.push([change]);
+      result = r as PushResult;
+    } catch (err) {
+      result = {
+        kind: "error",
+        change,
+        reason: err instanceof Error ? err.message : String(err),
+        retryable: true,
+      };
+    }
+    if (result.kind === "ok") {
+      if (p.kind === "create") {
+        summary.created += 1;
+        await attachExternalId(store, p.event_id, result.external_id, result.synced_at);
+      } else if (p.kind === "update") {
+        summary.updated += 1;
+      } else {
+        summary.deleted += 1;
+      }
+      summary.events.push({
+        event_id: p.event_id,
+        external_id: result.external_id,
+        kind: p.kind,
+        action: "ok",
+      });
+      continue;
+    }
+    // Error path: retryable → keep with attempts++; non-retryable or
+    // attempts past the cap → drop and surface to user.
+    const nextAttempts = p.attempts + 1;
+    const giveUp = !result.retryable || nextAttempts >= MAX_PUSH_ATTEMPTS;
+    if (giveUp) {
+      summary.abandoned += 1;
+      summary.events.push({
+        event_id: p.event_id,
+        external_id: p.external_id,
+        kind: p.kind,
+        action: "abandoned",
+        reason: result.reason,
+      });
+    } else {
+      summary.retried += 1;
+      survivors.push({ ...p, attempts: nextAttempts });
+      summary.events.push({
+        event_id: p.event_id,
+        external_id: p.external_id,
+        kind: p.kind,
+        action: "retry",
+        reason: result.reason,
+      });
+    }
+  }
+  await compactPendingChanges(opts.home, survivors);
+
+  if (opts.json) {
+    console.log(JSON.stringify(summary, null, 2));
+    return { exitCode: 0, summary };
+  }
+  console.log("scaffold-day sync --push");
+  console.log(`  account:   ${opts.account}`);
+  console.log(`  attempted: ${summary.attempted}`);
+  console.log(`  created:   ${summary.created}`);
+  console.log(`  updated:   ${summary.updated}`);
+  console.log(`  deleted:   ${summary.deleted}`);
+  if (summary.retried > 0) console.log(`  retried:   ${summary.retried}`);
+  if (summary.abandoned > 0) console.log(`  abandoned: ${summary.abandoned}`);
+  return { exitCode: 0, summary };
+}
+
 /**
  * Run a sync against an injected adapter. Exposed for unit tests so
  * we can exercise the orchestration without spinning up a real
@@ -279,6 +481,17 @@ async function run(args: string[]): Promise<number> {
   const adapter = new LiveGoogleCalendarAdapter();
   await adapter.init({ home, account: { email: account } });
 
+  if (flags.push) {
+    const r = await runPushWithAdapter({
+      home,
+      account,
+      adapter,
+      json: flags.json,
+      dryRun: isDryRun(),
+    });
+    return r.exitCode;
+  }
+
   const result = await runSyncWithAdapter({
     home,
     account,
@@ -293,14 +506,14 @@ async function run(args: string[]): Promise<number> {
 
 export const syncCommand: Command = {
   name: "sync",
-  summary: "pull events from Google Calendar into local day files (one-way, S71/S72 wire-up)",
+  summary: "pull events from / push pending mutations to Google Calendar",
   help: {
-    what: "Run a one-way pull from the live Google Calendar adapter. For each remote event, either insert it into the matching day file (new external_id) or apply the Last-Wins reconcile against the existing local copy. Push from local mutations is deferred to v0.3.x once the local change-log lands.",
-    when: "After `auth login`, whenever you want the local day files to reflect the latest Google Calendar state — before placing todos, before the morning anchor, or as a watchdog.",
-    cost: "One Google Calendar `events.list` call (incremental via the stored sync_token after the first run) plus one local read+write per affected day file. Refresh-token rotation is handled inside the adapter.",
-    input: "[--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--account <email>] [--json] [--dry-run]",
-    return: "Exit 0 with a summary (pulled / created / updated / unchanged). DAY_NOT_INITIALIZED when no token. DAY_OAUTH_NO_REFRESH when refresh fails. DAY_INVALID_INPUT on a 410 Gone (token reset; retry once).",
-    gotcha: "v0.3.0 is pull-only. Default window is today − 7d → today + 30d (system TZ). Multi-day events land in the start day's file. Tracking SLICES.md §S71 / §S72.",
+    what: "Pull (default): for each remote event, either insert into the matching day file or apply Last-Wins reconcile. Push (`--push`): replay queued local mutations (`event add/update/delete`) through the adapter, attach Google's external_id to created events, and compact the queue. Retryable errors stay queued (up to 3 attempts); non-retryable errors are reported and dropped.",
+    when: "After `auth login`, before placing todos (pull) or after a batch of local event edits (push). Run periodically as a sanity check.",
+    cost: "Pull: one `events.list` call (incremental via stored sync_token after the first run) + one local read+write per affected day file. Push: one Calendar API call per pending entry. Refresh-token rotation is handled inside the adapter.",
+    input: "[--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--account <email>] [--push] [--json] [--dry-run]",
+    return: "Exit 0 with a summary. Pull: pulled/created/updated/unchanged. Push: attempted/created/updated/deleted/retried/abandoned. DAY_NOT_INITIALIZED when no token. DAY_OAUTH_NO_REFRESH when refresh fails. DAY_INVALID_INPUT on a 410 Gone (sync_token reset; retry once).",
+    gotcha: "Pending push entries are auto-recorded by `event add/update/delete` only when a Google token is present at mutation time. Events created before `auth login` are not auto-pushed. Default pull window is today − 7d → today + 30d (system TZ). Tracking SLICES.md §S71 / §S72.",
   },
   run: async (args) => run(args),
 };

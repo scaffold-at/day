@@ -242,14 +242,14 @@ preset apply <name>
 - **RETURN.** Exit 0. JSON mirrors the on-disk config plus transport state.
 - **GOTCHA.** Default is `ask` — nothing is sent until you opt in. Even with state=on, transport is a no-op until SCAFFOLD_DAY_POSTHOG_URL + _KEY are set. Tracking SLICES.md §S45 / issue #3 §S65.
 
-### `scaffold-day sync` — pull events from Google Calendar into local day files (one-way, S71/S72 wire-up)
+### `scaffold-day sync` — pull events from / push pending mutations to Google Calendar
 
-- **WHAT.** Run a one-way pull from the live Google Calendar adapter. For each remote event, either insert it into the matching day file (new external_id) or apply the Last-Wins reconcile against the existing local copy. Push from local mutations is deferred to v0.3.x once the local change-log lands.
-- **WHEN.** After `auth login`, whenever you want the local day files to reflect the latest Google Calendar state — before placing todos, before the morning anchor, or as a watchdog.
-- **COST.** One Google Calendar `events.list` call (incremental via the stored sync_token after the first run) plus one local read+write per affected day file. Refresh-token rotation is handled inside the adapter.
-- **INPUT.** [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--account <email>] [--json] [--dry-run]
-- **RETURN.** Exit 0 with a summary (pulled / created / updated / unchanged). DAY_NOT_INITIALIZED when no token. DAY_OAUTH_NO_REFRESH when refresh fails. DAY_INVALID_INPUT on a 410 Gone (token reset; retry once).
-- **GOTCHA.** v0.3.0 is pull-only. Default window is today − 7d → today + 30d (system TZ). Multi-day events land in the start day's file. Tracking SLICES.md §S71 / §S72.
+- **WHAT.** Pull (default): for each remote event, either insert into the matching day file or apply Last-Wins reconcile. Push (`--push`): replay queued local mutations (`event add/update/delete`) through the adapter, attach Google's external_id to created events, and compact the queue. Retryable errors stay queued (up to 3 attempts); non-retryable errors are reported and dropped.
+- **WHEN.** After `auth login`, before placing todos (pull) or after a batch of local event edits (push). Run periodically as a sanity check.
+- **COST.** Pull: one `events.list` call (incremental via stored sync_token after the first run) + one local read+write per affected day file. Push: one Calendar API call per pending entry. Refresh-token rotation is handled inside the adapter.
+- **INPUT.** [--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--account <email>] [--push] [--json] [--dry-run]
+- **RETURN.** Exit 0 with a summary. Pull: pulled/created/updated/unchanged. Push: attempted/created/updated/deleted/retried/abandoned. DAY_NOT_INITIALIZED when no token. DAY_OAUTH_NO_REFRESH when refresh fails. DAY_INVALID_INPUT on a 410 Gone (sync_token reset; retry once).
+- **GOTCHA.** Pending push entries are auto-recorded by `event add/update/delete` only when a Google token is present at mutation time. Events created before `auth login` are not auto-pushed. Default pull window is today − 7d → today + 30d (system TZ). Tracking SLICES.md §S71 / §S72.
 
 ## MCP tools
 

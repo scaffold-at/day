@@ -46,3 +46,12 @@ export {
   type LiveAdapterOptions,
   LiveGoogleCalendarAdapter,
 } from "./live-adapter";
+export {
+  compactPendingChanges,
+  PENDING_FILE,
+  type PendingChange,
+  PendingChangeSchema,
+  pendingChangesPath,
+  readPendingChanges,
+  recordPendingChange,
+} from "./pending-changes";
