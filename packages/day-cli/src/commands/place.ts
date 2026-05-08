@@ -21,6 +21,7 @@ import {
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
+import { maybeAutoSync } from "./_auto-sync";
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -87,6 +88,7 @@ async function runSuggest(args: string[]): Promise<number> {
   let max = 5;
   let json = false;
   let autoCommit = false;
+  let noSync = false;
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
@@ -96,6 +98,8 @@ async function runSuggest(args: string[]): Promise<number> {
     }
     if (a === "--auto") {
       autoCommit = true;
+    } else if (a === "--no-sync") {
+      noSync = true;
     } else if (a === "--date") {
       startDate = ISODateSchema.parse(args[i + 1]);
       i++;
@@ -128,6 +132,15 @@ async function runSuggest(args: string[]): Promise<number> {
   if (!id) throw usage("place suggest: <todo-id> argument is required");
 
   const home = defaultHomeDir();
+
+  // Best-effort auto-sync before placement so the suggestion engine
+  // sees fresh calendar data. Surfaces a warning on failure but
+  // never blocks the suggest call (we still have local data to work
+  // with). --no-sync or SCAFFOLD_DAY_AUTO_SYNC=0 disables.
+  const autoSync = await maybeAutoSync({ home, noSync });
+  if (autoSync.kind === "warning" && !json) {
+    console.error(`note: auto-sync skipped — ${autoSync.reason}`);
+  }
   const yaml = await readPolicyYaml(home);
   if (!yaml) {
     throw new ScaffoldError({
@@ -271,10 +284,10 @@ export const placeCommand: Command = {
   help: {
     what: "Drive the placement engine. `suggest <todo-id>` ranks free slots across the next N days using importance + soft preferences − reactivity. `do` and `override` arrive in §S21 / §S22.",
     when: "When deciding where in the day a todo should land, or when reshuffling after a calendar change.",
-    cost: "Local file I/O (policy + day files for the requested range). No network. No mutations from `suggest`.",
-    input: "suggest <todo-id> [--date <YYYY-MM-DD>] [--within <N>=7] [--max <K>=5] [--json]\ndo <todo-id> --slot <ISO> [--lock]            (placeholder, §S21)\noverride <placement-id> --new-slot <ISO> [--reason <T>]   (placeholder, §S22)",
+    cost: "Local file I/O (policy + day files for the requested range). `suggest` triggers a best-effort Google Calendar pull when last_sync_at is older than 60 minutes (skip with --no-sync or SCAFFOLD_DAY_AUTO_SYNC=0). `suggest` itself never writes.",
+    input: "suggest <todo-id> [--date <YYYY-MM-DD>] [--within <N>=7] [--max <K>=5] [--auto] [--no-sync] [--json]\ndo <todo-id> --slot <ISO> [--lock]\noverride <placement-id> --new-slot <ISO> [--reason <T>]",
     return: "Exit 0. DAY_NOT_INITIALIZED if no policy/current.yaml. DAY_NOT_FOUND for unknown todo. DAY_INVALID_INPUT if the todo has no duration_min. DAY_USAGE on bad flags.",
-    gotcha: "`suggest` does not write anything — call `place do` to commit. The Balanced preset's working window (09:00-18:00 weekdays) means a Saturday todo will produce zero candidates until you customize policy. Tracking SLICES.md §S20 (suggest) / §S21 (do) / §S22 (override).",
+    gotcha: "`suggest` does not write anything — call `place do` to commit. Auto-sync runs only when a Google token is present; offline use is unaffected. The Balanced preset's working window (09:00-18:00 weekdays) means a Saturday todo will produce zero candidates until you customize policy. Tracking SLICES.md §S20 (suggest) / §S21 (do) / §S22 (override).",
   },
   run: async (args) => {
     const sub = args[0];

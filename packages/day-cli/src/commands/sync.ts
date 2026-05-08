@@ -396,6 +396,8 @@ export async function runSyncWithAdapter(opts: {
   adapter: SyncAdapter;
   json: boolean;
   dryRun: boolean;
+  /** Suppress stdout output (used by auto-sync from other commands). */
+  silent?: boolean;
 }): Promise<{ exitCode: number; summary: SyncSummary }> {
   const remote = await opts.adapter.pull({ start: opts.start, end: opts.end });
   const store = new FsDayStore(opts.home);
@@ -411,6 +413,7 @@ export async function runSyncWithAdapter(opts: {
   for (const r of remote) {
     await applyRemote(store, r, opts.adapter, summary, opts.dryRun);
   }
+  if (opts.silent) return { exitCode: 0, summary };
   if (opts.dryRun) {
     emitDryRun(opts.json, {
       command: "sync",

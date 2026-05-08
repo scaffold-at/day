@@ -130,12 +130,12 @@ score <id> --urgency <0..10> --impact <0..10> --effort <0..10> --reversibility <
 
 - **WHAT.** Drive the placement engine. `suggest <todo-id>` ranks free slots across the next N days using importance + soft preferences − reactivity. `do` and `override` arrive in §S21 / §S22.
 - **WHEN.** When deciding where in the day a todo should land, or when reshuffling after a calendar change.
-- **COST.** Local file I/O (policy + day files for the requested range). No network. No mutations from `suggest`.
-- **INPUT.** suggest <todo-id> [--date <YYYY-MM-DD>] [--within <N>=7] [--max <K>=5] [--json]
-do <todo-id> --slot <ISO> [--lock]            (placeholder, §S21)
-override <placement-id> --new-slot <ISO> [--reason <T>]   (placeholder, §S22)
+- **COST.** Local file I/O (policy + day files for the requested range). `suggest` triggers a best-effort Google Calendar pull when last_sync_at is older than 60 minutes (skip with --no-sync or SCAFFOLD_DAY_AUTO_SYNC=0). `suggest` itself never writes.
+- **INPUT.** suggest <todo-id> [--date <YYYY-MM-DD>] [--within <N>=7] [--max <K>=5] [--auto] [--no-sync] [--json]
+do <todo-id> --slot <ISO> [--lock]
+override <placement-id> --new-slot <ISO> [--reason <T>]
 - **RETURN.** Exit 0. DAY_NOT_INITIALIZED if no policy/current.yaml. DAY_NOT_FOUND for unknown todo. DAY_INVALID_INPUT if the todo has no duration_min. DAY_USAGE on bad flags.
-- **GOTCHA.** `suggest` does not write anything — call `place do` to commit. The Balanced preset's working window (09:00-18:00 weekdays) means a Saturday todo will produce zero candidates until you customize policy. Tracking SLICES.md §S20 (suggest) / §S21 (do) / §S22 (override).
+- **GOTCHA.** `suggest` does not write anything — call `place do` to commit. Auto-sync runs only when a Google token is present; offline use is unaffected. The Balanced preset's working window (09:00-18:00 weekdays) means a Saturday todo will produce zero candidates until you customize policy. Tracking SLICES.md §S20 (suggest) / §S21 (do) / §S22 (override).
 
 ### `scaffold-day conflict` — list / resolve / detect scheduling conflicts
 
