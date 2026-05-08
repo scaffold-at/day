@@ -226,12 +226,12 @@ preset apply <name>
 
 ### `scaffold-day logs` — tail or query scaffold-day operational logs
 
-- **WHAT.** Read placement / conflict / heartbeat logs from `<home>/logs/`. Filters: --since (1d / 12h / 30m / ISO date) and --kind (placement | conflict | heartbeat | decision). v0.2.1 ships read+filter+format; --follow lands in a later patch.
-- **WHEN.** When debugging an unexpected placement, a resolved conflict, or to audit when 'morning' was recorded across days.
-- **COST.** Local read only. Loads matching JSONL files into memory; corpora are small in v0.2.
-- **INPUT.** [--since <duration|date>] [--kind placement|conflict|heartbeat|decision] [--json] [--follow placeholder]
-- **RETURN.** JSON Lines on stdout when --json. Otherwise human-formatted lines, one per entry, sorted by `at` ascending.
-- **GOTCHA.** `decision` is an alias for placement+conflict (no separate decision log in v0.2). --follow currently throws DAY_USAGE; tail/follow lands in a v0.2.x slice.
+- **WHAT.** Read placement / conflict / heartbeat logs from `<home>/logs/`. Filters: --since (1d / 12h / 30m / ISO date) and --kind (placement | conflict | heartbeat | decision). `--follow` polls for new entries and emits them as they appear (Ctrl+C to exit).
+- **WHEN.** When debugging an unexpected placement, a resolved conflict, to audit when 'morning' was recorded across days, or to watch placements happen live during a session.
+- **COST.** Local read only. Loads matching JSONL files into memory; corpora are small in v0.2. `--follow` polls every --poll ms (default 1000).
+- **INPUT.** [--since <duration|date>] [--kind placement|conflict|heartbeat|decision] [--json] [--follow] [--poll <ms>=1000]
+- **RETURN.** JSON Lines on stdout when --json. Otherwise human-formatted lines, one per entry, sorted by `at` ascending. `--follow` runs until SIGINT/SIGTERM (exit 0).
+- **GOTCHA.** `decision` is an alias for placement+conflict (no separate decision log in v0.2). `--follow` starts from `now` (tail-f semantics) — combine with a plain `scaffold-day logs` first to see history. Tracking SLICES.md §S63.
 
 ### `scaffold-day telemetry` — inspect or change opt-in heartbeat telemetry preferences
 

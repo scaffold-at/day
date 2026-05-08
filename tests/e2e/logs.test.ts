@@ -88,15 +88,15 @@ describe("logs (S63)", () => {
     expect(r.stderr).toContain("DAY_INVALID_INPUT");
   });
 
-  test("--follow throws DAY_USAGE (placeholder for v0.2.x)", async () => {
+  test("--poll outside [100, 60000] → DAY_INVALID_INPUT", async () => {
     await runCli(["init"], { home });
-    const r = await runCli(["logs", "--follow"], {
+    const r = await runCli(["logs", "--follow", "--poll", "50"], {
       home,
       env: { SCAFFOLD_DAY_NOW: KST_NOW },
     });
-    expect(r.exitCode).toBe(2);
-    expect(r.stderr).toContain("DAY_USAGE");
-    expect(r.stderr).toContain("--follow");
+    expect(r.exitCode).toBe(65);
+    expect(r.stderr).toContain("DAY_INVALID_INPUT");
+    expect(r.stderr).toContain("--poll");
   });
 
   test("empty placement log → 'no entries' notice (exit 0)", async () => {
