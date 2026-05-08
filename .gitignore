@@ -50,3 +50,6 @@ scaffold-day-data/
 
 # OMC (oh-my-claudecode) local state
 .omc/
+
+# Editor / agent runtime
+.claude/
