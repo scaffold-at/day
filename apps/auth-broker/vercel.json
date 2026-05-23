@@ -1,0 +1,5 @@
+{
+  "version": 2,
+  "buildCommand": "bun install --frozen-lockfile && bun run typecheck",
+  "installCommand": "bun install --frozen-lockfile"
+}

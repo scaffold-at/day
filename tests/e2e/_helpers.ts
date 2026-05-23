@@ -17,6 +17,8 @@ export type RunOptions = {
   home?: string;
   /** Extra env vars merged on top of process.env. */
   env?: Record<string, string>;
+  /** Text to write to stdin before closing it. */
+  stdin?: string;
   /** Override the default `NO_COLOR=1` (set to false to keep color env unchanged). */
   keepColor?: boolean;
 };
@@ -70,9 +72,14 @@ export async function runCli(
 
   const proc = Bun.spawn(["bun", CLI_PATH, ...args], {
     env,
+    stdin: options.stdin === undefined ? "ignore" : "pipe",
     stdout: "pipe",
     stderr: "pipe",
   });
+  if (options.stdin !== undefined) {
+    proc.stdin.write(options.stdin);
+    proc.stdin.end();
+  }
 
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(proc.stdout).text(),

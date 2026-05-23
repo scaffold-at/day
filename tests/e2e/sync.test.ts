@@ -11,6 +11,33 @@ afterEach(async () => {
   await cleanupHome(home);
 });
 
+async function loginWithBrokerToken(): Promise<void> {
+  const server = Bun.serve({
+    port: 0,
+    fetch() {
+      return Response.json({
+        ok: true,
+        account_email: "u@example.com",
+        access_token: "AT-test",
+        expires_in: 3600,
+        token_type: "Bearer",
+        scope: "https://www.googleapis.com/auth/calendar openid email",
+      });
+    },
+  });
+  try {
+    const r = await runCli(["auth", "login", "--broker-session-token-stdin"], {
+      home,
+      stdin: "sday_from_stdin\n",
+      env: { SCAFFOLD_DAY_AUTH_BROKER_URL: `http://127.0.0.1:${server.port}` },
+    });
+    expect(r.exitCode, r.stderr).toBe(0);
+  } finally {
+    server.stop(true);
+  }
+}
+
+
 describe("scaffold-day sync (S71/S72 wire-up)", () => {
   test("without a stored token → DAY_NOT_INITIALIZED exit 78", async () => {
     const r = await runCli(["sync"], { home });
@@ -20,16 +47,7 @@ describe("scaffold-day sync (S71/S72 wire-up)", () => {
   });
 
   test("--end before --start → DAY_INVALID_INPUT", async () => {
-    await runCli(
-      [
-        "auth",
-        "login",
-        "--access-token", "AT-test",
-        "--refresh-token", "RT-test",
-        "--account-email", "u@example.com",
-      ],
-      { home },
-    );
+    await loginWithBrokerToken();
     const r = await runCli(
       [
         "sync",
@@ -63,16 +81,7 @@ describe("scaffold-day sync (S71/S72 wire-up)", () => {
 
 describe("event mutations auto-queue pending pushes (S71 push wire-up)", () => {
   async function login(): Promise<void> {
-    const r = await runCli(
-      [
-        "auth", "login",
-        "--access-token", "AT-test",
-        "--refresh-token", "RT-test",
-        "--account-email", "u@example.com",
-      ],
-      { home },
-    );
-    expect(r.exitCode, r.stderr).toBe(0);
+    await loginWithBrokerToken();
   }
 
   async function readPending(): Promise<unknown[]> {

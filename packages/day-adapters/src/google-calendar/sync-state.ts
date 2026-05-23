@@ -25,7 +25,7 @@ export const GoogleCalendarSyncStateSchema = z
     /** Pointer back into the OAuth token file (storage backend).
      * Pre-S73 builds wrote "keytar"; v0.3+ writes "keychain". Both
      * are accepted on read. */
-    oauth_ref: z.enum(["keychain", "keytar", "file"]).default("file"),
+    oauth_ref: z.enum(["keychain", "keytar", "file", "broker"]).default("file"),
   })
   .strict();
 

@@ -9,6 +9,9 @@ import { defaultHomeDir, ScaffoldError } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
 
+const AUTH_BROKER_URL_ENV = "SCAFFOLD_DAY_AUTH_BROKER_URL";
+const DEFAULT_AUTH_BROKER_URL = "https://auth.scaffold.at";
+
 function usage(message: string): ScaffoldError {
   return new ScaffoldError({
     code: "DAY_USAGE",
@@ -18,91 +21,124 @@ function usage(message: string): ScaffoldError {
   });
 }
 
-function takeValue(args: string[], i: number, flag: string): string {
-  const v = args[i + 1];
-  if (v === undefined || v.startsWith("--")) {
-    throw usage(`auth: ${flag} requires a value`);
+function authBrokerBaseUrl(): string {
+  return (process.env[AUTH_BROKER_URL_ENV] ?? DEFAULT_AUTH_BROKER_URL).replace(/\/+$/, "");
+}
+
+async function readBrokerSessionTokenFromStdin(): Promise<string> {
+  const text = await new Response(Bun.stdin.stream()).text();
+  const token = text.trim();
+  if (!token) throw usage("auth login: --broker-session-token-stdin received empty stdin");
+  return token;
+}
+
+type BrokerTokenResponse = {
+  ok?: boolean;
+  account_email?: string;
+  access_token?: string;
+  expires_in?: number;
+  token_type?: string;
+  scope?: string;
+  error?: string;
+};
+
+async function verifyBrokerSessionToken(brokerSessionToken: string): Promise<GoogleOAuthToken> {
+  const response = await fetch(`${authBrokerBaseUrl()}/api/auth/google/token`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${brokerSessionToken}` },
+  });
+  const payload = (await response.json().catch(() => ({}))) as BrokerTokenResponse;
+  if (!response.ok || payload.ok !== true) {
+    throw new ScaffoldError({
+      code: "DAY_PROVIDER_AUTH_EXPIRED",
+      summary: { en: "auth login: broker session token verification failed" },
+      cause: payload.error ?? `broker returned HTTP ${response.status}`,
+      try: ["Generate a new broker session token and pipe it via --broker-session-token-stdin."],
+    });
   }
-  return v;
+  if (!payload.access_token || !payload.scope) {
+    throw new ScaffoldError({
+      code: "DAY_PROVIDER_UNAVAILABLE",
+      summary: { en: "auth login: broker returned an invalid token response" },
+      cause: "Expected access_token and scope in the broker response.",
+      try: ["Check the configured auth broker deployment."],
+    });
+  }
+  const expiresIn = typeof payload.expires_in === "number" ? payload.expires_in : 3600;
+  return {
+    access_token: payload.access_token,
+    broker_session_token: brokerSessionToken,
+    token_type: payload.token_type ?? "Bearer",
+    expiry_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+    scope: payload.scope,
+    account_email: payload.account_email ?? null,
+    storage: "broker",
+  };
 }
 
 // ─── auth login ───────────────────────────────────────────────────
 
 async function runLogin(args: string[]): Promise<number> {
-  let accessToken: string | undefined;
-  let refreshToken: string | undefined;
-  let accountEmail: string | undefined;
-  let scope = "https://www.googleapis.com/auth/calendar";
-  let force = false;
-  let nonInteractive = false;
+  let overwrite = false;
+  let manual = false;
   let noKeychain = false;
+  let brokerSessionTokenStdin = false;
 
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i] ?? "";
-    if (a === "--access-token") { accessToken = takeValue(args, i, "--access-token"); i++; }
-    else if (a === "--refresh-token") { refreshToken = takeValue(args, i, "--refresh-token"); i++; }
-    else if (a === "--account-email") { accountEmail = takeValue(args, i, "--account-email"); i++; }
-    else if (a === "--scope") { scope = takeValue(args, i, "--scope"); i++; }
-    else if (a === "--force") { force = true; }
-    else if (a === "--non-interactive") { nonInteractive = true; }
+  for (const a of args) {
+    if (a === "--overwrite") { overwrite = true; }
+    else if (a === "--manual") { manual = true; }
     else if (a === "--no-keychain") { noKeychain = true; }
+    else if (a === "--broker-session-token-stdin") { brokerSessionTokenStdin = true; }
     else throw usage(`auth login: unexpected argument '${a}'`);
+  }
+
+  if (manual && brokerSessionTokenStdin) {
+    throw usage("auth login: use only one login mode, not both --manual and --broker-session-token-stdin");
   }
 
   const home = defaultHomeDir();
   const existing = await readGoogleOAuthToken(home);
-  if (existing && !force) {
+  if (existing && !overwrite) {
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
       summary: { en: "auth login: already authenticated" },
       cause: `Token for ${existing.account_email ?? "unknown account"} is already stored.`,
       try: [
-        "Re-run with --force to overwrite.",
+        "Re-run with --overwrite to replace the stored auth.",
         "Or `scaffold-day auth logout` first.",
       ],
     });
   }
 
-  // S70: when neither token is provided, run the live PKCE desktop
-  // flow (browser handoff). --non-interactive forces an error
-  // instead, useful for CI / scripts that must not spawn a browser.
   let token: GoogleOAuthToken;
-  if (accessToken && refreshToken) {
-    token = {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      token_type: "Bearer",
-      expiry_at: null,
-      scope,
-      account_email: accountEmail ?? null,
-      storage: "file",
-    };
-  } else if (nonInteractive) {
-    throw new ScaffoldError({
-      code: "DAY_USAGE",
-      summary: { en: "auth login: --access-token + --refresh-token required when --non-interactive" },
-      cause: "Browser OAuth flow is the default; --non-interactive disables it.",
-      try: ["Drop --non-interactive, or pass both tokens explicitly."],
-    });
+  if (brokerSessionTokenStdin) {
+    const brokerSessionToken = await readBrokerSessionTokenFromStdin();
+    token = await verifyBrokerSessionToken(brokerSessionToken);
   } else {
+    const mode = manual ? "manual" : "browser";
     if (isDryRun()) {
       emitDryRun(false, {
         command: "auth login",
         writes: [{ path: ".secrets/google-oauth.json", op: existing ? "update" : "create" }],
-        note: "would open the browser for OAuth desktop flow",
-        result: { mode: "browser", scope },
+        note: manual
+          ? "would start a manual browser OAuth flow: print the auth URL without opening a browser, then wait for the local callback"
+          : "would open the browser for OAuth desktop flow",
+        result: { mode },
       });
       return 0;
     }
     console.log("scaffold-day auth login");
-    console.log("  starting browser OAuth flow…");
+    if (manual) {
+      console.log("  starting manual browser OAuth flow…");
+    } else {
+      console.log("  starting browser OAuth flow…");
+    }
     token = await runOAuthDesktopFlow({
-      scopes: [scope, "openid", "email"],
+      openBrowser: manual ? () => {} : undefined,
       onAuthUrl: (url) => {
-        console.log(`  if the browser doesn't open, visit:\n    ${url}`);
+        console.log(manual ? `  open this URL:\n    ${url}` : `  if the browser doesn't open, visit:\n    ${url}`);
       },
     });
-    if (accountEmail) token.account_email = accountEmail;
   }
 
   if (isDryRun()) {
@@ -112,8 +148,8 @@ async function runLogin(args: string[]): Promise<number> {
       result: {
         account: token.account_email,
         scope: token.scope,
-        storage: "file",
-        has_refresh_token: token.refresh_token.length > 0,
+        storage: token.storage,
+        has_refresh_token: (token.refresh_token?.length ?? 0) > 0,
       },
     });
     return 0;
@@ -148,7 +184,7 @@ async function runList(args: string[]): Promise<number> {
               account_email: token.account_email,
               scope: token.scope,
               storage: token.storage,
-              has_refresh_token: token.refresh_token.length > 0,
+              has_refresh_token: (token.refresh_token?.length ?? 0) > 0,
             }
           : { authenticated: false },
         null,
@@ -240,16 +276,16 @@ export const authCommand: Command = {
   name: "auth",
   summary: "manage the Google Calendar OAuth token (login / list / logout / revoke)",
   help: {
-    what: "v0.1 mock-mode helper around <home>/.secrets/google-oauth.json. Login is non-interactive (pass tokens as flags); the live browser OAuth flow lands in §S27 B-mode.",
-    when: "After supplying tokens manually for testing, or to inspect / clear the stored auth.",
-    cost: "Local file I/O only (mode 0600). No network in v0.1.",
-    input: "login [--access-token <AT> --refresh-token <RT>] [--account-email <addr>] [--scope <s>] [--force] [--non-interactive] [--no-keychain]\nlist [--json]\nlogout [--json]\nrevoke [--json]",
-    return: "Exit 0. DAY_INVALID_INPUT if login conflicts with an existing token (use --force) or if a malformed token file is present.",
-    gotcha: "Without `--access-token`/`--refresh-token` the browser PKCE flow runs (S70). Refresh tokens land in the OS Keychain (macOS `security`, Linux `secret-tool`) when reachable — `--no-keychain` or `SCAFFOLD_DAY_DISABLE_KEYCHAIN=1` forces file storage. `auth list --json` reports which backend is active. Tracking SLICES.md §S70 / §S73.",
+    what: "Manage Google Calendar OAuth credentials. Login uses the browser PKCE flow by default, a manual browser handoff with --manual, or a broker session token piped on stdin.",
+    when: "After initial setup, CI/bootstrap auth, or to inspect / clear the stored auth.",
+    cost: "Local file I/O (mode 0600). Browser OAuth and broker-token verification make network calls.",
+    input: "login [--manual] [--broker-session-token-stdin] [--overwrite] [--no-keychain]\nlist [--json]\nlogout [--json]\nrevoke [--json]",
+    return: "Exit 0. DAY_INVALID_INPUT if login conflicts with an existing token (use --overwrite) or if a malformed token file is present.",
+    gotcha: "Plain `auth login` opens the browser PKCE flow (S70). `--manual` prints the auth URL instead of opening a browser, then waits for the local callback. For broker auth, pipe the broker session token via `--broker-session-token-stdin`; there is intentionally no `--broker-session-token <value>` flag to avoid shell-history/typing mistakes. Refresh tokens land in the OS Keychain when reachable — `--no-keychain` or `SCAFFOLD_DAY_DISABLE_KEYCHAIN=1` forces file storage. Broker auth is stored as `storage: broker`. `auth list --json` reports which backend is active.",
   },
   run: async (args) => {
     const sub = args[0];
-    if (!sub) throw usage("auth: missing subcommand. try `auth list`, `auth login --access-token ... --refresh-token ...`, `auth logout`, `auth revoke`");
+    if (!sub) throw usage("auth: missing subcommand. try `auth list`, `auth login`, `auth login --broker-session-token-stdin`, `auth logout`, `auth revoke`");
     const rest = args.slice(1);
     if (sub === "login") return runLogin(rest);
     if (sub === "list") return runList(rest);

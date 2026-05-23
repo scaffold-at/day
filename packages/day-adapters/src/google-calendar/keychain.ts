@@ -9,7 +9,7 @@
 // transparently fall back to file storage at the call site; this
 // module never throws on availability checks.
 
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 
 const SERVICE = "scaffold-day-google-oauth";
 
@@ -17,15 +17,11 @@ export type KeychainBackend = "macos" | "linux" | "none";
 
 type ProcResult = { code: number; stdout: string; stderr: string };
 
-async function runProc(
-  cmd: string,
-  args: string[],
-  input?: string,
-): Promise<ProcResult> {
+async function runProc(cmd: string, args: string[], input?: string): Promise<ProcResult> {
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
-    let child;
+    let child: ChildProcessWithoutNullStreams;
     try {
       child = spawn(cmd, args, { stdio: ["pipe", "pipe", "pipe"] });
     } catch {
@@ -38,8 +34,12 @@ async function runProc(
     child.stderr.on("data", (b) => {
       stderr += String(b);
     });
-    child.on("error", () => resolve({ code: 127, stdout, stderr }));
-    child.on("close", (code) => resolve({ code: code ?? 0, stdout, stderr }));
+    const childEvents = child as unknown as {
+      on(event: "error", listener: () => void): void;
+      on(event: "close", listener: (code: number | null) => void): void;
+    };
+    childEvents.on("error", () => resolve({ code: 127, stdout, stderr }));
+    childEvents.on("close", (code) => resolve({ code: code ?? 0, stdout, stderr }));
     if (input !== undefined) {
       child.stdin.write(input);
       child.stdin.end();
@@ -80,18 +80,18 @@ export function _resetKeychainCache(): void {
   cached = null;
 }
 
-export async function keychainStore(
-  account: string,
-  secret: string,
-): Promise<void> {
+export async function keychainStore(account: string, secret: string): Promise<void> {
   const backend = await detectKeychainBackend();
   if (backend === "macos") {
     // -U overwrites if a matching item already exists.
     const r = await runProc("security", [
       "add-generic-password",
-      "-a", account,
-      "-s", SERVICE,
-      "-w", secret,
+      "-a",
+      account,
+      "-s",
+      SERVICE,
+      "-w",
+      secret,
       "-U",
     ]);
     if (r.code !== 0) throw new Error(`keychain store failed: ${r.stderr.trim()}`);
@@ -115,18 +115,17 @@ export async function keychainRetrieve(account: string): Promise<string | null> 
   if (backend === "macos") {
     const r = await runProc("security", [
       "find-generic-password",
-      "-a", account,
-      "-s", SERVICE,
+      "-a",
+      account,
+      "-s",
+      SERVICE,
       "-w",
     ]);
     if (r.code !== 0) return null;
     return r.stdout.replace(/\n$/, "");
   }
   if (backend === "linux") {
-    const r = await runProc(
-      "secret-tool",
-      ["lookup", "service", SERVICE, "account", account],
-    );
+    const r = await runProc("secret-tool", ["lookup", "service", SERVICE, "account", account]);
     if (r.code !== 0) return null;
     return r.stdout;
   }
@@ -136,18 +135,11 @@ export async function keychainRetrieve(account: string): Promise<string | null> 
 export async function keychainDelete(account: string): Promise<boolean> {
   const backend = await detectKeychainBackend();
   if (backend === "macos") {
-    const r = await runProc("security", [
-      "delete-generic-password",
-      "-a", account,
-      "-s", SERVICE,
-    ]);
+    const r = await runProc("security", ["delete-generic-password", "-a", account, "-s", SERVICE]);
     return r.code === 0;
   }
   if (backend === "linux") {
-    const r = await runProc(
-      "secret-tool",
-      ["clear", "service", SERVICE, "account", account],
-    );
+    const r = await runProc("secret-tool", ["clear", "service", SERVICE, "account", account]);
     return r.code === 0;
   }
   return false;

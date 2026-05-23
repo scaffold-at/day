@@ -136,23 +136,11 @@ describe("global --dry-run (S83)", () => {
 
   test("auth login --dry-run does not write the secrets file", async () => {
     await runCli(["init"], { home });
-    const r = await runCli(
-      [
-        "auth",
-        "login",
-        "--access-token",
-        "AT-test",
-        "--refresh-token",
-        "RT-test",
-        "--account-email",
-        "u@example.com",
-        "--dry-run",
-      ],
-      { home },
-    );
+    const r = await runCli(["auth", "login", "--manual", "--dry-run"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
     expect(r.stdout).toContain("[dry-run] auth login");
     expect(r.stdout).toContain(".secrets/google-oauth.json");
+    expect(r.stdout).toContain("manual browser OAuth flow");
 
     let secretsExists = true;
     try {

@@ -56,6 +56,8 @@ const ADAPTER_VERSION = "0.1.0";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const CAL_BASE = "https://www.googleapis.com/calendar/v3";
 const SCHEMA_VERSION = "0.1.0";
+const AUTH_BROKER_URL_ENV = "SCAFFOLD_DAY_AUTH_BROKER_URL";
+const DEFAULT_AUTH_BROKER_URL = "https://auth.scaffold.at";
 
 // Etag map kept in-memory so we can send `If-Match` on patch / delete.
 // Persisted form lives in sync-state under event_id_map (we extend it
@@ -139,6 +141,14 @@ async function refreshAccessToken(
   home: string,
   current: GoogleOAuthToken,
 ): Promise<GoogleOAuthToken> {
+  if (!current.refresh_token) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: "Google OAuth refresh token missing" },
+      cause: "Stored auth is not a refresh-token based Google OAuth credential.",
+      try: ["Re-run `scaffold-day auth login` to refresh stored auth."],
+    });
+  }
   const clientId = effectiveClientId();
   const clientSecret = effectiveClientSecret();
   if (!clientId || !clientSecret) {
@@ -197,6 +207,56 @@ function tokenLooksExpired(t: GoogleOAuthToken): boolean {
   if (!Number.isFinite(ms)) return false;
   // Consider expired 30s before the actual expiry to avoid races.
   return ms - 30_000 < Date.now();
+}
+
+function authBrokerBaseUrl(): string {
+  return (process.env[AUTH_BROKER_URL_ENV] ?? DEFAULT_AUTH_BROKER_URL).replace(/\/+$/, "");
+}
+
+async function refreshBrokerAccessToken(home: string, current: GoogleOAuthToken): Promise<GoogleOAuthToken> {
+  if (!current.broker_session_token) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: "broker session token missing" },
+      cause: "Stored broker auth lacks broker_session_token.",
+      try: ["Re-run `scaffold-day auth login --broker-session-token-stdin`."],
+    });
+  }
+  const r = await fetch(`${authBrokerBaseUrl()}/api/auth/google/token`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${current.broker_session_token}` },
+  });
+  const json = (await r.json().catch(() => ({}))) as {
+    ok?: boolean;
+    access_token?: string;
+    expires_in?: number;
+    scope?: string;
+    token_type?: string;
+    account_email?: string;
+    error?: string;
+  };
+  if (!r.ok || json.ok !== true || !json.access_token) {
+    throw new ScaffoldError({
+      code: "DAY_PROVIDER_AUTH_EXPIRED",
+      summary: { en: "broker token refresh failed" },
+      cause: json.error ?? `${r.status} ${r.statusText}`,
+      try: ["Generate a new broker session token and re-run `scaffold-day auth login --broker-session-token-stdin`."],
+    });
+  }
+  const next: GoogleOAuthToken = {
+    ...current,
+    access_token: json.access_token,
+    expiry_at:
+      typeof json.expires_in === "number"
+        ? new Date(Date.now() + json.expires_in * 1000).toISOString()
+        : null,
+    scope: json.scope ?? current.scope,
+    token_type: json.token_type ?? current.token_type,
+    account_email: json.account_email ?? current.account_email,
+    storage: "broker",
+  };
+  await writeGoogleOAuthToken(home, next, { preferFile: true });
+  return next;
 }
 
 // ─── adapter ──────────────────────────────────────────────────────
@@ -485,6 +545,7 @@ export class LiveGoogleCalendarAdapter implements SyncAdapter {
       });
     }
     if (!tokenLooksExpired(t)) return t;
+    if (t.storage === "broker") return refreshBrokerAccessToken(this.home, t);
     return refreshAccessToken(this.home, t);
   }
 }

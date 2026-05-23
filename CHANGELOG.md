@@ -11,6 +11,24 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+## [v0.4.0] - 2026-05-23
+
+Hosted Google OAuth broker support and auth UX cleanup.
+
+### Added
+- **Vercel OAuth broker app** (`apps/auth-broker`) for Google Calendar auth. The CLI can store a broker session token locally and request short-lived Google access tokens from the broker instead of keeping Google refresh tokens on the device.
+- **`scaffold-day auth login --broker-session-token-stdin`** — reads the broker session token from stdin so long/sensitive tokens do not appear in shell history or argv.
+- **`scaffold-day auth login --manual`** — prints the browser auth URL for headless/manual CLI contexts instead of trying to auto-open the browser.
+
+### Changed
+- `auth login` now treats the browser PKCE flow as the default, uses `--overwrite` for replacing existing stored auth, and reports broker/file/keychain storage consistently in `auth list --json`.
+- Live Google Calendar token loading now supports broker-backed access-token refresh while keeping the existing keychain/file OAuth storage path.
+
+### Removed
+- Removed direct token injection flags from `auth login`: `--access-token`, `--refresh-token`, `--account-email`, `--scope`, and `--non-interactive`.
+- Removed `--force` from `auth login`; use `--overwrite`.
+- Removed direct broker token argv/env injection; broker session tokens must be supplied via stdin.
+
 ## [v0.3.1] - 2026-05-08
 
 Bi-directional sync + auto-sync polish + `logs --follow` lands.

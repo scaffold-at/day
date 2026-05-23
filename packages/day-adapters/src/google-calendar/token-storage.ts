@@ -17,17 +17,38 @@ export const GOOGLE_OAUTH_FILE = "google-oauth.json";
 export const GoogleOAuthTokenSchema = z
   .object({
     access_token: z.string().min(1),
-    refresh_token: z.string().min(1),
+    refresh_token: z.string().min(1).optional(),
+    broker_session_token: z.string().min(1).optional(),
     token_type: z.string().default("Bearer"),
     expiry_at: z.string().nullable(),
     scope: z.string().min(1),
     /** Account email when known — surfaced by `auth list`. */
     account_email: z.string().email().nullable().default(null),
-    /** Where the refresh_token lives. "keychain" means the file's
-     * refresh_token field is a sentinel pointing at the OS keychain. */
-    storage: z.enum(["keychain", "file"]).default("file"),
+    /** Where the long-lived credential lives. "keychain" means the file's
+     * refresh_token field is a sentinel pointing at the OS keychain; "broker"
+     * means broker_session_token is used to mint short Google access tokens. */
+    storage: z.enum(["keychain", "file", "broker"]).default("file"),
   })
-  .strict();
+  .strict()
+  .superRefine((token, ctx) => {
+    if (token.storage === "broker") {
+      if (!token.broker_session_token) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "broker auth requires broker_session_token",
+          path: ["broker_session_token"],
+        });
+      }
+      return;
+    }
+    if (!token.refresh_token) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Google OAuth auth requires refresh_token",
+        path: ["refresh_token"],
+      });
+    }
+  });
 
 export type GoogleOAuthToken = z.infer<typeof GoogleOAuthTokenSchema>;
 
@@ -67,7 +88,7 @@ export async function readGoogleOAuthToken(
     });
   }
   const token = parsed.data;
-  const sentinelAccount = parseKeychainSentinel(token.refresh_token);
+  const sentinelAccount = token.refresh_token ? parseKeychainSentinel(token.refresh_token) : null;
   if (sentinelAccount !== null) {
     const real = await keychainRetrieve(sentinelAccount);
     if (real && real.length > 0) {
@@ -101,7 +122,9 @@ export async function writeGoogleOAuthToken(
   const account = validated.account_email;
 
   let toWrite: GoogleOAuthToken = validated;
-  if (!opts.preferFile && account) {
+  if (validated.storage === "broker") {
+    toWrite = validated;
+  } else if (!opts.preferFile && account && validated.refresh_token) {
     const backend = await detectKeychainBackend();
     if (backend !== "none") {
       try {
@@ -140,7 +163,7 @@ export async function deleteGoogleOAuthToken(home: string): Promise<boolean> {
     const raw = await readFile(target, "utf8");
     const parsed = GoogleOAuthTokenSchema.safeParse(JSON.parse(raw));
     if (parsed.success) {
-      const sentinel = parseKeychainSentinel(parsed.data.refresh_token);
+      const sentinel = parsed.data.refresh_token ? parseKeychainSentinel(parsed.data.refresh_token) : null;
       if (sentinel !== null) keychainAccount = sentinel;
     }
   } catch {
