@@ -35,6 +35,94 @@ function isAllowedCliReturnUrl(value: string | undefined): value is string {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[<>&"]/g,
+    (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c] ?? c,
+  );
+}
+
+function renderBrokerSessionIssuedPage(input: {
+  email: string;
+  brokerSessionToken: string;
+  brokerSessionExpiresAt: string;
+  scope: string;
+  hasRefreshToken: boolean;
+}): string {
+  const token = escapeHtml(input.brokerSessionToken);
+  const email = escapeHtml(input.email);
+  const expiresAt = escapeHtml(input.brokerSessionExpiresAt);
+  const scope = escapeHtml(input.scope);
+  const hasRefreshToken = input.hasRefreshToken ? "Yes" : "No";
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scaffold Day auth complete</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #0f172a; --card: #111827; --text: #e5e7eb; --muted: #9ca3af; --accent: #60a5fa; --ok: #34d399; --warn: #fbbf24; --border: #334155; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at top, #1e3a8a 0, var(--bg) 42rem); color: var(--text); }
+    main { width: min(760px, 100%); background: color-mix(in srgb, var(--card), transparent 4%); border: 1px solid var(--border); border-radius: 24px; padding: 28px; box-shadow: 0 24px 80px rgb(0 0 0 / 0.35); }
+    .badge { display: inline-flex; align-items: center; gap: 8px; color: var(--ok); font-weight: 700; letter-spacing: -0.01em; }
+    h1 { margin: 12px 0 8px; font-size: clamp(28px, 5vw, 42px); letter-spacing: -0.04em; }
+    p { line-height: 1.6; color: var(--muted); }
+    .token-wrap { margin: 22px 0; }
+    label { display: block; margin-bottom: 8px; font-weight: 700; }
+    .token-row { display: flex; gap: 10px; }
+    textarea { width: 100%; min-height: 86px; resize: vertical; border: 1px solid var(--border); border-radius: 14px; padding: 14px; font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; color: var(--text); background: #020617; }
+    button { border: 0; border-radius: 14px; padding: 0 18px; min-width: 112px; cursor: pointer; background: var(--accent); color: #06111f; font-weight: 800; }
+    button:active { transform: translateY(1px); }
+    code { color: #bfdbfe; background: #020617; border: 1px solid var(--border); border-radius: 8px; padding: 2px 6px; }
+    dl { display: grid; grid-template-columns: 130px 1fr; gap: 10px 16px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+    dt { color: var(--muted); }
+    dd { margin: 0; overflow-wrap: anywhere; }
+    .warning { border: 1px solid color-mix(in srgb, var(--warn), transparent 50%); background: color-mix(in srgb, var(--warn), transparent 88%); border-radius: 14px; padding: 12px 14px; color: #fde68a; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="badge">✓ Google authorization complete</div>
+    <h1>Scaffold Day 인증이 완료됐습니다</h1>
+    <p>아래 broker session token을 복사해서 터미널의 <code>brokerSessionToken&gt;</code> 프롬프트에 붙여넣고 Enter를 누르세요.</p>
+    <div class="token-wrap">
+      <label for="token">Broker session token</label>
+      <div class="token-row">
+        <textarea id="token" readonly spellcheck="false">${token}</textarea>
+        <button id="copy" type="button">Copy</button>
+      </div>
+    </div>
+    <p id="copy-status" aria-live="polite"></p>
+    <div class="warning">이 값은 비밀번호처럼 다루세요. 채팅/로그에 붙여넣었다면 새로 로그인해서 새 토큰을 발급받는 것이 안전합니다.</div>
+    <dl>
+      <dt>Account</dt><dd>${email}</dd>
+      <dt>Expires</dt><dd>${expiresAt}</dd>
+      <dt>Refresh token</dt><dd>${hasRefreshToken}</dd>
+      <dt>Scope</dt><dd>${scope}</dd>
+    </dl>
+  </main>
+  <script>
+    const token = document.getElementById('token');
+    const button = document.getElementById('copy');
+    const status = document.getElementById('copy-status');
+    button.addEventListener('click', async () => {
+      token.focus();
+      token.select();
+      try {
+        await navigator.clipboard.writeText(token.value);
+        status.textContent = 'Copied. Paste it into the CLI and press Enter.';
+        button.textContent = 'Copied';
+      } catch {
+        document.execCommand('copy');
+        status.textContent = 'Selected/copied. If copy failed, press Cmd+C/Ctrl+C.';
+      }
+    });
+  </script>
+</body>
+</html>`;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   try {
     const config = loadBrokerConfig();
@@ -102,15 +190,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
 
-    res.status(200).json({
-      ok: true,
-      mode: "broker-session-issued",
-      email: user.email,
-      brokerSessionToken: session.token,
-      brokerSessionExpiresAt: session.expiresAt.toISOString(),
-      hasRefreshToken: Boolean(tokens.refreshToken),
-      scope: tokens.scope,
-    });
+    res.status(200).setHeader("Content-Type", "text/html; charset=utf-8");
+    res.end(
+      renderBrokerSessionIssuedPage({
+        email: user.email,
+        brokerSessionToken: session.token,
+        brokerSessionExpiresAt: session.expiresAt.toISOString(),
+        hasRefreshToken: Boolean(tokens.refreshToken),
+        scope: tokens.scope,
+      }),
+    );
   } catch (error) {
     res.status(500).json({
       ok: false,

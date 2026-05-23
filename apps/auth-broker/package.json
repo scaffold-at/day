@@ -1,6 +1,6 @@
 {
   "name": "@scaffold/auth-broker",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "description": "Vercel OAuth broker for scaffold-day Google Calendar/Tasks auth.",
   "license": "AGPL-3.0-or-later",

@@ -1,3 +1,4 @@
+import { createInterface } from "node:readline/promises";
 import {
   type GoogleOAuthToken,
   deleteGoogleOAuthToken,
@@ -40,6 +41,17 @@ async function defaultOpenBrowser(url: string): Promise<void> {
 }
 
 async function readBrokerSessionTokenFromStdin(): Promise<string> {
+  if (process.stdin.isTTY) {
+    const rl = createInterface({ input: process.stdin, output: process.stderr });
+    try {
+      const token = (await rl.question("  brokerSessionToken> ")).trim();
+      if (!token) throw usage("auth login: broker session token is empty");
+      return token;
+    } finally {
+      rl.close();
+    }
+  }
+
   const text = await new Response(Bun.stdin.stream()).text();
   const token = text.trim();
   if (!token) throw usage("auth login: --broker-session-token-stdin received empty stdin");

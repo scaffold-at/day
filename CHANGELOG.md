@@ -11,6 +11,14 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+## [v0.4.3] - 2026-05-23
+
+Patch release for the manual broker handoff UX.
+
+### Changed
+- The hosted Google OAuth broker now renders a friendly success page with a copy button for the broker session token instead of raw JSON when no CLI localhost callback is present.
+- Interactive `scaffold-day auth login --manual` now reads one pasted token line from the terminal, so pressing Enter submits the token instead of waiting for stdin EOF.
+
 ## [v0.4.2] - 2026-05-23
 
 Patch release for the manual hosted broker login flow.
@@ -265,7 +273,8 @@ via `curl -fsSL https://day.scaffold.at/install.sh | sh`.
 - **S51 / S52 / S53** Logo (skipped for v0.1) + scaffold.at/day landing + docs site MVP.
 - **S55 / S56 / S57** GitHub Discussions + good-first-issue labels, MCP directory registration, Show HN rehearsal.
 
-[Unreleased]: https://github.com/scaffold-at/day/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/scaffold-at/day/compare/v0.4.3...HEAD
+[v0.4.3]: https://github.com/scaffold-at/day/releases/tag/v0.4.3
 [v0.4.2]: https://github.com/scaffold-at/day/releases/tag/v0.4.2
 [v0.4.1]: https://github.com/scaffold-at/day/releases/tag/v0.4.1
 [v0.4.0]: https://github.com/scaffold-at/day/releases/tag/v0.4.0
