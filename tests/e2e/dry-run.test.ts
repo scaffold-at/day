@@ -32,10 +32,9 @@ describe("global --dry-run (S83)", () => {
   });
 
   test("todo add --dry-run does not create the index or detail files", async () => {
-    const r = await runCli(
-      ["todo", "add", "--title", "draft Q2 OKR", "--dry-run", "--json"],
-      { home },
-    );
+    const r = await runCli(["todo", "add", "--title", "draft Q2 OKR", "--dry-run", "--json"], {
+      home,
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.dry_run).toBe(true);
@@ -113,20 +112,13 @@ describe("global --dry-run (S83)", () => {
 
     // Tweak it so we can detect a clobber.
     await runCli(
-      [
-        "policy",
-        "patch",
-        '[{"op":"replace","path":"/placement_grid_min","value":42}]',
-      ],
+      ["policy", "patch", '[{"op":"replace","path":"/placement_grid_min","value":42}]'],
       { home },
     );
     const tweaked = await readFile(path.join(home, "policy/current.yaml"), "utf8");
     expect(tweaked).not.toBe(before);
 
-    const r = await runCli(
-      ["policy", "preset", "apply", "balanced", "--dry-run"],
-      { home },
-    );
+    const r = await runCli(["policy", "preset", "apply", "balanced", "--dry-run"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
     expect(r.stdout).toContain("[dry-run] policy preset apply");
 
@@ -140,7 +132,8 @@ describe("global --dry-run (S83)", () => {
     expect(r.exitCode, r.stderr).toBe(0);
     expect(r.stdout).toContain("[dry-run] auth login");
     expect(r.stdout).toContain(".secrets/google-oauth.json");
-    expect(r.stdout).toContain("manual browser OAuth flow");
+    expect(r.stdout).toContain("hosted broker auth URL");
+    expect(r.stdout).toContain("broker-manual");
 
     let secretsExists = true;
     try {
@@ -161,10 +154,7 @@ describe("global --dry-run (S83)", () => {
   });
 
   test("--dry-run can be placed before the command name", async () => {
-    const r = await runCli(
-      ["--dry-run", "todo", "add", "--title", "leading flag"],
-      { home },
-    );
+    const r = await runCli(["--dry-run", "todo", "add", "--title", "leading flag"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
     expect(r.stdout).toContain("[dry-run] todo add");
   });

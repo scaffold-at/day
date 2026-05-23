@@ -11,6 +11,17 @@ This file rolls those up into release notes once a tag is cut.
 
 ## [Unreleased]
 
+## [v0.4.1] - 2026-05-23
+
+Patch release for the hosted broker default login flow.
+
+### Changed
+- `scaffold-day auth login` now opens the hosted broker flow at `auth.scaffold.at` by default and waits for a localhost callback, so release binaries no longer depend on embedded Google desktop OAuth credentials.
+- `scaffold-day auth login --manual` now prints the hosted broker URL for headless/manual browser handoff while still using the localhost callback to receive the broker session token.
+
+### Security
+- The broker accepts CLI callback redirects only to `http://127.0.0.1:<port>/callback` or `http://localhost:<port>/callback`, and clears both OAuth state and return-url cookies after callback completion.
+
 ## [v0.4.0] - 2026-05-23
 
 Hosted Google OAuth broker support and auth UX cleanup.
@@ -247,7 +258,9 @@ via `curl -fsSL https://day.scaffold.at/install.sh | sh`.
 - **S51 / S52 / S53** Logo (skipped for v0.1) + scaffold.at/day landing + docs site MVP.
 - **S55 / S56 / S57** GitHub Discussions + good-first-issue labels, MCP directory registration, Show HN rehearsal.
 
-[Unreleased]: https://github.com/scaffold-at/day/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/scaffold-at/day/compare/v0.4.1...HEAD
+[v0.4.1]: https://github.com/scaffold-at/day/releases/tag/v0.4.1
+[v0.4.0]: https://github.com/scaffold-at/day/releases/tag/v0.4.0
 [v0.3.1]: https://github.com/scaffold-at/day/releases/tag/v0.3.1
 [v0.3.0]: https://github.com/scaffold-at/day/releases/tag/v0.3.0
 [v0.2.3]: https://github.com/scaffold-at/day/releases/tag/v0.2.3

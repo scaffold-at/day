@@ -28,14 +28,19 @@ describe("init (S29.5)", () => {
     expect(schema.schema_version).toBe("0.1.0");
 
     // policy seeded
-    const policy = await readFile(
-      path.join(home, "policy/current.yaml"),
-      "utf8",
-    );
+    const policy = await readFile(path.join(home, "policy/current.yaml"), "utf8");
     expect(policy).toContain("Asia/Seoul");
 
     // dirs created
-    for (const d of ["days", "todos/active/detail", "todos/archive", "sync", "conflicts", "logs", "policy-snapshots"]) {
+    for (const d of [
+      "days",
+      "todos/active/detail",
+      "todos/archive",
+      "sync",
+      "conflicts",
+      "logs",
+      "policy-snapshots",
+    ]) {
       const st = await stat(path.join(home, d));
       expect(st.isDirectory()).toBe(true);
     }
@@ -135,9 +140,7 @@ describe("auth (S29)", () => {
     expect(r.stdout).toContain("broker");
     expect(seen[0]?.authorization).toBe("Bearer sday_from_stdin");
 
-    const token = JSON.parse(
-      await readFile(path.join(home, ".secrets/google-oauth.json"), "utf8"),
-    );
+    const token = JSON.parse(await readFile(path.join(home, ".secrets/google-oauth.json"), "utf8"));
     expect(token.access_token).toBe("AT-broker");
     expect(token.broker_session_token).toBe("sday_from_stdin");
     expect(token.account_email).toBe("broker@example.com");
@@ -175,9 +178,7 @@ describe("auth (S29)", () => {
     await runBrokerLogin();
     const { r } = await runBrokerLogin(true);
     expect(r.exitCode).toBe(0);
-    const list = JSON.parse(
-      (await runCli(["auth", "list", "--json"], { home })).stdout,
-    );
+    const list = JSON.parse((await runCli(["auth", "list", "--json"], { home })).stdout);
     expect(list.account_email).toBe("broker-overwrite@example.com");
   });
 
@@ -186,9 +187,7 @@ describe("auth (S29)", () => {
     const r = await runCli(["auth", "logout"], { home });
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("token removed");
-    const list = JSON.parse(
-      (await runCli(["auth", "list", "--json"], { home })).stdout,
-    );
+    const list = JSON.parse((await runCli(["auth", "list", "--json"], { home })).stdout);
     expect(list.authenticated).toBe(false);
   });
 
@@ -207,18 +206,31 @@ describe("auth (S29)", () => {
   });
 
   test("auth login rejects removed login options", async () => {
-    for (const flag of ["--non-interactive", "--force", "--access-token", "--refresh-token", "--account-email", "--scope"]) {
+    for (const flag of [
+      "--non-interactive",
+      "--force",
+      "--access-token",
+      "--refresh-token",
+      "--account-email",
+      "--scope",
+    ]) {
       const r = await runCli(["auth", "login", flag, "x"], { home });
       expect(r.exitCode).toBe(2);
       expect(r.stderr).toContain(`unexpected argument '${flag}'`);
     }
   });
 
-  test("auth login --manual dry-run documents manual browser flow", async () => {
+  test("auth login dry-run documents hosted broker browser flow", async () => {
+    const r = await runCli(["--dry-run", "auth", "login"], { home });
+    expect(r.exitCode, r.stderr).toBe(0);
+    expect(r.stdout).toContain("hosted broker auth URL");
+    expect(r.stdout).toContain("broker-browser");
+  });
+
+  test("auth login --manual dry-run documents manual hosted broker flow", async () => {
     const r = await runCli(["--dry-run", "auth", "login", "--manual"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
-    expect(r.stdout).toContain("manual browser OAuth flow");
-    expect(r.stdout).toContain("mode");
-    expect(r.stdout).toContain("manual");
+    expect(r.stdout).toContain("hosted broker auth URL");
+    expect(r.stdout).toContain("broker-manual");
   });
 });

@@ -11,8 +11,7 @@ afterEach(async () => {
   await cleanupHome(home);
 });
 
-const schemaPath = (h: string) =>
-  path.join(h, ".scaffold-day", "schema-version.json");
+const schemaPath = (h: string) => path.join(h, ".scaffold-day", "schema-version.json");
 
 async function readSchema(home: string) {
   return JSON.parse(await readFile(schemaPath(home), "utf8"));
@@ -23,8 +22,8 @@ describe("last_seen_binary_version (v0.2.3)", () => {
     const r = await runCli(["init"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
     const file = await readSchema(home);
-    expect(file.scaffold_day_version).toBe("0.4.0");
-    expect(file.last_seen_binary_version).toBe("0.4.0");
+    expect(file.scaffold_day_version).toBe("0.4.1");
+    expect(file.last_seen_binary_version).toBe("0.4.1");
   });
 
   test("subsequent commands update last_seen_binary_version when stale", async () => {
@@ -50,7 +49,7 @@ describe("last_seen_binary_version (v0.2.3)", () => {
 
     const after = await readSchema(home);
     expect(after.scaffold_day_version).toBe("0.1.0"); // immutable
-    expect(after.last_seen_binary_version).toBe("0.4.0"); // refreshed
+    expect(after.last_seen_binary_version).toBe("0.4.1"); // refreshed
   });
 
   test("dry-run does NOT touch last_seen_binary_version", async () => {
@@ -58,11 +57,7 @@ describe("last_seen_binary_version (v0.2.3)", () => {
     const before = await readSchema(home);
     await writeFile(
       schemaPath(home),
-      JSON.stringify(
-        { ...before, last_seen_binary_version: "0.1.0" },
-        null,
-        2,
-      ),
+      JSON.stringify({ ...before, last_seen_binary_version: "0.1.0" }, null, 2),
     );
 
     await runCli(["today", "--dry-run", "--tz", "Asia/Seoul"], { home });
@@ -75,15 +70,15 @@ describe("last_seen_binary_version (v0.2.3)", () => {
     const r = await runCli(["doctor"], { home });
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("data schema: 0.1.0");
-    expect(r.stdout).toContain("initialized by: scaffold-day v0.4.0");
+    expect(r.stdout).toContain("initialized by: scaffold-day v0.4.1");
     expect(r.stdout).toContain("last seen by:");
-    expect(r.stdout).toContain("current binary: scaffold-day v0.4.0");
+    expect(r.stdout).toContain("current binary: scaffold-day v0.4.1");
   });
 
   test("v0.2.3 home (no last_seen field) doesn't break doctor", async () => {
     await runCli(["init"], { home });
     const before = await readSchema(home);
-    delete before.last_seen_binary_version;
+    before.last_seen_binary_version = undefined;
     await writeFile(schemaPath(home), JSON.stringify(before, null, 2));
 
     const r = await runCli(["doctor"], { home });

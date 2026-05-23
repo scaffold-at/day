@@ -1,6 +1,6 @@
 {
   "name": "scaffold-day",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "Scaffold your day with AI. AGPL-3.0-or-later.",
   "license": "AGPL-3.0-or-later",
@@ -9,10 +9,7 @@
     "type": "git",
     "url": "https://github.com/scaffold-at/day.git"
   },
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev:cli": "bun run packages/day-cli/src/index.ts",

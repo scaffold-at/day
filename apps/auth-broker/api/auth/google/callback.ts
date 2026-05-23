@@ -23,6 +23,18 @@ function firstQueryValue(value: string | string[] | undefined): string | undefin
   return Array.isArray(value) ? value[0] : value;
 }
 
+function isAllowedCliReturnUrl(value: string | undefined): value is string {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "http:" && (url.hostname === "127.0.0.1" || url.hostname === "localhost")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   try {
     const config = loadBrokerConfig();
@@ -72,9 +84,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       config.brokerSessionSigningKey,
     );
 
-    res.setHeader("Set-Cookie", [
+    const clearCookies = [
       "google_oauth_state=; Path=/api/auth/google; Max-Age=0; HttpOnly; Secure; SameSite=Lax",
-    ]);
+      "google_oauth_return_url=; Path=/api/auth/google; Max-Age=0; HttpOnly; Secure; SameSite=Lax",
+    ];
+    res.setHeader("Set-Cookie", clearCookies);
+
+    const returnUrl = getCookie(req, "google_oauth_return_url");
+    if (isAllowedCliReturnUrl(returnUrl)) {
+      const redirect = new URL(returnUrl);
+      redirect.searchParams.set("broker_session_token", session.token);
+      redirect.searchParams.set("account_email", user.email);
+      redirect.searchParams.set("scope", tokens.scope);
+      redirect.searchParams.set("broker_session_expires_at", session.expiresAt.toISOString());
+      res.writeHead(302, { Location: redirect.toString() });
+      res.end();
+      return;
+    }
+
     res.status(200).json({
       ok: true,
       mode: "broker-session-issued",

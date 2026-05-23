@@ -1,11 +1,10 @@
 import {
-  deleteGoogleOAuthToken,
   type GoogleOAuthToken,
+  deleteGoogleOAuthToken,
   readGoogleOAuthToken,
-  runOAuthDesktopFlow,
   writeGoogleOAuthToken,
 } from "@scaffold/day-adapters";
-import { defaultHomeDir, ScaffoldError } from "@scaffold/day-core";
+import { ScaffoldError, defaultHomeDir } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
 
@@ -23,6 +22,21 @@ function usage(message: string): ScaffoldError {
 
 function authBrokerBaseUrl(): string {
   return (process.env[AUTH_BROKER_URL_ENV] ?? DEFAULT_AUTH_BROKER_URL).replace(/\/+$/, "");
+}
+
+async function defaultOpenBrowser(url: string): Promise<void> {
+  const platform = process.platform;
+  const cmd =
+    platform === "darwin"
+      ? ["open", url]
+      : platform === "win32"
+        ? ["cmd", "/c", "start", "", url]
+        : ["xdg-open", url];
+  try {
+    Bun.spawn(cmd, { stdout: "ignore", stderr: "ignore" });
+  } catch {
+    // Best effort: the CLI always prints the URL too.
+  }
 }
 
 async function readBrokerSessionTokenFromStdin(): Promise<string> {
@@ -76,6 +90,97 @@ async function verifyBrokerSessionToken(brokerSessionToken: string): Promise<Goo
   };
 }
 
+async function runBrokerBrowserFlow(opts: {
+  manual: boolean;
+  timeoutMs?: number;
+}): Promise<GoogleOAuthToken> {
+  const timeoutMs = opts.timeoutMs ?? 5 * 60 * 1000;
+
+  type CallbackResult = { ok: true; brokerSessionToken: string } | { ok: false; reason: string };
+  let resolveCallback!: (r: CallbackResult) => void;
+  const callbackPromise = new Promise<CallbackResult>((resolve) => {
+    resolveCallback = resolve;
+  });
+
+  const server = Bun.serve({
+    port: 0,
+    hostname: "127.0.0.1",
+    fetch(req) {
+      const url = new URL(req.url);
+      if (url.pathname !== "/callback") {
+        return new Response("not found", { status: 404 });
+      }
+      const error = url.searchParams.get("error");
+      if (error) {
+        resolveCallback({ ok: false, reason: error });
+        return new Response(htmlBrokerError(error), {
+          status: 400,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        });
+      }
+      const brokerSessionToken = url.searchParams.get("broker_session_token");
+      if (!brokerSessionToken) {
+        resolveCallback({ ok: false, reason: "missing broker_session_token" });
+        return new Response(htmlBrokerError("missing broker_session_token"), {
+          status: 400,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        });
+      }
+      resolveCallback({ ok: true, brokerSessionToken });
+      return new Response(htmlBrokerSuccess(), {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    },
+  });
+
+  const returnUrl = `http://127.0.0.1:${server.port}/callback`;
+  const startUrl = `${authBrokerBaseUrl()}/api/auth/google/start?return_url=${encodeURIComponent(returnUrl)}`;
+  console.log(opts.manual ? "  open this URL:" : "  if the browser doesn't open, visit:");
+  console.log(`    ${startUrl}`);
+  if (!opts.manual) await defaultOpenBrowser(startUrl);
+
+  let result: CallbackResult;
+  try {
+    result = await Promise.race<CallbackResult>([
+      callbackPromise,
+      new Promise<CallbackResult>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`OAuth broker flow timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        ),
+      ),
+    ]);
+  } finally {
+    server.stop(true);
+  }
+
+  if (!result.ok) {
+    throw new ScaffoldError({
+      code: "DAY_INVALID_INPUT",
+      summary: { en: `OAuth broker flow rejected: ${result.reason}` },
+      cause: "The browser callback did not complete a valid broker authorization.",
+      try: ["Re-run `scaffold-day auth login` and approve Google access in the browser."],
+    });
+  }
+
+  return verifyBrokerSessionToken(result.brokerSessionToken);
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[<>&"]/g,
+    (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c] ?? c,
+  );
+}
+
+function htmlBrokerSuccess(): string {
+  return `<!doctype html><meta charset="utf-8"><title>Scaffold Day auth complete</title><body><h1>Scaffold Day auth complete</h1><p>You can close this tab and return to your terminal.</p></body>`;
+}
+
+function htmlBrokerError(reason: string): string {
+  return `<!doctype html><meta charset="utf-8"><title>Scaffold Day auth failed</title><body><h1>Scaffold Day auth failed</h1><p>${escapeHtml(reason)}</p></body>`;
+}
+
 // ─── auth login ───────────────────────────────────────────────────
 
 async function runLogin(args: string[]): Promise<number> {
@@ -85,15 +190,21 @@ async function runLogin(args: string[]): Promise<number> {
   let brokerSessionTokenStdin = false;
 
   for (const a of args) {
-    if (a === "--overwrite") { overwrite = true; }
-    else if (a === "--manual") { manual = true; }
-    else if (a === "--no-keychain") { noKeychain = true; }
-    else if (a === "--broker-session-token-stdin") { brokerSessionTokenStdin = true; }
-    else throw usage(`auth login: unexpected argument '${a}'`);
+    if (a === "--overwrite") {
+      overwrite = true;
+    } else if (a === "--manual") {
+      manual = true;
+    } else if (a === "--no-keychain") {
+      noKeychain = true;
+    } else if (a === "--broker-session-token-stdin") {
+      brokerSessionTokenStdin = true;
+    } else throw usage(`auth login: unexpected argument '${a}'`);
   }
 
   if (manual && brokerSessionTokenStdin) {
-    throw usage("auth login: use only one login mode, not both --manual and --broker-session-token-stdin");
+    throw usage(
+      "auth login: use only one login mode, not both --manual and --broker-session-token-stdin",
+    );
   }
 
   const home = defaultHomeDir();
@@ -115,30 +226,25 @@ async function runLogin(args: string[]): Promise<number> {
     const brokerSessionToken = await readBrokerSessionTokenFromStdin();
     token = await verifyBrokerSessionToken(brokerSessionToken);
   } else {
-    const mode = manual ? "manual" : "browser";
+    const mode = manual ? "broker-manual" : "broker-browser";
     if (isDryRun()) {
       emitDryRun(false, {
         command: "auth login",
         writes: [{ path: ".secrets/google-oauth.json", op: existing ? "update" : "create" }],
         note: manual
-          ? "would start a manual browser OAuth flow: print the auth URL without opening a browser, then wait for the local callback"
-          : "would open the browser for OAuth desktop flow",
+          ? "would print the hosted broker auth URL without opening a browser, then wait for the local callback"
+          : "would open the hosted broker auth URL, then wait for the local callback",
         result: { mode },
       });
       return 0;
     }
     console.log("scaffold-day auth login");
     if (manual) {
-      console.log("  starting manual browser OAuth flow…");
+      console.log("  starting manual hosted broker OAuth flow…");
     } else {
-      console.log("  starting browser OAuth flow…");
+      console.log("  starting hosted broker OAuth flow…");
     }
-    token = await runOAuthDesktopFlow({
-      openBrowser: manual ? () => {} : undefined,
-      onAuthUrl: (url) => {
-        console.log(manual ? `  open this URL:\n    ${url}` : `  if the browser doesn't open, visit:\n    ${url}`);
-      },
-    });
+    token = await runBrokerBrowserFlow({ manual });
   }
 
   if (isDryRun()) {
@@ -217,9 +323,7 @@ async function runLogout(args: string[]): Promise<number> {
     const existed = await readGoogleOAuthToken(home);
     emitDryRun(args.includes("--json"), {
       command: "auth logout",
-      writes: existed
-        ? [{ path: ".secrets/google-oauth.json", op: "delete" }]
-        : [],
+      writes: existed ? [{ path: ".secrets/google-oauth.json", op: "delete" }] : [],
       result: { logged_out: existed !== null },
     });
     return 0;
@@ -248,9 +352,7 @@ async function runRevoke(args: string[]): Promise<number> {
     const existed = await readGoogleOAuthToken(home);
     emitDryRun(args.includes("--json"), {
       command: "auth revoke",
-      writes: existed
-        ? [{ path: ".secrets/google-oauth.json", op: "delete" }]
-        : [],
+      writes: existed ? [{ path: ".secrets/google-oauth.json", op: "delete" }] : [],
       note: "B-mode would also POST to https://oauth2.googleapis.com/revoke",
       result: { revoked: existed !== null, server_call: false },
     });
@@ -276,16 +378,22 @@ export const authCommand: Command = {
   name: "auth",
   summary: "manage the Google Calendar OAuth token (login / list / logout / revoke)",
   help: {
-    what: "Manage Google Calendar OAuth credentials. Login uses the browser PKCE flow by default, a manual browser handoff with --manual, or a broker session token piped on stdin.",
+    what: "Manage Google Calendar OAuth credentials. Login uses the hosted broker browser flow by default, a manual browser handoff with --manual, or a broker session token piped on stdin.",
     when: "After initial setup, CI/bootstrap auth, or to inspect / clear the stored auth.",
     cost: "Local file I/O (mode 0600). Browser OAuth and broker-token verification make network calls.",
-    input: "login [--manual] [--broker-session-token-stdin] [--overwrite] [--no-keychain]\nlist [--json]\nlogout [--json]\nrevoke [--json]",
-    return: "Exit 0. DAY_INVALID_INPUT if login conflicts with an existing token (use --overwrite) or if a malformed token file is present.",
-    gotcha: "Plain `auth login` opens the browser PKCE flow (S70). `--manual` prints the auth URL instead of opening a browser, then waits for the local callback. For broker auth, pipe the broker session token via `--broker-session-token-stdin`; there is intentionally no `--broker-session-token <value>` flag to avoid shell-history/typing mistakes. Refresh tokens land in the OS Keychain when reachable — `--no-keychain` or `SCAFFOLD_DAY_DISABLE_KEYCHAIN=1` forces file storage. Broker auth is stored as `storage: broker`. `auth list --json` reports which backend is active.",
+    input:
+      "login [--manual] [--broker-session-token-stdin] [--overwrite] [--no-keychain]\nlist [--json]\nlogout [--json]\nrevoke [--json]",
+    return:
+      "Exit 0. DAY_INVALID_INPUT if login conflicts with an existing token (use --overwrite) or if a malformed token file is present.",
+    gotcha:
+      "Plain `auth login` opens the hosted broker flow at auth.scaffold.at and waits for a local callback. `--manual` prints the broker auth URL instead of opening a browser, then waits for the local callback. For pre-issued broker auth, pipe the broker session token via `--broker-session-token-stdin`; there is intentionally no `--broker-session-token <value>` flag to avoid shell-history/typing mistakes. Broker auth is stored as `storage: broker`. `auth list --json` reports which backend is active.",
   },
   run: async (args) => {
     const sub = args[0];
-    if (!sub) throw usage("auth: missing subcommand. try `auth list`, `auth login`, `auth login --broker-session-token-stdin`, `auth logout`, `auth revoke`");
+    if (!sub)
+      throw usage(
+        "auth: missing subcommand. try `auth list`, `auth login`, `auth login --broker-session-token-stdin`, `auth logout`, `auth revoke`",
+      );
     const rest = args.slice(1);
     if (sub === "login") return runLogin(rest);
     if (sub === "list") return runList(rest);

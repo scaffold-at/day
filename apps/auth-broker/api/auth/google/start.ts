@@ -4,19 +4,42 @@ import { buildGoogleAuthorizationUrl, randomState } from "../../_lib/google-oaut
 
 const ONE_HOUR_SECONDS = 60 * 60;
 
-export default function handler(_req: VercelRequest, res: VercelResponse): void {
+function firstQueryValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function isAllowedCliReturnUrl(value: string | undefined): value is string {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "http:" && (url.hostname === "127.0.0.1" || url.hostname === "localhost")
+    );
+  } catch {
+    return false;
+  }
+}
+
+export default function handler(req: VercelRequest, res: VercelResponse): void {
   try {
     const config = loadBrokerConfig();
     const state = randomState();
+    const returnUrl = firstQueryValue(req.query.return_url);
     const authorizationUrl = buildGoogleAuthorizationUrl({
       clientId: config.googleClientId,
       redirectUri: config.googleRedirectUri,
       state,
     });
 
-    res.setHeader("Set-Cookie", [
+    const cookies = [
       `google_oauth_state=${state}; Path=/api/auth/google; Max-Age=${ONE_HOUR_SECONDS}; HttpOnly; Secure; SameSite=Lax`,
-    ]);
+    ];
+    if (isAllowedCliReturnUrl(returnUrl)) {
+      cookies.push(
+        `google_oauth_return_url=${encodeURIComponent(returnUrl)}; Path=/api/auth/google; Max-Age=${ONE_HOUR_SECONDS}; HttpOnly; Secure; SameSite=Lax`,
+      );
+    }
+    res.setHeader("Set-Cookie", cookies);
     res.writeHead(302, { Location: authorizationUrl.toString() });
     res.end();
   } catch (error) {
