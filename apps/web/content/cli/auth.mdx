@@ -38,4 +38,4 @@ Exit 0. DAY_INVALID_INPUT if login conflicts with an existing token (use --overw
 
 ## GOTCHA
 
-Plain `auth login` opens the hosted broker flow at auth.scaffold.at and waits for a local callback. `--manual` prints the broker auth URL instead of opening a browser, then waits for the local callback. For pre-issued broker auth, pipe the broker session token via `--broker-session-token-stdin`; there is intentionally no `--broker-session-token <value>` flag to avoid shell-history/typing mistakes. Broker auth is stored as `storage: broker`. `auth list --json` reports which backend is active.
+Plain `auth login` opens the hosted broker flow at auth.scaffold.at and waits for a local callback. `--manual` prints the broker auth URL without a localhost callback, then asks you to paste the broker session token from the hosted broker page. For pre-issued broker auth, pipe the broker session token via `--broker-session-token-stdin`; there is intentionally no `--broker-session-token <value>` flag to avoid shell-history/typing mistakes. Broker auth is stored as `storage: broker`. `auth list --json` reports which backend is active.

@@ -90,10 +90,7 @@ async function verifyBrokerSessionToken(brokerSessionToken: string): Promise<Goo
   };
 }
 
-async function runBrokerBrowserFlow(opts: {
-  manual: boolean;
-  timeoutMs?: number;
-}): Promise<GoogleOAuthToken> {
+async function runBrokerBrowserFlow(opts: { timeoutMs?: number } = {}): Promise<GoogleOAuthToken> {
   const timeoutMs = opts.timeoutMs ?? 5 * 60 * 1000;
 
   type CallbackResult = { ok: true; brokerSessionToken: string } | { ok: false; reason: string };
@@ -135,9 +132,9 @@ async function runBrokerBrowserFlow(opts: {
 
   const returnUrl = `http://127.0.0.1:${server.port}/callback`;
   const startUrl = `${authBrokerBaseUrl()}/api/auth/google/start?return_url=${encodeURIComponent(returnUrl)}`;
-  console.log(opts.manual ? "  open this URL:" : "  if the browser doesn't open, visit:");
+  console.log("  if the browser doesn't open, visit:");
   console.log(`    ${startUrl}`);
-  if (!opts.manual) await defaultOpenBrowser(startUrl);
+  await defaultOpenBrowser(startUrl);
 
   let result: CallbackResult;
   try {
@@ -154,16 +151,26 @@ async function runBrokerBrowserFlow(opts: {
     server.stop(true);
   }
 
-  if (!result.ok) {
+  if (result.ok !== true) {
+    const reason = result.reason;
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
-      summary: { en: `OAuth broker flow rejected: ${result.reason}` },
+      summary: { en: `OAuth broker flow rejected: ${reason}` },
       cause: "The browser callback did not complete a valid broker authorization.",
       try: ["Re-run `scaffold-day auth login` and approve Google access in the browser."],
     });
   }
 
   return verifyBrokerSessionToken(result.brokerSessionToken);
+}
+
+async function runBrokerManualFlow(): Promise<GoogleOAuthToken> {
+  const startUrl = `${authBrokerBaseUrl()}/api/auth/google/start`;
+  console.log("  open this URL in any browser:");
+  console.log(`    ${startUrl}`);
+  console.log("  after approval, copy the brokerSessionToken shown by the broker and paste it here, then press Enter:");
+  const brokerSessionToken = await readBrokerSessionTokenFromStdin();
+  return verifyBrokerSessionToken(brokerSessionToken);
 }
 
 function escapeHtml(value: string): string {
@@ -232,7 +239,7 @@ async function runLogin(args: string[]): Promise<number> {
         command: "auth login",
         writes: [{ path: ".secrets/google-oauth.json", op: existing ? "update" : "create" }],
         note: manual
-          ? "would print the hosted broker auth URL without opening a browser, then wait for the local callback"
+          ? "would print the hosted broker auth URL and ask you to paste the broker session token, without a localhost callback"
           : "would open the hosted broker auth URL, then wait for the local callback",
         result: { mode },
       });
@@ -244,7 +251,7 @@ async function runLogin(args: string[]): Promise<number> {
     } else {
       console.log("  starting hosted broker OAuth flow…");
     }
-    token = await runBrokerBrowserFlow({ manual });
+    token = manual ? await runBrokerManualFlow() : await runBrokerBrowserFlow();
   }
 
   if (isDryRun()) {
@@ -386,7 +393,7 @@ export const authCommand: Command = {
     return:
       "Exit 0. DAY_INVALID_INPUT if login conflicts with an existing token (use --overwrite) or if a malformed token file is present.",
     gotcha:
-      "Plain `auth login` opens the hosted broker flow at auth.scaffold.at and waits for a local callback. `--manual` prints the broker auth URL instead of opening a browser, then waits for the local callback. For pre-issued broker auth, pipe the broker session token via `--broker-session-token-stdin`; there is intentionally no `--broker-session-token <value>` flag to avoid shell-history/typing mistakes. Broker auth is stored as `storage: broker`. `auth list --json` reports which backend is active.",
+      "Plain `auth login` opens the hosted broker flow at auth.scaffold.at and waits for a local callback. `--manual` prints the broker auth URL without a localhost callback, then asks you to paste the broker session token from the hosted broker page. For pre-issued broker auth, pipe the broker session token via `--broker-session-token-stdin`; there is intentionally no `--broker-session-token <value>` flag to avoid shell-history/typing mistakes. Broker auth is stored as `storage: broker`. `auth list --json` reports which backend is active.",
   },
   run: async (args) => {
     const sub = args[0];

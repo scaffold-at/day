@@ -22,8 +22,8 @@ describe("last_seen_binary_version (v0.2.3)", () => {
     const r = await runCli(["init"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
     const file = await readSchema(home);
-    expect(file.scaffold_day_version).toBe("0.4.1");
-    expect(file.last_seen_binary_version).toBe("0.4.1");
+    expect(file.scaffold_day_version).toBe("0.4.2");
+    expect(file.last_seen_binary_version).toBe("0.4.2");
   });
 
   test("subsequent commands update last_seen_binary_version when stale", async () => {
@@ -49,7 +49,7 @@ describe("last_seen_binary_version (v0.2.3)", () => {
 
     const after = await readSchema(home);
     expect(after.scaffold_day_version).toBe("0.1.0"); // immutable
-    expect(after.last_seen_binary_version).toBe("0.4.1"); // refreshed
+    expect(after.last_seen_binary_version).toBe("0.4.2"); // refreshed
   });
 
   test("dry-run does NOT touch last_seen_binary_version", async () => {
@@ -70,9 +70,9 @@ describe("last_seen_binary_version (v0.2.3)", () => {
     const r = await runCli(["doctor"], { home });
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("data schema: 0.1.0");
-    expect(r.stdout).toContain("initialized by: scaffold-day v0.4.1");
+    expect(r.stdout).toContain("initialized by: scaffold-day v0.4.2");
     expect(r.stdout).toContain("last seen by:");
-    expect(r.stdout).toContain("current binary: scaffold-day v0.4.1");
+    expect(r.stdout).toContain("current binary: scaffold-day v0.4.2");
   });
 
   test("v0.2.3 home (no last_seen field) doesn't break doctor", async () => {

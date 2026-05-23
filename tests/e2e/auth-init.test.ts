@@ -227,10 +227,44 @@ describe("auth (S29)", () => {
     expect(r.stdout).toContain("broker-browser");
   });
 
-  test("auth login --manual dry-run documents manual hosted broker flow", async () => {
+  test("auth login --manual reads pasted broker session token from stdin", async () => {
+    const seen: { authorization?: string }[] = [];
+    const server = Bun.serve({
+      port: 0,
+      async fetch(req) {
+        seen.push({ authorization: req.headers.get("authorization") ?? undefined });
+        return Response.json({
+          ok: true,
+          account_email: "manual@example.com",
+          access_token: "AT-manual",
+          expires_in: 3600,
+          token_type: "Bearer",
+          scope: "https://www.googleapis.com/auth/calendar openid email",
+        });
+      },
+    });
+    try {
+      const r = await runCli(["auth", "login", "--manual"], {
+        home,
+        stdin: "sday_manual_paste\n",
+        env: { SCAFFOLD_DAY_AUTH_BROKER_URL: `http://127.0.0.1:${server.port}` },
+      });
+      expect(r.exitCode, r.stderr).toBe(0);
+      expect(r.stdout).toContain(`http://127.0.0.1:${server.port}/api/auth/google/start`);
+      expect(r.stdout).not.toContain("return_url=");
+      expect(r.stdout).toContain("manual@example.com");
+      expect(seen[0]?.authorization).toBe("Bearer sday_manual_paste");
+    } finally {
+      server.stop(true);
+    }
+  });
+
+  test("auth login --manual dry-run documents paste-back broker flow without localhost callback", async () => {
     const r = await runCli(["--dry-run", "auth", "login", "--manual"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
     expect(r.stdout).toContain("hosted broker auth URL");
+    expect(r.stdout).toContain("paste the broker session token");
+    expect(r.stdout).toContain("without a localhost callback");
     expect(r.stdout).toContain("broker-manual");
   });
 });
