@@ -1,11 +1,11 @@
 import {
-  defaultHomeDir,
-  entityIdSchemaOf,
   FsTodoRepository,
   ISODateSchema,
   ScaffoldError,
-  TagSchema,
   TODO_STATUSES,
+  TagSchema,
+  defaultHomeDir,
+  entityIdSchemaOf,
 } from "@scaffold/day-core";
 import { z } from "zod";
 import type { Tool } from "./registry";
@@ -82,7 +82,13 @@ const UpdateInput = z
     status: z.enum(TODO_STATUSES).optional(),
     tags: z.array(TagSchema).max(32).optional(),
     importance_score: z.number().min(0).max(100).finite().nullable().optional(),
-    duration_min: z.number().int().min(0).max(60 * 24 * 30).nullable().optional(),
+    duration_min: z
+      .number()
+      .int()
+      .min(0)
+      .max(60 * 24 * 30)
+      .nullable()
+      .optional(),
     target_date: ISODateSchema.nullable().optional(),
     description: z.string().nullable().optional(),
     reasoning: z.string().nullable().optional(),

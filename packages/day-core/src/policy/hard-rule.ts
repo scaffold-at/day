@@ -26,7 +26,11 @@ const MinBufferAroundMeetingMinSchema = z
 const DurationCapPerDayMinSchema = z
   .object({
     kind: z.literal("duration_cap_per_day_min"),
-    minutes: z.number().int().min(0).max(60 * 24),
+    minutes: z
+      .number()
+      .int()
+      .min(0)
+      .max(60 * 24),
   })
   .strict();
 

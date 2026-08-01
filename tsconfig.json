@@ -17,11 +17,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false
   },
-  "include": [
-    "packages/*/src/**/*",
-    "apps/*/src/**/*",
-    "scripts/**/*"
-  ],
+  "include": ["packages/*/src/**/*", "apps/*/src/**/*", "scripts/**/*"],
   "exclude": [
     "node_modules",
     "dist",

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { spawn } from "bun";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawn } from "bun";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, "../..");
@@ -22,8 +22,7 @@ describe("AGENTS.md generator (S53.7)", () => {
     ]);
     expect(
       exitCode,
-      `gen-agents-md --check failed:\n${stderr || stdout}\n` +
-        `Run \`bun run gen:agents-md\` and commit AGENTS.md.`,
+      `gen-agents-md --check failed:\n${stderr || stdout}\nRun \`bun run gen:agents-md\` and commit AGENTS.md.`,
     ).toBe(0);
   });
 

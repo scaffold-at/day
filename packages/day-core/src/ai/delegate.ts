@@ -1,13 +1,5 @@
-import {
-  makeTaskImportance,
-  type Policy,
-  type TaskImportance,
-} from "../policy";
-import type {
-  AIProvider,
-  ImportanceFromAI,
-  ScoreImportanceInput,
-} from "./provider";
+import { type Policy, type TaskImportance, makeTaskImportance } from "../policy";
+import type { AIProvider, ImportanceFromAI, ScoreImportanceInput } from "./provider";
 
 export type ScoreImportanceViaProviderOptions = {
   /** Override the `computed_by` recorded on the TaskImportance. Defaults to whatever the provider returned. */

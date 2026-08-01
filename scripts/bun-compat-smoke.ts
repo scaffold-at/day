@@ -23,9 +23,7 @@ const checks: Check[] = [
       const major = parts[0] ?? 0;
       const minor = parts[1] ?? 0;
       if (major < MIN_BUN.major || (major === MIN_BUN.major && minor < MIN_BUN.minor)) {
-        throw new Error(
-          `bun >= ${MIN_BUN.major}.${MIN_BUN.minor} required, got ${Bun.version}`,
-        );
+        throw new Error(`bun >= ${MIN_BUN.major}.${MIN_BUN.minor} required, got ${Bun.version}`);
       }
     },
   },

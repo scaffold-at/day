@@ -104,18 +104,18 @@ describe("LiveGoogleCalendarAdapter — pull", () => {
     await adapter.init({ home, account: { email: "u@example.com" } });
     const events = await adapter.pull({ start: "2026-04-29", end: "2026-04-29" });
     expect(events).toHaveLength(1);
-    expect(events[0]!.title).toBe("Standup");
-    expect(events[0]!.source).toBe("google-calendar");
-    expect(events[0]!.external_id).toBe("evt_g1");
+    expect(events[0]?.title).toBe("Standup");
+    expect(events[0]?.source).toBe("google-calendar");
+    expect(events[0]?.external_id).toBe("evt_g1");
     expect(captured).not.toBeNull();
     // First call should use timeMin/timeMax, not syncToken.
-    expect(captured!.searchParams.get("timeMin")).toBeTruthy();
-    expect(captured!.searchParams.has("syncToken")).toBe(false);
+    expect(captured?.searchParams.get("timeMin")).toBeTruthy();
+    expect(captured?.searchParams.has("syncToken")).toBe(false);
   });
 
   test("second pull uses the stored syncToken", async () => {
     await seedToken(home);
-    let urls: URL[] = [];
+    const urls: URL[] = [];
     const adapter = new LiveGoogleCalendarAdapter({
       fetchImpl: makeFetch((req) => {
         urls.push(new URL(req.url));
@@ -134,7 +134,7 @@ describe("LiveGoogleCalendarAdapter — pull", () => {
     await adapter.pull({ start: "2026-04-29", end: "2026-04-29" });
     await adapter.pull({ start: "2026-04-29", end: "2026-04-29" });
     expect(urls).toHaveLength(2);
-    expect(urls[1]!.searchParams.get("syncToken")).toBe("TOKEN-1");
+    expect(urls[1]?.searchParams.get("syncToken")).toBe("TOKEN-1");
   });
 
   test("410 Gone clears sync_token and surfaces a DAY_INVALID_INPUT", async () => {
@@ -174,10 +174,11 @@ describe("LiveGoogleCalendarAdapter — push", () => {
   test("create returns the new external_id", async () => {
     await seedToken(home);
     const adapter = new LiveGoogleCalendarAdapter({
-      fetchImpl: makeFetch(() =>
-        new Response(JSON.stringify({ id: "new_g1", etag: '"e"' }), {
-          headers: { "content-type": "application/json" },
-        }),
+      fetchImpl: makeFetch(
+        () =>
+          new Response(JSON.stringify({ id: "new_g1", etag: '"e"' }), {
+            headers: { "content-type": "application/json" },
+          }),
       ),
     });
     await adapter.init({ home, account: { email: "u@example.com" } });
@@ -200,9 +201,9 @@ describe("LiveGoogleCalendarAdapter — push", () => {
         },
       },
     ]);
-    expect(r[0]!.kind).toBe("ok");
-    if (r[0]!.kind === "ok") {
-      expect(r[0]!.external_id).toBe("new_g1");
+    expect(r[0]?.kind).toBe("ok");
+    if (r[0]?.kind === "ok") {
+      expect(r[0]?.external_id).toBe("new_g1");
     }
   });
 
@@ -210,30 +211,29 @@ describe("LiveGoogleCalendarAdapter — push", () => {
     await seedToken(home);
     const adapter = new LiveGoogleCalendarAdapter({
       fetchImpl: makeFetch(
-        () => new Response("Precondition Failed", { status: 412, statusText: "Precondition Failed" }),
+        () =>
+          new Response("Precondition Failed", { status: 412, statusText: "Precondition Failed" }),
       ),
     });
     await adapter.init({ home, account: { email: "u@example.com" } });
     const r = await adapter.push([
       { kind: "update", event_id: "evt_g1", patch: { title: "renamed" } },
     ]);
-    expect(r[0]!.kind).toBe("error");
-    if (r[0]!.kind === "error") {
-      expect(r[0]!.retryable).toBe(true);
-      expect(r[0]!.reason).toContain("etag");
+    expect(r[0]?.kind).toBe("error");
+    if (r[0]?.kind === "error") {
+      expect(r[0]?.retryable).toBe(true);
+      expect(r[0]?.reason).toContain("etag");
     }
   });
 
   test("delete tolerates 404/410 (already gone) as success", async () => {
     await seedToken(home);
     const adapter = new LiveGoogleCalendarAdapter({
-      fetchImpl: makeFetch(
-        () => new Response("", { status: 410, statusText: "Gone" }),
-      ),
+      fetchImpl: makeFetch(() => new Response("", { status: 410, statusText: "Gone" })),
     });
     await adapter.init({ home, account: { email: "u@example.com" } });
     const r = await adapter.push([{ kind: "delete", event_id: "evt_g1" }]);
-    expect(r[0]!.kind).toBe("ok");
+    expect(r[0]?.kind).toBe("ok");
   });
 });
 

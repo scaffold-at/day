@@ -35,19 +35,19 @@ export async function detectAvailableProviders(
   // where `claude` is actually installed.
   const whitelistRaw = process.env.SCAFFOLD_DAY_AI_PROVIDERS;
   const whitelist = whitelistRaw
-    ? new Set(whitelistRaw.split(",").map((s) => s.trim()).filter(Boolean))
+    ? new Set(
+        whitelistRaw
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      )
     : null;
 
   const baseCandidates: AIProvider[] = options.candidates
     ? [...options.candidates]
-    : [
-        new ClaudeCliProvider(),
-        ...(includeMock ? [new MockAIProvider()] : []),
-      ];
+    : [new ClaudeCliProvider(), ...(includeMock ? [new MockAIProvider()] : [])];
 
-  const candidates = whitelist
-    ? baseCandidates.filter((p) => whitelist.has(p.id))
-    : baseCandidates;
+  const candidates = whitelist ? baseCandidates.filter((p) => whitelist.has(p.id)) : baseCandidates;
 
   const results = await Promise.all(
     candidates.map(async (p): Promise<ProviderProbeResult> => {

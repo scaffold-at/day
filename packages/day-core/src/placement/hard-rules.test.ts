@@ -1,11 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { FixedEvent } from "../day";
 import type { HardRule } from "../policy";
-import {
-  type CandidateSlot,
-  type HardRuleContext,
-  evaluateHardRules,
-} from "./hard-rules";
+import { type CandidateSlot, type HardRuleContext, evaluateHardRules } from "./hard-rules";
 
 const TZ = "+09:00";
 const DATE = "2026-04-26";
@@ -17,12 +13,7 @@ const slot = (start: string, end: string): CandidateSlot => ({
   duration_min: Math.round((Date.parse(at(end)) - Date.parse(at(start))) / 60000),
 });
 
-const event = (
-  title: string,
-  start: string,
-  end: string,
-  tags: string[] = [],
-): FixedEvent => ({
+const event = (title: string, start: string, end: string, tags: string[] = []): FixedEvent => ({
   id: "evt_01abcdefghi100",
   source: "manual",
   external_id: null,
@@ -145,7 +136,7 @@ describe("evaluateHardRules — duration_cap_per_day_min", () => {
       title: "x",
       tags: [],
       importance_score: null,
-  importance_at_placement: null,
+      importance_at_placement: null,
       duration_min: 200,
       placed_by: "user" as const,
       placed_at: at("00:00"),
@@ -175,11 +166,7 @@ describe("evaluateHardRules — require_tag_in_range", () => {
   });
 
   test("slot in range with the tag is accepted", () => {
-    const r = evaluateHardRules(
-      slot("09:00", "10:00"),
-      [rule],
-      ctx({ todoTags: ["#deep-work"] }),
-    );
+    const r = evaluateHardRules(slot("09:00", "10:00"), [rule], ctx({ todoTags: ["#deep-work"] }));
     expect(r.ok).toBe(true);
   });
 

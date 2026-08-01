@@ -1,9 +1,4 @@
-import {
-  defaultHomeDir,
-  FsTodoRepository,
-  TagSchema,
-  TODO_STATUSES,
-} from "@scaffold/day-core";
+import { FsTodoRepository, TODO_STATUSES, TagSchema, defaultHomeDir } from "@scaffold/day-core";
 import { z } from "zod";
 import type { Tool } from "./registry";
 

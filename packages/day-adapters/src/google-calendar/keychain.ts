@@ -9,7 +9,7 @@
 // transparently fall back to file storage at the call site; this
 // module never throws on availability checks.
 
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 
 const SERVICE = "scaffold-day-google-oauth";
 

@@ -80,9 +80,7 @@ export function emitDryRun(jsonMode: boolean, plan: DryRunPlan): void {
   if (plan.result !== undefined) {
     console.log("  would print:");
     const text =
-      typeof plan.result === "string"
-        ? plan.result
-        : JSON.stringify(plan.result, null, 2);
+      typeof plan.result === "string" ? plan.result : JSON.stringify(plan.result, null, 2);
     for (const line of text.split("\n")) {
       console.log(`    ${line}`);
     }

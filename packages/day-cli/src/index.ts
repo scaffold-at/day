@@ -1,9 +1,5 @@
 #!/usr/bin/env bun
-import {
-  defaultHomeDir,
-  ScaffoldError,
-  updateLastSeenBinaryVersion,
-} from "@scaffold/day-core";
+import { ScaffoldError, defaultHomeDir, updateLastSeenBinaryVersion } from "@scaffold/day-core";
 import pkg from "../package.json" with { type: "json" };
 import { handleCliError } from "./cli/error-handler";
 import { formatCommandHelp, formatRootHelp } from "./cli/help";

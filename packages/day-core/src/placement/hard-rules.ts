@@ -25,9 +25,7 @@ export type HardRuleViolation = {
   reason: string;
 };
 
-export type HardRuleEvaluation =
-  | { ok: true }
-  | { ok: false; violations: HardRuleViolation[] };
+export type HardRuleEvaluation = { ok: true } | { ok: false; violations: HardRuleViolation[] };
 
 const MS_PER_MIN = 60_000;
 

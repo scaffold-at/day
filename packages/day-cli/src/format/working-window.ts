@@ -26,9 +26,7 @@ export function offsetFor(date: string, tz: string): string {
       timeZoneName: "shortOffset",
       hour: "numeric",
     });
-    const part = fmt
-      .formatToParts(sample)
-      .find((p) => p.type === "timeZoneName");
+    const part = fmt.formatToParts(sample).find((p) => p.type === "timeZoneName");
     if (!part) return "+00:00";
     // Possible shapes: "GMT", "GMT+9", "GMT-3", "GMT+09:00", "GMT+05:30"
     if (part.value === "GMT") return "+00:00";
@@ -65,9 +63,7 @@ export function defaultWorkingWindow(date: string, hintTz?: string): WorkingWind
     tz,
     windowStart: at("09:00"),
     windowEnd: at("18:00"),
-    protectedRanges: [
-      { start: at("12:00"), end: at("13:00"), label: "lunch" },
-    ],
+    protectedRanges: [{ start: at("12:00"), end: at("13:00"), label: "lunch" }],
   };
 }
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { cleanupHome, makeTmpHome, runCli } from "./_helpers";
 
@@ -21,10 +21,10 @@ async function readIndex(home: string) {
 }
 
 async function seedTodo(home: string, title = "draft"): Promise<string> {
-  const r = await runCli(
-    ["todo", "add", "--title", title, "--duration-min", "60", "--json"],
-    { home, env: { SCAFFOLD_DAY_NOW: KST_NOW } },
-  );
+  const r = await runCli(["todo", "add", "--title", title, "--duration-min", "60", "--json"], {
+    home,
+    env: { SCAFFOLD_DAY_NOW: KST_NOW },
+  });
   return JSON.parse(r.stdout).id;
 }
 
@@ -87,9 +87,7 @@ describe("rebuild-index (S64)", () => {
       updated_at: KST_NOW,
       description: null,
       reasoning: null,
-      history: [
-        { at: KST_NOW, by: "user", kind: "created", notes: null, patch: null },
-      ],
+      history: [{ at: KST_NOW, by: "user", kind: "created", notes: null, patch: null }],
       importance: null,
     };
     await mkdir(detailDir(home), { recursive: true });

@@ -1,19 +1,20 @@
 import {
+  FsTodoRepository,
+  ISODateSchema,
+  type ImportanceDimensions,
+  MockAIProvider,
+  ScaffoldError,
+  TODO_STATUSES,
+  TagSchema,
+  type TaskImportance,
+  type TodoStatus,
+  type TodoSummary,
   compilePolicy,
   defaultHomeDir,
   detectAvailableProviders,
-  FsTodoRepository,
-  type ImportanceDimensions,
-  ISODateSchema,
   makeTaskImportance,
-  MockAIProvider,
   readPolicyYaml,
-  ScaffoldError,
   scoreImportanceViaProvider,
-  TagSchema,
-  type TodoSummary,
-  TODO_STATUSES,
-  type TodoStatus,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
@@ -77,8 +78,10 @@ async function runAdd(args: string[]): Promise<number> {
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (a === "--title") { title = takeValue(args, i, "--title"); i++; }
-    else if (a === "--status") {
+    if (a === "--title") {
+      title = takeValue(args, i, "--title");
+      i++;
+    } else if (a === "--status") {
       const v = takeValue(args, i, "--status");
       if (!TODO_STATUSES.includes(v as TodoStatus)) {
         throw new ScaffoldError({
@@ -88,22 +91,28 @@ async function runAdd(args: string[]): Promise<number> {
           try: ["Pass --status open|in_progress|done."],
         });
       }
-      status = v as TodoStatus; i++;
+      status = v as TodoStatus;
+      i++;
     } else if (a === "--duration-min") {
       const v = takeValue(args, i, "--duration-min");
       const n = Number.parseInt(v, 10);
       if (!Number.isFinite(n) || n < 0) {
         throw usage("--duration-min must be a non-negative integer");
       }
-      durationMin = n; i++;
+      durationMin = n;
+      i++;
     } else if (a === "--target-date") {
-      targetDate = ensureDate(takeValue(args, i, "--target-date"), "--target-date"); i++;
+      targetDate = ensureDate(takeValue(args, i, "--target-date"), "--target-date");
+      i++;
     } else if (a === "--description") {
-      description = takeValue(args, i, "--description"); i++;
+      description = takeValue(args, i, "--description");
+      i++;
     } else if (a === "--reasoning") {
-      reasoning = takeValue(args, i, "--reasoning"); i++;
+      reasoning = takeValue(args, i, "--reasoning");
+      i++;
     } else if (a === "--tag") {
-      tags.push(ensureTag(takeValue(args, i, "--tag"))); i++;
+      tags.push(ensureTag(takeValue(args, i, "--tag")));
+      i++;
     } else if (a === "--json") {
       json = true;
     } else {
@@ -176,12 +185,16 @@ async function runList(args: string[]): Promise<number> {
           try: ["Pass --status open|in_progress|done."],
         });
       }
-      statuses.push(v as TodoStatus); i++;
+      statuses.push(v as TodoStatus);
+      i++;
     } else if (a === "--tag") {
-      tagsAny.push(ensureTag(takeValue(args, i, "--tag"))); i++;
-    } else if (a === "--has-deadline") { hasDeadline = true; }
-    else if (a === "--no-deadline") { hasDeadline = false; }
-    else throw usage(`todo list: unexpected argument '${a}'`);
+      tagsAny.push(ensureTag(takeValue(args, i, "--tag")));
+      i++;
+    } else if (a === "--has-deadline") {
+      hasDeadline = true;
+    } else if (a === "--no-deadline") {
+      hasDeadline = false;
+    } else throw usage(`todo list: unexpected argument '${a}'`);
   }
 
   const repo = new FsTodoRepository(defaultHomeDir());
@@ -202,7 +215,8 @@ async function runList(args: string[]): Promise<number> {
   }
   console.log("scaffold-day todo list");
   for (const s of summaries) {
-    const score = s.importance_score == null ? "  -" : String(Math.round(s.importance_score)).padStart(3);
+    const score =
+      s.importance_score == null ? "  -" : String(Math.round(s.importance_score)).padStart(3);
     const status = s.status.padEnd(11);
     console.log(`  ${s.id}  [${status}] score:${score}  ${s.title}`);
   }
@@ -275,9 +289,14 @@ async function runUpdate(args: string[]): Promise<number> {
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (!id && !a.startsWith("--")) { id = a; continue; }
-    if (a === "--title") { title = takeValue(args, i, "--title"); i++; }
-    else if (a === "--status") {
+    if (!id && !a.startsWith("--")) {
+      id = a;
+      continue;
+    }
+    if (a === "--title") {
+      title = takeValue(args, i, "--title");
+      i++;
+    } else if (a === "--status") {
       const v = takeValue(args, i, "--status");
       if (!TODO_STATUSES.includes(v as TodoStatus)) {
         throw new ScaffoldError({
@@ -287,11 +306,15 @@ async function runUpdate(args: string[]): Promise<number> {
           try: ["Pass --status open|in_progress|done."],
         });
       }
-      status = v as TodoStatus; i++;
+      status = v as TodoStatus;
+      i++;
     } else if (a === "--tag") {
-      tags.push(ensureTag(takeValue(args, i, "--tag"))); tagsTouched = true; i++;
-    } else if (a === "--clear-tags") { tagsTouched = true; }
-    else if (a === "--duration-min") {
+      tags.push(ensureTag(takeValue(args, i, "--tag")));
+      tagsTouched = true;
+      i++;
+    } else if (a === "--clear-tags") {
+      tagsTouched = true;
+    } else if (a === "--duration-min") {
       const v = takeValue(args, i, "--duration-min");
       durationMin = v === "null" ? null : Number.parseInt(v, 10);
       i++;
@@ -308,7 +331,8 @@ async function runUpdate(args: string[]): Promise<number> {
       reasoning = v === "null" ? null : v;
       i++;
     } else if (a === "--notes") {
-      notes = takeValue(args, i, "--notes"); i++;
+      notes = takeValue(args, i, "--notes");
+      i++;
     } else {
       throw usage(`todo update: unexpected argument '${a}'`);
     }
@@ -366,9 +390,14 @@ async function runArchive(args: string[]): Promise<number> {
   let reason: string | undefined;
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (!id && !a.startsWith("--")) { id = a; continue; }
-    if (a === "--reason") { reason = takeValue(args, i, "--reason"); i++; }
-    else throw usage(`todo archive: unexpected argument '${a}'`);
+    if (!id && !a.startsWith("--")) {
+      id = a;
+      continue;
+    }
+    if (a === "--reason") {
+      reason = takeValue(args, i, "--reason");
+      i++;
+    } else throw usage(`todo archive: unexpected argument '${a}'`);
   }
   if (!id) throw usage("todo archive: <id> argument is required");
 
@@ -428,31 +457,53 @@ async function runScore(args: string[]): Promise<number> {
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (!id && !a.startsWith("--")) { id = a; continue; }
-    if (a === "--urgency") { urgency = takeNum(args, i, "--urgency"); i++; }
-    else if (a === "--impact") { impact = takeNum(args, i, "--impact"); i++; }
-    else if (a === "--effort") { effort = takeNum(args, i, "--effort"); i++; }
-    else if (a === "--reversibility") { reversibility = takeNum(args, i, "--reversibility"); i++; }
-    else if (a === "--time-sensitivity") { timeSensitivity = takeNum(args, i, "--time-sensitivity"); i++; }
-    else if (a === "--external-dependency") { extDep = true; }
-    else if (a === "--deadline") {
+    if (!id && !a.startsWith("--")) {
+      id = a;
+      continue;
+    }
+    if (a === "--urgency") {
+      urgency = takeNum(args, i, "--urgency");
+      i++;
+    } else if (a === "--impact") {
+      impact = takeNum(args, i, "--impact");
+      i++;
+    } else if (a === "--effort") {
+      effort = takeNum(args, i, "--effort");
+      i++;
+    } else if (a === "--reversibility") {
+      reversibility = takeNum(args, i, "--reversibility");
+      i++;
+    } else if (a === "--time-sensitivity") {
+      timeSensitivity = takeNum(args, i, "--time-sensitivity");
+      i++;
+    } else if (a === "--external-dependency") {
+      extDep = true;
+    } else if (a === "--deadline") {
       const v = takeValue(args, i, "--deadline");
       if (v !== "hard" && v !== "soft" && v !== "none") {
         throw new ScaffoldError({
           code: "DAY_INVALID_INPUT",
-          summary: { en: `--deadline must be hard|soft|none` },
+          summary: { en: "--deadline must be hard|soft|none" },
           cause: `Got: ${v}`,
           try: ["Pass --deadline hard."],
         });
       }
       deadline = v;
       i++;
-    } else if (a === "--reasoning") { reasoning = takeValue(args, i, "--reasoning"); i++; }
-    else if (a === "--by") { computedBy = takeValue(args, i, "--by"); i++; }
-    else if (a === "--ai") { aiMode = true; }
-    else if (a === "--ai-provider") { aiProvider = takeValue(args, i, "--ai-provider"); i++; }
-    else if (a === "--json") { json = true; }
-    else if (a === "--from-stdin") {
+    } else if (a === "--reasoning") {
+      reasoning = takeValue(args, i, "--reasoning");
+      i++;
+    } else if (a === "--by") {
+      computedBy = takeValue(args, i, "--by");
+      i++;
+    } else if (a === "--ai") {
+      aiMode = true;
+    } else if (a === "--ai-provider") {
+      aiProvider = takeValue(args, i, "--ai-provider");
+      i++;
+    } else if (a === "--json") {
+      json = true;
+    } else if (a === "--from-stdin") {
       // Read JSON from stdin: { urgency, impact, effort, reversibility, ... }
       const chunks: Buffer[] = [];
       for await (const chunk of process.stdin as AsyncIterable<Buffer>) chunks.push(chunk);
@@ -484,7 +535,7 @@ async function runScore(args: string[]): Promise<number> {
   }
   const policy = compilePolicy(yaml);
 
-  let importance;
+  let importance: TaskImportance;
   if (aiMode) {
     // Resolve a provider: explicit --ai-provider id wins; otherwise
     // pick the first available from the catalog (mock-first per
@@ -497,8 +548,12 @@ async function runScore(args: string[]): Promise<number> {
         throw new ScaffoldError({
           code: "DAY_PROVIDER_UNAVAILABLE",
           summary: { en: `provider '${aiProvider}' is not available` },
-          cause: match ? `Provider declared unavailable: ${match.note ?? ""}` : "Not in the catalog.",
-          try: ["Drop --ai-provider to use the first available provider, or install the named one."],
+          cause: match
+            ? `Provider declared unavailable: ${match.note ?? ""}`
+            : "Not in the catalog.",
+          try: [
+            "Drop --ai-provider to use the first available provider, or install the named one.",
+          ],
           context: { provider: aiProvider },
         });
       }
@@ -531,10 +586,7 @@ async function runScore(args: string[]): Promise<number> {
     // Build the provider instance fresh — detect.ts returns probes,
     // not adapter instances. Same wiring as doctor's roundtrip.
     const { ClaudeCliProvider } = await import("@scaffold/day-core");
-    const provider =
-      chosen === "mock"
-        ? new MockAIProvider()
-        : new ClaudeCliProvider();
+    const provider = chosen === "mock" ? new MockAIProvider() : new ClaudeCliProvider();
 
     importance = await scoreImportanceViaProvider(
       {
@@ -613,13 +665,17 @@ export const todoCommand: Command = {
     what: "Create, query, update, archive, and score TODOs against the active policy. Subcommands operate on the Two-tier active store under <home>/todos/.",
     when: "Daily intake, triage, and importance scoring. AI clients should prefer --json everywhere.",
     cost: "Local file I/O only. `score` additionally reads policy/current.yaml to fetch weights.",
-    input: "add --title <text> [--status open|in_progress|done] [--tag <#tag>...] [--target-date <YYYY-MM-DD>] [--duration-min <n>] [--description <text>] [--reasoning <text>] [--json]\nlist [--status <s>]... [--tag <#tag>]... [--has-deadline | --no-deadline] [--json]\nget <id> [--json]\nupdate <id> [--title <text>] [--status <s>] [--tag <#tag>]... [--clear-tags] [--duration-min <n|null>] [--target-date <date|null>] [--description <text|null>] [--reasoning <text|null>] [--notes <text>]\narchive <id> [--reason <text>]\nscore <id> --urgency <0..10> --impact <0..10> --effort <0..10> --reversibility <0..10> [--time-sensitivity <0..10>] [--deadline hard|soft|none] [--external-dependency] [--reasoning <text>] [--by <attribution>] [--from-stdin] [--json]",
-    return: "Exit 0. DAY_USAGE on missing args. DAY_INVALID_INPUT on bad values. DAY_NOT_FOUND on unknown id. DAY_NOT_INITIALIZED if `score` runs before `policy preset apply`.",
-    gotcha: "`score` updates `importance_score` AND the full `importance` record (with policy_hash). The policy_hash is what `explain` (§S25) replays — editing the policy invalidates old explanations. Tracking SLICES.md §S17 (cmd) / §S16 (formula) / §S6-§S8c (storage).",
+    input:
+      "add --title <text> [--status open|in_progress|done] [--tag <#tag>...] [--target-date <YYYY-MM-DD>] [--duration-min <n>] [--description <text>] [--reasoning <text>] [--json]\nlist [--status <s>]... [--tag <#tag>]... [--has-deadline | --no-deadline] [--json]\nget <id> [--json]\nupdate <id> [--title <text>] [--status <s>] [--tag <#tag>]... [--clear-tags] [--duration-min <n|null>] [--target-date <date|null>] [--description <text|null>] [--reasoning <text|null>] [--notes <text>]\narchive <id> [--reason <text>]\nscore <id> --urgency <0..10> --impact <0..10> --effort <0..10> --reversibility <0..10> [--time-sensitivity <0..10>] [--deadline hard|soft|none] [--external-dependency] [--reasoning <text>] [--by <attribution>] [--from-stdin] [--json]",
+    return:
+      "Exit 0. DAY_USAGE on missing args. DAY_INVALID_INPUT on bad values. DAY_NOT_FOUND on unknown id. DAY_NOT_INITIALIZED if `score` runs before `policy preset apply`.",
+    gotcha:
+      "`score` updates `importance_score` AND the full `importance` record (with policy_hash). The policy_hash is what `explain` (§S25) replays — editing the policy invalidates old explanations. Tracking SLICES.md §S17 (cmd) / §S16 (formula) / §S6-§S8c (storage).",
   },
   run: async (args) => {
     const sub = args[0];
-    if (!sub) throw usage("todo: missing subcommand. try `todo add`, `todo list`, `todo score <id> ...`");
+    if (!sub)
+      throw usage("todo: missing subcommand. try `todo add`, `todo list`, `todo score <id> ...`");
     const rest = args.slice(1);
     if (sub === "add") return runAdd(rest);
     if (sub === "list") return runList(rest);

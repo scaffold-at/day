@@ -4,11 +4,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { isScaffoldError } from "../error";
 import {
+  CURRENT_SCHEMA_VERSION,
+  type Migrator,
+  type SchemaVersion,
+  type SchemaVersionFile,
   backupsRoot,
   compareSchemaVersions,
   compareSemVer,
   createMigrationBackup,
-  CURRENT_SCHEMA_VERSION,
   findMigrationPath,
   isSchemaVersion,
   metaDir,
@@ -16,9 +19,6 @@ import {
   readSchemaVersionFile,
   schemaVersionPath,
   writeSchemaVersionFile,
-  type Migrator,
-  type SchemaVersion,
-  type SchemaVersionFile,
 } from "./index";
 
 describe("semver helpers", () => {
@@ -74,7 +74,7 @@ describe("findMigrationPath", () => {
     const path = findMigrationPath("0.1.0", "0.2.0", reg);
     expect(path).not.toBeNull();
     expect(path).toHaveLength(1);
-    expect(path![0]?.to).toBe("0.2.0");
+    expect(path?.[0]?.to).toBe("0.2.0");
   });
 
   test("multi-hop chain", () => {
@@ -82,7 +82,7 @@ describe("findMigrationPath", () => {
     const path = findMigrationPath("0.1.0", "1.0.0", reg);
     expect(path).not.toBeNull();
     expect(path).toHaveLength(3);
-    expect(path!.map((s) => s.to)).toEqual(["0.2.0", "0.3.0", "1.0.0"]);
+    expect(path?.map((s) => s.to)).toEqual(["0.2.0", "0.3.0", "1.0.0"]);
   });
 
   test("cycle returns null", () => {
@@ -133,11 +133,7 @@ describe("schema-version file storage", () => {
 
   test("read fails with DAY_INVALID_INPUT when schema_version is not X.Y.Z", async () => {
     await mkdir(metaDir(home), { recursive: true });
-    await writeFile(
-      schemaVersionPath(home),
-      JSON.stringify({ schema_version: "v0.1" }),
-      "utf8",
-    );
+    await writeFile(schemaVersionPath(home), JSON.stringify({ schema_version: "v0.1" }), "utf8");
     try {
       await readSchemaVersionFile(home);
       throw new Error("should have thrown");
@@ -174,10 +170,7 @@ describe("createMigrationBackup", () => {
     expect(dest.startsWith(backupsRoot(home))).toBe(true);
 
     // schema-version.json copied
-    const copied = await readFile(
-      path.join(dest, ".scaffold-day", "schema-version.json"),
-      "utf8",
-    );
+    const copied = await readFile(path.join(dest, ".scaffold-day", "schema-version.json"), "utf8");
     expect(JSON.parse(copied).schema_version).toBe(CURRENT_SCHEMA_VERSION);
 
     // todos copied

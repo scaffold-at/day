@@ -5,8 +5,8 @@ import {
   HardRuleSchema,
   ImportanceWeightsSchema,
   PolicySchema,
-  policyHash,
   SoftPreferenceSchema,
+  policyHash,
 } from "./index";
 
 describe("Balanced preset", () => {
@@ -51,9 +51,7 @@ describe("PolicySchema defaults", () => {
   });
 
   test("unknown top-level keys are rejected (strict mode)", () => {
-    expect(
-      PolicySchema.safeParse({ context: { tz: "UTC" }, mystery: 1 }).success,
-    ).toBe(false);
+    expect(PolicySchema.safeParse({ context: { tz: "UTC" }, mystery: 1 }).success).toBe(false);
   });
 });
 

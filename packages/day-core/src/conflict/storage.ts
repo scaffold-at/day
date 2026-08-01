@@ -26,10 +26,7 @@ export function conflictPath(home: string, month: string): string {
   return path.join(home, "conflicts", `${month}.json`);
 }
 
-export async function readConflicts(
-  home: string,
-  month: string,
-): Promise<ConflictPartitionFile> {
+export async function readConflicts(home: string, month: string): Promise<ConflictPartitionFile> {
   if (!YYYYMM_RE.test(month)) {
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
@@ -107,8 +104,7 @@ export async function syncConflicts(
   const month = date.slice(0, 7);
   const partition = await readConflicts(home, month);
 
-  const sig = (c: Conflict): string =>
-    `${c.kind}::${[...c.party_ids].sort().join(",")}`;
+  const sig = (c: Conflict): string => `${c.kind}::${[...c.party_ids].sort().join(",")}`;
 
   const existingByKey = new Map<string, Conflict>();
   for (const c of partition.conflicts) {

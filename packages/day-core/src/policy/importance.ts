@@ -1,11 +1,6 @@
 import { z } from "zod";
 import { ISODateTimeSchema, ModelIdSchema } from "../ids/schemas";
-import {
-  type ImportanceWeights,
-  ImportanceWeightsSchema,
-  type Policy,
-  policyHash,
-} from "./policy";
+import { type ImportanceWeights, ImportanceWeightsSchema, type Policy, policyHash } from "./policy";
 
 export const DeadlineKindSchema = z.enum(["hard", "soft", "none"]);
 export type DeadlineKind = z.infer<typeof DeadlineKindSchema>;
@@ -61,8 +56,7 @@ export function computeImportanceScore(
   dimensions: ImportanceDimensions,
   weights: ImportanceWeights,
 ): number {
-  const sumW =
-    weights.urgency + weights.impact + weights.effort + weights.reversibility;
+  const sumW = weights.urgency + weights.impact + weights.effort + weights.reversibility;
   if (sumW < EPS) return 0;
 
   const inner =

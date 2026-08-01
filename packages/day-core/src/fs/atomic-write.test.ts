@@ -87,9 +87,7 @@ describe("atomicWrite — concurrency", () => {
     const target = path.join(dir, "race.txt");
     const writers = Array.from({ length: 16 }, (_, i) => `writer-${i}`);
 
-    const results = await Promise.allSettled(
-      writers.map((w) => atomicWrite(target, w)),
-    );
+    const results = await Promise.allSettled(writers.map((w) => atomicWrite(target, w)));
 
     const fulfilled = results.filter((r) => r.status === "fulfilled").length;
     expect(fulfilled).toBe(writers.length);

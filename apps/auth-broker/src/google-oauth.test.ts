@@ -12,7 +12,9 @@ describe("Google OAuth broker", () => {
     expect(url.origin).toBe("https://accounts.google.com");
     expect(url.pathname).toBe("/o/oauth2/v2/auth");
     expect(url.searchParams.get("client_id")).toBe("client-id.example.apps.googleusercontent.com");
-    expect(url.searchParams.get("redirect_uri")).toBe("https://auth.scaffold.at/api/auth/google/callback");
+    expect(url.searchParams.get("redirect_uri")).toBe(
+      "https://auth.scaffold.at/api/auth/google/callback",
+    );
     expect(url.searchParams.get("response_type")).toBe("code");
     expect(url.searchParams.get("access_type")).toBe("offline");
     expect(url.searchParams.get("prompt")).toBe("consent");
@@ -41,7 +43,8 @@ describe("Google OAuth broker", () => {
             access_token: "access-token",
             refresh_token: "refresh-token",
             expires_in: 3599,
-            scope: "openid email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks",
+            scope:
+              "openid email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks",
             token_type: "Bearer",
             id_token: "id-token",
           }),

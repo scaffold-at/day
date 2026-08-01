@@ -4,11 +4,11 @@ import {
   BUILTIN_PRESETS,
   type BuiltinPresetName,
   CURRENT_SCHEMA_VERSION,
+  ScaffoldError,
   defaultHomeDir,
   defaultSchemaVersionFile,
   detectAvailableProviders,
   pathExists,
-  ScaffoldError,
   schemaVersionPath,
   serializePolicy,
   writePolicyYaml,
@@ -36,8 +36,10 @@ export const initCommand: Command = {
     when: "Run once after installing scaffold-day. Required before any home-aware command works.",
     cost: "Local file I/O only. No network in v0.1.",
     input: "[--preset <name>=balanced] [--force] [--no-preset] [--json]",
-    return: "Exit 0 on success. DAY_INVALID_INPUT if the home already has a schema-version.json and --force is not given.",
-    gotcha: "Refuses to clobber an existing initialized home; pass --force to overwrite (writes a fresh schema-version.json + preset). The interactive OAuth + provider primary prompts arrive in §S29.5 B-mode wiring. Tracking SLICES.md §S29.5 + §S0/§S4/§S13/§S15/§S34.",
+    return:
+      "Exit 0 on success. DAY_INVALID_INPUT if the home already has a schema-version.json and --force is not given.",
+    gotcha:
+      "Refuses to clobber an existing initialized home; pass --force to overwrite (writes a fresh schema-version.json + preset). The interactive OAuth + provider primary prompts arrive in §S29.5 B-mode wiring. Tracking SLICES.md §S29.5 + §S0/§S4/§S13/§S15/§S34.",
   },
   run: async (args) => {
     let preset: BuiltinPresetName | null = "balanced";
@@ -88,10 +90,15 @@ export const initCommand: Command = {
         writes: [
           { path: ".scaffold-day/schema-version.json", op: exists ? "update" : "create" },
           ...(preset
-            ? [{ path: "policy/current.yaml", op: (exists ? "update" : "create") as "create" | "update" }]
+            ? [
+                {
+                  path: "policy/current.yaml",
+                  op: (exists ? "update" : "create") as "create" | "update",
+                },
+              ]
             : []),
         ],
-        note: `would create the home layout at ${home}` + (preset ? ` with the ${preset} preset` : " (no preset)"),
+        note: `would create the home layout at ${home}${preset ? ` with the ${preset} preset` : " (no preset)"}`,
         result: {
           home,
           schema_version: CURRENT_SCHEMA_VERSION,
@@ -136,9 +143,7 @@ export const initCommand: Command = {
 
     // Detect providers (informational).
     const probes = await detectAvailableProviders();
-    const providersAvailable = probes
-      .filter((p) => p.available)
-      .map((p) => p.id);
+    const providersAvailable = probes.filter((p) => p.available).map((p) => p.id);
 
     if (json) {
       console.log(
@@ -174,9 +179,7 @@ export const initCommand: Command = {
     out.push("");
     out.push(colors.bold("AI providers"));
     for (const probe of probes) {
-      const glyph = probe.available
-        ? colors.emerald("✓")
-        : colors.amber("⚠");
+      const glyph = probe.available ? colors.emerald("✓") : colors.amber("⚠");
       const status = probe.available ? "available" : "unavailable";
       out.push(`  ${glyph} ${probe.id}: ${status}`);
       if (!probe.available && probe.note) {

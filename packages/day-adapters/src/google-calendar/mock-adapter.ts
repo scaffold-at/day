@@ -1,24 +1,16 @@
-import {
-  type FixedEvent,
-  generateEntityId,
-  ScaffoldError,
-} from "@scaffold/day-core";
-import {
-  type AdapterCapabilities,
-  type AdapterConfig,
-  type AdapterHealth,
-  type DateRange,
-  type ExternalEvent,
-  type LocalEventChange,
-  type PushResult,
-  type Reconciliation,
-  type SyncAdapter,
+import { type FixedEvent, ScaffoldError, generateEntityId } from "@scaffold/day-core";
+import type {
+  AdapterCapabilities,
+  AdapterConfig,
+  AdapterHealth,
+  DateRange,
+  ExternalEvent,
+  LocalEventChange,
+  PushResult,
+  Reconciliation,
+  SyncAdapter,
 } from "../sync-adapter";
-import {
-  readSyncState,
-  writeSyncState,
-  type GoogleCalendarSyncState,
-} from "./sync-state";
+import { type GoogleCalendarSyncState, readSyncState, writeSyncState } from "./sync-state";
 
 /**
  * Fixture-driven Google Calendar adapter (PRD §11.5 / SLICES §S30-§S31).
@@ -107,10 +99,7 @@ export class MockGoogleCalendarAdapter implements SyncAdapter {
     this.assertInited();
     this.pullCount++;
 
-    if (
-      this.fixture.failAfterPulls !== undefined &&
-      this.pullCount > this.fixture.failAfterPulls
-    ) {
+    if (this.fixture.failAfterPulls !== undefined && this.pullCount > this.fixture.failAfterPulls) {
       // Simulate Google's "410 Gone — sync_token expired" by clearing
       // the stored sync_token and asking the caller to re-pull.
       const state = await this.requireState();
@@ -126,8 +115,7 @@ export class MockGoogleCalendarAdapter implements SyncAdapter {
     }
 
     const state = await this.requireState();
-    const isIncremental =
-      this.fixture.incremental === true && state.sync_token !== null;
+    const isIncremental = this.fixture.incremental === true && state.sync_token !== null;
     const events = isIncremental ? [] : [...this.fixture.events];
 
     state.sync_token = `mock-token-${this.pullCount}`;
@@ -158,7 +146,7 @@ export class MockGoogleCalendarAdapter implements SyncAdapter {
         external_id:
           change.kind === "create"
             ? generateEntityId("event")
-            : (change.kind === "update" || change.kind === "delete")
+            : change.kind === "update" || change.kind === "delete"
               ? change.event_id
               : "unknown",
         synced_at: new Date().toISOString(),
@@ -172,9 +160,15 @@ export class MockGoogleCalendarAdapter implements SyncAdapter {
     const localMs = Date.parse(local.synced_at);
     const remoteMs = Date.parse(remote.synced_at);
     if (remoteMs >= localMs) {
-      return { kind: "theirs", reason: `remote synced_at ${remote.synced_at} ≥ local ${local.synced_at}` };
+      return {
+        kind: "theirs",
+        reason: `remote synced_at ${remote.synced_at} ≥ local ${local.synced_at}`,
+      };
     }
-    return { kind: "ours", reason: `local synced_at ${local.synced_at} > remote ${remote.synced_at}` };
+    return {
+      kind: "ours",
+      reason: `local synced_at ${local.synced_at} > remote ${remote.synced_at}`,
+    };
   }
 
   async healthCheck(): Promise<AdapterHealth> {

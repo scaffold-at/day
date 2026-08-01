@@ -25,20 +25,6 @@
 
 import type { FixedEvent, ScaffoldError as ScaffoldErrorType } from "@scaffold/day-core";
 import { ScaffoldError } from "@scaffold/day-core";
-import {
-  effectiveClientId,
-  effectiveClientSecret,
-} from "./oauth-desktop";
-import {
-  type GoogleCalendarSyncState,
-  readSyncState,
-  writeSyncState,
-} from "./sync-state";
-import {
-  type GoogleOAuthToken,
-  readGoogleOAuthToken,
-  writeGoogleOAuthToken,
-} from "./token-storage";
 import type {
   AdapterCapabilities,
   AdapterConfig,
@@ -50,6 +36,13 @@ import type {
   Reconciliation,
   SyncAdapter,
 } from "../sync-adapter";
+import { effectiveClientId, effectiveClientSecret } from "./oauth-desktop";
+import { type GoogleCalendarSyncState, readSyncState, writeSyncState } from "./sync-state";
+import {
+  type GoogleOAuthToken,
+  readGoogleOAuthToken,
+  writeGoogleOAuthToken,
+} from "./token-storage";
 
 const ADAPTER_ID = "google-calendar-live";
 const ADAPTER_VERSION = "0.1.0";
@@ -64,9 +57,7 @@ const DEFAULT_AUTH_BROKER_URL = "https://auth.scaffold.at";
 // in v0.3 if etag misses prove painful — for now misses fall back to
 // "force overwrite" which is the existing reconcile path).
 
-type GcalDateTime =
-  | { dateTime: string; timeZone?: string }
-  | { date: string };
+type GcalDateTime = { dateTime: string; timeZone?: string } | { date: string };
 
 type GcalEvent = {
   id: string;
@@ -155,8 +146,7 @@ async function refreshAccessToken(
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
       summary: { en: "Google OAuth client credentials not configured" },
-      cause:
-        "Token refresh needs the same client_id / client_secret used during initial login.",
+      cause: "Token refresh needs the same client_id / client_secret used during initial login.",
       try: ["Use a release binary or set SCAFFOLD_DAY_GOOGLE_CLIENT_SECRET in dev."],
     });
   }
@@ -213,7 +203,10 @@ function authBrokerBaseUrl(): string {
   return (process.env[AUTH_BROKER_URL_ENV] ?? DEFAULT_AUTH_BROKER_URL).replace(/\/+$/, "");
 }
 
-async function refreshBrokerAccessToken(home: string, current: GoogleOAuthToken): Promise<GoogleOAuthToken> {
+async function refreshBrokerAccessToken(
+  home: string,
+  current: GoogleOAuthToken,
+): Promise<GoogleOAuthToken> {
   if (!current.broker_session_token) {
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
@@ -240,7 +233,9 @@ async function refreshBrokerAccessToken(home: string, current: GoogleOAuthToken)
       code: "DAY_PROVIDER_AUTH_EXPIRED",
       summary: { en: "broker token refresh failed" },
       cause: json.error ?? `${r.status} ${r.statusText}`,
-      try: ["Generate a new broker session token and re-run `scaffold-day auth login --broker-session-token-stdin`."],
+      try: [
+        "Generate a new broker session token and re-run `scaffold-day auth login --broker-session-token-stdin`.",
+      ],
     });
   }
   const next: GoogleOAuthToken = {
@@ -507,9 +502,7 @@ export class LiveGoogleCalendarAdapter implements SyncAdapter {
       const state = await readSyncState(this.home);
       return {
         ok: r.ok,
-        detail: r.ok
-          ? `connected to ${this.calendarId}`
-          : `${r.status} ${r.statusText}`,
+        detail: r.ok ? `connected to ${this.calendarId}` : `${r.status} ${r.statusText}`,
         last_sync_at: state?.last_sync_at ?? null,
       };
     } catch (err) {

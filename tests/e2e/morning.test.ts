@@ -94,7 +94,10 @@ describe("scaffold-day morning (S60)", () => {
       env: fixedClock(KST_NOW_8AM),
     });
     const log1 = await readFile(path.join(home, "logs/heartbeats.jsonl"), "utf8");
-    const entries1 = log1.split("\n").filter((l) => l).map((l) => JSON.parse(l));
+    const entries1 = log1
+      .split("\n")
+      .filter((l) => l)
+      .map((l) => JSON.parse(l));
     expect(entries1.length).toBe(1);
     expect(entries1[0].source).toBe("auto");
 
@@ -111,7 +114,10 @@ describe("scaffold-day morning (S60)", () => {
     expect(out.source).toBe("explicit");
 
     const log2 = await readFile(path.join(home, "logs/heartbeats.jsonl"), "utf8");
-    const entries2 = log2.split("\n").filter((l) => l).map((l) => JSON.parse(l));
+    const entries2 = log2
+      .split("\n")
+      .filter((l) => l)
+      .map((l) => JSON.parse(l));
     expect(entries2.length).toBe(2); // auto + explicit upgrade
     expect(entries2[1].source).toBe("explicit");
   });
@@ -202,7 +208,10 @@ describe("scaffold-day morning (S60)", () => {
       env: fixedClock(KST_NOW_NEXT_DAY),
     });
     const log = await readFile(path.join(home, "logs/heartbeats.jsonl"), "utf8");
-    const entries = log.split("\n").filter((l) => l).map((l) => JSON.parse(l));
+    const entries = log
+      .split("\n")
+      .filter((l) => l)
+      .map((l) => JSON.parse(l));
     const dates = new Set(entries.map((e) => e.date));
     expect(dates.has("2026-04-28")).toBe(true);
     expect(dates.has("2026-04-29")).toBe(true);

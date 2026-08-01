@@ -3,9 +3,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+  type GoogleCalendarSyncState,
   writeGoogleOAuthToken,
   writeSyncState,
-  type GoogleCalendarSyncState,
 } from "@scaffold/day-adapters";
 import { maybeAutoSync } from "./_auto-sync";
 
@@ -15,10 +15,10 @@ let priorEnv: string | undefined;
 beforeEach(async () => {
   home = await mkdtemp(path.join(tmpdir(), "scaffold-day-auto-sync-"));
   priorEnv = process.env.SCAFFOLD_DAY_AUTO_SYNC;
-  delete process.env.SCAFFOLD_DAY_AUTO_SYNC;
+  process.env.SCAFFOLD_DAY_AUTO_SYNC = undefined;
 });
 afterEach(async () => {
-  if (priorEnv === undefined) delete process.env.SCAFFOLD_DAY_AUTO_SYNC;
+  if (priorEnv === undefined) process.env.SCAFFOLD_DAY_AUTO_SYNC = undefined;
   else process.env.SCAFFOLD_DAY_AUTO_SYNC = priorEnv;
   await rm(home, { recursive: true, force: true });
 });

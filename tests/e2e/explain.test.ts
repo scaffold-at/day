@@ -16,23 +16,23 @@ const MONDAY = "2026-04-27";
 async function placeOne(): Promise<{ placementId: string; policyHash: string }> {
   await runCli(["policy", "preset", "apply", "balanced"], { home });
   const add = await runCli(
-    [
-      "todo",
-      "add",
-      "--title",
-      "S25 explain me",
-      "--tag",
-      "#deep-work",
-      "--duration-min",
-      "60",
-    ],
+    ["todo", "add", "--title", "S25 explain me", "--tag", "#deep-work", "--duration-min", "60"],
     { home },
   );
-  const todoId = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)![1] as string;
+  const todoId = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)?.[1] as string;
   await runCli(
     [
-      "todo", "score", todoId,
-      "--urgency", "8", "--impact", "8", "--effort", "3", "--reversibility", "5",
+      "todo",
+      "score",
+      todoId,
+      "--urgency",
+      "8",
+      "--impact",
+      "8",
+      "--effort",
+      "3",
+      "--reversibility",
+      "5",
     ],
     { home },
   );
@@ -51,9 +51,7 @@ describe("explain (S25)", () => {
     const files = await readdir(dir);
     expect(files).toContain(`policy-${policyHash}.json`);
 
-    const snap = JSON.parse(
-      await readFile(path.join(dir, `policy-${policyHash}.json`), "utf8"),
-    );
+    const snap = JSON.parse(await readFile(path.join(dir, `policy-${policyHash}.json`), "utf8"));
     expect(snap.hash).toBe(policyHash);
     expect(snap.policy.context.tz).toBe("Asia/Seoul");
   });
@@ -84,9 +82,7 @@ describe("explain (S25)", () => {
   test("explain replays the original policy even after the user edits live policy", async () => {
     const { placementId, policyHash } = await placeOne();
     // Edit the live policy → its hash will differ from the snapshot's.
-    const patch = JSON.stringify([
-      { op: "replace", path: "/placement_grid_min", value: 15 },
-    ]);
+    const patch = JSON.stringify([{ op: "replace", path: "/placement_grid_min", value: 15 }]);
     await runCli(["policy", "patch", patch], { home });
 
     const r = await runCli(["explain", placementId, "--json"], { home });
@@ -98,10 +94,7 @@ describe("explain (S25)", () => {
 
   test("placements log (S21 wiring) records the original placed entry", async () => {
     const { placementId } = await placeOne();
-    const log = await readFile(
-      path.join(home, "logs/2026-04/placements.jsonl"),
-      "utf8",
-    );
+    const log = await readFile(path.join(home, "logs/2026-04/placements.jsonl"), "utf8");
     const lines = log.trim().split("\n");
     const entry = JSON.parse(lines[0]!);
     expect(entry.action).toBe("placed");

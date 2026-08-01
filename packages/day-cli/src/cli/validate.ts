@@ -15,11 +15,7 @@ export const HELP_SECTIONS = [
   "gotcha",
 ] as const satisfies ReadonlyArray<keyof HelpDoc>;
 
-export type IssueKind =
-  | "missing-name"
-  | "missing-summary"
-  | "missing-section"
-  | "empty-section";
+export type IssueKind = "missing-name" | "missing-summary" | "missing-section" | "empty-section";
 
 export type ValidationIssue = {
   command: string;

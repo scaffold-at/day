@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
+  KEYCHAIN_REFRESH_SENTINEL_PREFIX,
   _resetKeychainCache,
   detectKeychainBackend,
-  KEYCHAIN_REFRESH_SENTINEL_PREFIX,
   makeKeychainSentinel,
   parseKeychainSentinel,
 } from "./keychain";
@@ -34,7 +34,7 @@ describe("detectKeychainBackend — disable env", () => {
     _resetKeychainCache();
   });
   afterEach(() => {
-    if (prior === undefined) delete process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN;
+    if (prior === undefined) process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN = undefined;
     else process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN = prior;
     _resetKeychainCache();
   });
@@ -46,7 +46,7 @@ describe("detectKeychainBackend — disable env", () => {
   });
 
   test("without the env var, returns one of macos/linux/none for the current host", async () => {
-    delete process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN;
+    process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN = undefined;
     const b = await detectKeychainBackend(true);
     expect(["macos", "linux", "none"]).toContain(b);
   });

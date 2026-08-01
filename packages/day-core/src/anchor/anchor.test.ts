@@ -3,9 +3,9 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+  type HeartbeatEntry,
   appendHeartbeat,
   buildHeartbeat,
-  type HeartbeatEntry,
   heartbeatsPath,
   isoWithTz,
   readAnchorForDate,
@@ -76,8 +76,8 @@ describe("append / read round-trip", () => {
     await appendHeartbeat(home, entry);
     const back = await readAnchorForDate(home, "2026-04-28");
     expect(back).not.toBeNull();
-    expect(back!.anchor).toBe(entry.anchor);
-    expect(back!.source).toBe("explicit");
+    expect(back?.anchor).toBe(entry.anchor);
+    expect(back?.source).toBe("explicit");
   });
 
   test("missing file → null (no throw)", async () => {
@@ -92,8 +92,8 @@ describe("append / read round-trip", () => {
       source: "manual",
     });
     const back = await readAnchorForDate(home, "2026-04-28");
-    expect(back!.anchor).toBe("2026-04-28T08:15:00+09:00");
-    expect(back!.source).toBe("manual");
+    expect(back?.anchor).toBe("2026-04-28T08:15:00+09:00");
+    expect(back?.source).toBe("manual");
   });
 
   test("readLatestAnchor returns the most recent line across dates", async () => {
@@ -101,7 +101,7 @@ describe("append / read round-trip", () => {
     await appendHeartbeat(home, fixture("2026-04-27", "2026-04-27T07:30:00+09:00"));
     await appendHeartbeat(home, fixture("2026-04-28", "2026-04-28T07:30:00+09:00"));
     const back = await readLatestAnchor(home);
-    expect(back!.date).toBe("2026-04-28");
+    expect(back?.date).toBe("2026-04-28");
   });
 
   test("corrupt trailing line is ignored", async () => {
@@ -144,6 +144,6 @@ describe("recordAnchor (no-op vs force)", () => {
     expect(r.entry.anchor).toBe(second.anchor);
 
     const back = await readAnchorForDate(home, "2026-04-28");
-    expect(back!.anchor).toBe(second.anchor);
+    expect(back?.anchor).toBe(second.anchor);
   });
 });

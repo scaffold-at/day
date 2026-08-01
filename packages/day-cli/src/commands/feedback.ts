@@ -1,6 +1,7 @@
-import { createInterface } from "node:readline/promises";
 import os from "node:os";
+import { createInterface } from "node:readline/promises";
 import {
+  ScaffoldError,
   compilePolicy,
   defaultHomeDir,
   detectAvailableProviders,
@@ -9,7 +10,6 @@ import {
   readOrCreateInstallId,
   readPolicyYaml,
   readSchemaVersionFile,
-  ScaffoldError,
   schemaVersionPath,
   todayInTz,
 } from "@scaffold/day-core";
@@ -191,9 +191,7 @@ async function runFeedback(args: string[]): Promise<number> {
   const home = defaultHomeDir();
   const installId = await readOrCreateInstallId(home);
 
-  const doctorBundle = opts.includeDoctor
-    ? await buildRedactedDoctorBundle(home)
-    : null;
+  const doctorBundle = opts.includeDoctor ? await buildRedactedDoctorBundle(home) : null;
 
   const url = effectiveFeedbackUrl();
   const transportConfigured = url !== null;
@@ -229,7 +227,7 @@ async function runFeedback(args: string[]): Promise<number> {
       const size = Buffer.byteLength(JSON.stringify(doctorBundle), "utf8");
       console.log(`  doctor bundle: ${size} bytes redacted JSON`);
     } else {
-      console.log(`  doctor bundle: (omitted; pass --include-doctor to attach)`);
+      console.log("  doctor bundle: (omitted; pass --include-doctor to attach)");
     }
     console.log(
       transportConfigured
@@ -293,8 +291,10 @@ export const feedbackCommand: Command = {
     when: "When something feels great, broken, surprising, or unclear — and you don't want to file a public issue.",
     cost: "One HTTPS POST to the configured feedback URL. No transmission when SCAFFOLD_DAY_FEEDBACK_URL is unset.",
     input: "<message...> [--include-doctor] [--no-confirm] [--json] [--dry-run]",
-    return: "Exit 0 with a redacted preview, then a confirm prompt (skip with --no-confirm). Falls back to GitHub Issues guidance when transport is unconfigured.",
-    gotcha: "TTY required for the confirm prompt; pipelines must pass --no-confirm. Tracking issue #3 §S66.",
+    return:
+      "Exit 0 with a redacted preview, then a confirm prompt (skip with --no-confirm). Falls back to GitHub Issues guidance when transport is unconfigured.",
+    gotcha:
+      "TTY required for the confirm prompt; pipelines must pass --no-confirm. Tracking issue #3 §S66.",
   },
   run: async (args) => runFeedback(args),
 };

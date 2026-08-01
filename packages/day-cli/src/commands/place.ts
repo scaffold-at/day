@@ -1,21 +1,21 @@
 import {
+  type Day,
+  FsDayStore,
+  FsTodoRepository,
+  ISODateSchema,
+  ISODateTimeSchema,
+  type Placement,
+  ScaffoldError,
+  type SuggestionInput,
   appendPlacementLog,
   compilePolicy,
   defaultHomeDir,
   evaluateHardRules,
-  FsDayStore,
-  FsTodoRepository,
   generateEntityId,
-  ISODateSchema,
-  ISODateTimeSchema,
-  type Day,
-  type Placement,
   policyHash,
   readAnchorForDate,
   readPolicyYaml,
-  ScaffoldError,
   suggestPlacements,
-  type SuggestionInput,
   todayInTz as todayInTzCore,
   writePolicySnapshot,
 } from "@scaffold/day-core";
@@ -194,9 +194,7 @@ async function runSuggest(args: string[]): Promise<number> {
   // evaluate sleep_budget. Null is fine — the engine skips budget
   // checks then.
   const anchorEntry = await readAnchorForDate(home, start);
-  const anchor = anchorEntry
-    ? { date: anchorEntry.date, anchor: anchorEntry.anchor }
-    : null;
+  const anchor = anchorEntry ? { date: anchorEntry.date, anchor: anchorEntry.anchor } : null;
   const input: SuggestionInput = {
     todo: {
       id: detail.id,
@@ -232,7 +230,9 @@ async function runSuggest(args: string[]): Promise<number> {
       );
     } else {
       console.log(`scaffold-day place suggest ${id} --auto`);
-      console.log(`  committing top candidate: ${localSlot} (rank 1, score ${top.score.toFixed(2)})`);
+      console.log(
+        `  committing top candidate: ${localSlot} (rank 1, score ${top.score.toFixed(2)})`,
+      );
     }
     return runDo([id, "--slot", localSlot, "--by", "auto", ...(json ? ["--json"] : [])]);
   }
@@ -245,7 +245,9 @@ async function runSuggest(args: string[]): Promise<number> {
   console.log(`scaffold-day place suggest ${id}`);
   console.log(`  duration:  ${suggestion.duration_min} min`);
   console.log(`  importance: ${suggestion.importance_score.toFixed(1)}`);
-  console.log(`  range:     ${start} → ${shiftDays(start, days - 1)} (${days} day${days === 1 ? "" : "s"})`);
+  console.log(
+    `  range:     ${start} → ${shiftDays(start, days - 1)} (${days} day${days === 1 ? "" : "s"})`,
+  );
   console.log("");
 
   if (suggestion.candidates.length === 0) {
@@ -285,9 +287,12 @@ export const placeCommand: Command = {
     what: "Drive the placement engine. `suggest <todo-id>` ranks free slots across the next N days using importance + soft preferences − reactivity. `do` and `override` arrive in §S21 / §S22.",
     when: "When deciding where in the day a todo should land, or when reshuffling after a calendar change.",
     cost: "Local file I/O (policy + day files for the requested range). `suggest` triggers a best-effort Google Calendar pull when last_sync_at is older than 60 minutes (skip with --no-sync or SCAFFOLD_DAY_AUTO_SYNC=0). `suggest` itself never writes.",
-    input: "suggest <todo-id> [--date <YYYY-MM-DD>] [--within <N>=7] [--max <K>=5] [--auto] [--no-sync] [--json]\ndo <todo-id> --slot <ISO> [--lock]\noverride <placement-id> --new-slot <ISO> [--reason <T>]",
-    return: "Exit 0. DAY_NOT_INITIALIZED if no policy/current.yaml. DAY_NOT_FOUND for unknown todo. DAY_INVALID_INPUT if the todo has no duration_min. DAY_USAGE on bad flags.",
-    gotcha: "`suggest` does not write anything — call `place do` to commit. Auto-sync runs only when a Google token is present; offline use is unaffected. The Balanced preset's working window (09:00-18:00 weekdays) means a Saturday todo will produce zero candidates until you customize policy. Tracking SLICES.md §S20 (suggest) / §S21 (do) / §S22 (override).",
+    input:
+      "suggest <todo-id> [--date <YYYY-MM-DD>] [--within <N>=7] [--max <K>=5] [--auto] [--no-sync] [--json]\ndo <todo-id> --slot <ISO> [--lock]\noverride <placement-id> --new-slot <ISO> [--reason <T>]",
+    return:
+      "Exit 0. DAY_NOT_INITIALIZED if no policy/current.yaml. DAY_NOT_FOUND for unknown todo. DAY_INVALID_INPUT if the todo has no duration_min. DAY_USAGE on bad flags.",
+    gotcha:
+      "`suggest` does not write anything — call `place do` to commit. Auto-sync runs only when a Google token is present; offline use is unaffected. The Balanced preset's working window (09:00-18:00 weekdays) means a Saturday todo will produce zero candidates until you customize policy. Tracking SLICES.md §S20 (suggest) / §S21 (do) / §S22 (override).",
   },
   run: async (args) => {
     const sub = args[0];
@@ -318,12 +323,21 @@ async function runDo(args: string[]): Promise<number> {
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (!id && !a.startsWith("--")) { id = a; continue; }
-    if (a === "--slot") { slot = args[i + 1]; i++; }
-    else if (a === "--lock") { lock = true; }
-    else if (a === "--by") { by = args[i + 1] ?? "user"; i++; }
-    else if (a === "--json") { json = true; }
-    else throw usage(`place do: unexpected argument '${a}'`);
+    if (!id && !a.startsWith("--")) {
+      id = a;
+      continue;
+    }
+    if (a === "--slot") {
+      slot = args[i + 1];
+      i++;
+    } else if (a === "--lock") {
+      lock = true;
+    } else if (a === "--by") {
+      by = args[i + 1] ?? "user";
+      i++;
+    } else if (a === "--json") {
+      json = true;
+    } else throw usage(`place do: unexpected argument '${a}'`);
   }
   if (!id) throw usage("place do: <todo-id> argument is required");
   if (!slot) throw usage("place do: --slot <ISO datetime+TZ> is required");
@@ -401,9 +415,7 @@ async function runDo(args: string[]): Promise<number> {
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
       summary: { en: "slot violates one or more hard rules" },
-      cause: hardCheck.violations
-        .map((v) => `  ${v.rule.kind}: ${v.reason}`)
-        .join("\n"),
+      cause: hardCheck.violations.map((v) => `  ${v.rule.kind}: ${v.reason}`).join("\n"),
       try: [
         "Run `place suggest <todo-id>` to find a valid slot.",
         "Or pick a slot that doesn't overlap events / protected ranges.",
@@ -452,7 +464,8 @@ async function runDo(args: string[]): Promise<number> {
       importance_score: detail.importance?.score ?? detail.importance_score ?? null,
       importance_at_placement: detail.importance ?? null,
       duration_min: detail.duration_min,
-      placed_by: by === "user" || by === "ai" || by === "auto" ? (by as "user" | "ai" | "auto") : "user",
+      placed_by:
+        by === "user" || by === "ai" || by === "auto" ? (by as "user" | "ai" | "auto") : "user",
       placed_at: placedAt,
       policy_hash: hash,
       locked: lock,
@@ -481,7 +494,8 @@ async function runDo(args: string[]): Promise<number> {
     importance_score: detail.importance?.score ?? detail.importance_score ?? null,
     importance_at_placement: detail.importance ?? null,
     duration_min: detail.duration_min,
-    placed_by: by === "user" || by === "ai" || by === "auto" ? (by as "user" | "ai" | "auto") : "user",
+    placed_by:
+      by === "user" || by === "ai" || by === "auto" ? (by as "user" | "ai" | "auto") : "user",
     placed_at: placedAt,
     policy_hash: hash,
     locked: lock,
@@ -529,12 +543,22 @@ async function runOverride(args: string[]): Promise<number> {
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (!placementId && !a.startsWith("--")) { placementId = a; continue; }
-    if (a === "--new-slot") { newSlot = args[i + 1]; i++; }
-    else if (a === "--reason") { reason = args[i + 1]; i++; }
-    else if (a === "--by") { by = args[i + 1] ?? "user"; i++; }
-    else if (a === "--json") { json = true; }
-    else throw usage(`place override: unexpected argument '${a}'`);
+    if (!placementId && !a.startsWith("--")) {
+      placementId = a;
+      continue;
+    }
+    if (a === "--new-slot") {
+      newSlot = args[i + 1];
+      i++;
+    } else if (a === "--reason") {
+      reason = args[i + 1];
+      i++;
+    } else if (a === "--by") {
+      by = args[i + 1] ?? "user";
+      i++;
+    } else if (a === "--json") {
+      json = true;
+    } else throw usage(`place override: unexpected argument '${a}'`);
   }
   if (!placementId) throw usage("place override: <placement-id> is required");
   if (!newSlot) throw usage("place override: --new-slot <ISO datetime+TZ> is required");
@@ -596,9 +620,8 @@ async function runOverride(args: string[]): Promise<number> {
   const tzOffset = offsetFromIso(newSlot);
 
   // Validate destination slot.
-  const destDay = newDate === foundDate
-    ? await dayStore.readDay(foundDate)
-    : await dayStore.readDay(newDate);
+  const destDay =
+    newDate === foundDate ? await dayStore.readDay(foundDate) : await dayStore.readDay(newDate);
 
   // For same-day move, exclude the placement we're moving from overlap checks.
   const existingPlacements = destDay.placements.filter((p) => p.id !== placementId);

@@ -47,10 +47,10 @@ describe("InMemoryTodoRepository — create + read", () => {
     const detail = await repo.getDetail(created.id);
     expect(detail).not.toBeNull();
     detail!.title = "MUTATED";
-    detail!.tags.push("#leak");
+    detail?.tags.push("#leak");
     const reread = await repo.getDetail(created.id);
-    expect(reread!.title).toBe("Write S7 repository");
-    expect(reread!.tags).toEqual(["#deep-work"]);
+    expect(reread?.title).toBe("Write S7 repository");
+    expect(reread?.tags).toEqual(["#deep-work"]);
   });
 
   test("get* returns null for unknown id", async () => {
@@ -121,7 +121,7 @@ describe("InMemoryTodoRepository — update", () => {
     const created = await repo.create({ ...baseInput, target_date: "2026-05-01" });
     const updated = await repo.update(created.id, { target_date: null });
     expect(updated.target_date).toBeNull();
-    expect(updated.history[1]!.patch).toEqual({ target_date: null });
+    expect(updated.history[1]?.patch).toEqual({ target_date: null });
   });
 
   test("history_kind override + notes are recorded", async () => {
@@ -156,7 +156,7 @@ describe("InMemoryTodoRepository — update", () => {
     const created = await repo.create(baseInput);
     const updated = await repo.update(created.id, {});
     expect(updated.history).toHaveLength(2);
-    expect(updated.history[1]!.patch).toBeNull();
+    expect(updated.history[1]?.patch).toBeNull();
   });
 });
 
@@ -168,7 +168,7 @@ describe("InMemoryTodoRepository — archive", () => {
     expect(archived.archived_at).toBeTruthy();
     expect(archived.archive_reason).toBe("completed");
     expect(archived.final_status).toBe("open");
-    expect(archived.history.at(-1)!.kind).toBe("archived");
+    expect(archived.history.at(-1)?.kind).toBe("archived");
 
     expect(await repo.getDetail(created.id)).toBeNull();
     expect(await repo.listSummaries()).toEqual([]);
@@ -176,7 +176,7 @@ describe("InMemoryTodoRepository — archive", () => {
     const month = archived.archived_at.slice(0, 7);
     const list = await repo.listArchive(month);
     expect(list).toHaveLength(1);
-    expect(list[0]!.id).toBe(created.id);
+    expect(list[0]?.id).toBe(created.id);
   });
 
   test("archive nonexistent throws DAY_NOT_FOUND", async () => {
@@ -201,7 +201,7 @@ describe("InMemoryTodoRepository — archive", () => {
     list.push({ ...list[0]!, id: "todo_aaaaaaaaaaaaaa" });
     const reread = await repo.listArchive(month);
     expect(reread).toHaveLength(1);
-    expect(reread[0]!.title).toBe("Write S7 repository");
+    expect(reread[0]?.title).toBe("Write S7 repository");
   });
 });
 
@@ -216,7 +216,7 @@ describe("InMemoryTodoRepository — round-trip", () => {
 
     const beforeList = await repo.listSummaries();
     expect(beforeList).toHaveLength(1);
-    expect(beforeList[0]!.id).toBe(created.id);
+    expect(beforeList[0]?.id).toBe(created.id);
 
     await repo.update(created.id, { status: "done" });
     const afterUpdate = await repo.listSummaries({ status: ["done"] });
@@ -228,7 +228,7 @@ describe("InMemoryTodoRepository — round-trip", () => {
     const month = archived.archived_at.slice(0, 7);
     const archivesThisMonth = await repo.listArchive(month);
     expect(archivesThisMonth).toHaveLength(1);
-    expect(archivesThisMonth[0]!.history.map((h) => h.kind)).toEqual([
+    expect(archivesThisMonth[0]?.history.map((h) => h.kind)).toEqual([
       "created",
       "updated",
       "archived",

@@ -1,28 +1,28 @@
 import {
-  appendConflictLog,
-  appendPlacementLog,
-  compilePolicy,
   type Conflict,
   ConflictStatusSchema,
   type Day,
+  FsDayStore,
+  ISODateSchema,
+  ISODateTimeSchema,
+  type ImportanceDimensions,
+  ImportanceDimensionsSchema,
+  type Placement,
+  ScaffoldError,
+  FsTodoRepository as TodoRepoCtor,
+  appendConflictLog,
+  appendPlacementLog,
+  compilePolicy,
   defaultHomeDir,
   detectConflicts,
   entityIdSchemaOf,
   evaluateHardRules,
-  FsDayStore,
-  FsTodoRepository as TodoRepoCtor,
   generateEntityId,
-  type ImportanceDimensions,
-  ImportanceDimensionsSchema,
-  ISODateSchema,
-  ISODateTimeSchema,
   makeTaskImportance,
-  type Placement,
   readConflicts,
   readPolicySnapshot,
   readPolicyYaml,
   replanDay,
-  ScaffoldError,
   suggestPlacements,
   syncConflicts,
   writeConflicts,
@@ -136,9 +136,7 @@ export const placeOverrideTool: Tool<OverrideIn, unknown> = {
     const tzOffset = offsetForTzAtDate(newDate, policy.context.tz);
 
     const destDay =
-      newDate === found.date
-        ? await dayStore.readDay(found.date)
-        : await dayStore.readDay(newDate);
+      newDate === found.date ? await dayStore.readDay(found.date) : await dayStore.readDay(newDate);
 
     const others = destDay.placements.filter((p) => p.id !== input.placement_id);
     const hard = evaluateHardRules(
@@ -207,9 +205,7 @@ export const placeOverrideTool: Tool<OverrideIn, unknown> = {
 
     if (newDate === found.date) {
       const day = await dayStore.readDay(found.date);
-      day.placements = day.placements.map((p) =>
-        p.id === input.placement_id ? updated : p,
-      );
+      day.placements = day.placements.map((p) => (p.id === input.placement_id ? updated : p));
       await dayStore.writeDay(day);
     } else {
       const oldDay = await dayStore.readDay(found.date);
@@ -411,11 +407,8 @@ export const explainPlacementTool: Tool<ExplainIn, unknown> = {
       policy,
       max: 5,
     });
-    const chosen =
-      suggestion.candidates.find((c) => c.start === found.placement.start) ?? null;
-    const alternatives = suggestion.candidates.filter(
-      (c) => c.start !== found.placement.start,
-    );
+    const chosen = suggestion.candidates.find((c) => c.start === found.placement.start) ?? null;
+    const alternatives = suggestion.candidates.filter((c) => c.start !== found.placement.start);
 
     return {
       placement: found.placement,
@@ -596,4 +589,3 @@ export const computeTaskImportanceTool: Tool<ScoreIn, unknown> = {
     return { id: updated.id, importance: updated.importance };
   },
 };
-

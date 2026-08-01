@@ -8,7 +8,7 @@ import type {
 } from "@scaffold/day-core";
 import { computeFreeSlots } from "@scaffold/day-core";
 import { colors } from "../cli/colors";
-import { defaultWorkingWindow, type WorkingWindow } from "./working-window";
+import { type WorkingWindow, defaultWorkingWindow } from "./working-window";
 
 export type DayViewAnchor = {
   /** ISO 8601 instant the user "started today". */
@@ -112,7 +112,10 @@ export function renderDayView(view: DayView): string {
 
   if (view.anchor) {
     const wall = formatLocalTime(view.anchor.anchor, view.tz);
-    const tag = view.anchor.source === "explicit" || view.anchor.source === "manual" ? "" : colors.dim(` (${view.anchor.source})`);
+    const tag =
+      view.anchor.source === "explicit" || view.anchor.source === "manual"
+        ? ""
+        : colors.dim(` (${view.anchor.source})`);
     lines.push(colors.dim(`Day started ${wall}${tag}`));
   }
 
@@ -120,23 +123,20 @@ export function renderDayView(view: DayView): string {
   // have it (regardless of whether a rest break is suggested), so
   // users see their own pattern. The rest-break line stays separate
   // and only renders on `suggest=true`.
-  if (view.rest_suggestion?.measured_sleep_hours !== null && view.rest_suggestion?.measured_sleep_hours !== undefined) {
+  if (
+    view.rest_suggestion?.measured_sleep_hours !== null &&
+    view.rest_suggestion?.measured_sleep_hours !== undefined
+  ) {
     const slept = view.rest_suggestion.measured_sleep_hours;
     const targetTxt = view.sleep_target
       ? ` / target ${view.sleep_target.target_hours.toFixed(0)}h`
       : "";
-    const deficit = view.sleep_target
-      ? Math.max(0, view.sleep_target.target_hours - slept)
-      : 0;
+    const deficit = view.sleep_target ? Math.max(0, view.sleep_target.target_hours - slept) : 0;
     const deficitTxt = deficit > 0 ? ` · deficit ${deficit.toFixed(1)}h` : "";
     lines.push(colors.dim(`Sleep ~${slept.toFixed(1)}h last night${targetTxt}${deficitTxt}`));
   }
   if (view.rest_suggestion?.suggest) {
-    lines.push(
-      colors.amber(
-        `Rest break suggested · ~${view.rest_suggestion.break_min} min`,
-      ),
-    );
+    lines.push(colors.amber(`Rest break suggested · ~${view.rest_suggestion.break_min} min`));
   }
 
   if (view.events.length > 0) {

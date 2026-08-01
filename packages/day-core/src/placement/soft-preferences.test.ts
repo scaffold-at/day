@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { BALANCED_PRESET } from "../policy";
 import type { Placement } from "../day";
+import { BALANCED_PRESET } from "../policy";
 import type { SoftPreference } from "../policy";
 import {
+  type SoftPreferenceContext,
   computeReactivityPenalty,
   evaluateSoftPreferences,
   evaluateSoftPreferencesPolicy,
-  type SoftPreferenceContext,
 } from "./soft-preferences";
 
 const TZ = "+09:00";
@@ -54,7 +54,11 @@ describe("evaluateSoftPreferences — prefer_tag_in_range", () => {
   };
 
   test("deep-work tag in 09-12 → +20", () => {
-    const r = evaluateSoftPreferences(slot("10:00", "11:00"), [pref], ctx({ todoTags: ["#deep-work"] }));
+    const r = evaluateSoftPreferences(
+      slot("10:00", "11:00"),
+      [pref],
+      ctx({ todoTags: ["#deep-work"] }),
+    );
     expect(r.total).toBe(20);
     expect(r.contributions).toHaveLength(1);
   });
@@ -65,7 +69,11 @@ describe("evaluateSoftPreferences — prefer_tag_in_range", () => {
   });
 
   test("tag but slot outside range → no bonus", () => {
-    const r = evaluateSoftPreferences(slot("13:00", "14:00"), [pref], ctx({ todoTags: ["#deep-work"] }));
+    const r = evaluateSoftPreferences(
+      slot("13:00", "14:00"),
+      [pref],
+      ctx({ todoTags: ["#deep-work"] }),
+    );
     expect(r.total).toBe(0);
   });
 });
@@ -93,15 +101,28 @@ describe("evaluateSoftPreferences — cluster_same_tag", () => {
 });
 
 describe("evaluateSoftPreferences — avoid_tag_after_time", () => {
-  const pref: SoftPreference = { kind: "avoid_tag_after_time", tag: "#admin", after: "17:00", weight: -15 };
+  const pref: SoftPreference = {
+    kind: "avoid_tag_after_time",
+    tag: "#admin",
+    after: "17:00",
+    weight: -15,
+  };
 
   test("admin slot at 17:30 → -15", () => {
-    const r = evaluateSoftPreferences(slot("17:30", "18:00"), [pref], ctx({ todoTags: ["#admin"] }));
+    const r = evaluateSoftPreferences(
+      slot("17:30", "18:00"),
+      [pref],
+      ctx({ todoTags: ["#admin"] }),
+    );
     expect(r.total).toBe(-15);
   });
 
   test("admin slot at 11:00 → 0", () => {
-    const r = evaluateSoftPreferences(slot("11:00", "12:00"), [pref], ctx({ todoTags: ["#admin"] }));
+    const r = evaluateSoftPreferences(
+      slot("11:00", "12:00"),
+      [pref],
+      ctx({ todoTags: ["#admin"] }),
+    );
     expect(r.total).toBe(0);
   });
 });
@@ -140,15 +161,13 @@ describe("evaluateSoftPreferencesPolicy — energy_peak_bonus", () => {
     const r = evaluateSoftPreferencesPolicy(slot("09:30", "10:30"), policy, ctx());
     const peak = r.contributions.find((c) => c.preference.kind === "energy_peak_bonus");
     expect(peak).toBeDefined();
-    expect(peak!.weight).toBe(12);
+    expect(peak?.weight).toBe(12);
   });
 
   test("slot outside energy peak gets no bonus", () => {
     const policy = {
       ...BALANCED_PRESET,
-      soft_preferences: [
-        { kind: "energy_peak_bonus" as const, weight: 12 },
-      ],
+      soft_preferences: [{ kind: "energy_peak_bonus" as const, weight: 12 }],
     };
     const r = evaluateSoftPreferencesPolicy(slot("14:00", "15:00"), policy, ctx());
     expect(r.total).toBe(0);

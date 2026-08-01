@@ -14,8 +14,8 @@
 
 import { appendFile, mkdir, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
+import { ScaffoldError, atomicWrite } from "@scaffold/day-core";
 import { z } from "zod";
-import { atomicWrite, ScaffoldError } from "@scaffold/day-core";
 
 export const PENDING_FILE = "google-calendar-pending.jsonl";
 export const SYNC_DIR = "sync";

@@ -1,9 +1,9 @@
 import {
-  defaultHomeDir,
   FsTodoRepository,
   ISODateSchema,
-  TagSchema,
   TODO_STATUSES,
+  TagSchema,
+  defaultHomeDir,
 } from "@scaffold/day-core";
 import { z } from "zod";
 import type { Tool } from "./registry";
@@ -14,7 +14,13 @@ const InputSchema = z
     status: z.enum(TODO_STATUSES).optional(),
     tags: z.array(TagSchema).max(32).optional(),
     target_date: ISODateSchema.nullable().optional(),
-    duration_min: z.number().int().min(0).max(60 * 24 * 30).nullable().optional(),
+    duration_min: z
+      .number()
+      .int()
+      .min(0)
+      .max(60 * 24 * 30)
+      .nullable()
+      .optional(),
     description: z.string().nullable().optional(),
     reasoning: z.string().nullable().optional(),
     by: z.string().min(1).optional(),

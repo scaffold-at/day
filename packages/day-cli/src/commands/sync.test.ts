@@ -13,11 +13,8 @@ import type {
   Reconciliation,
   SyncAdapter,
 } from "@scaffold/day-adapters";
-import {
-  recordPendingChange,
-  readPendingChanges,
-} from "@scaffold/day-adapters";
-import { FsDayStore, generateEntityId, type FixedEvent } from "@scaffold/day-core";
+import { readPendingChanges, recordPendingChange } from "@scaffold/day-adapters";
+import { type FixedEvent, FsDayStore, generateEntityId } from "@scaffold/day-core";
 import { runPushWithAdapter, runSyncWithAdapter } from "./sync";
 
 class StubAdapter implements SyncAdapter {
@@ -111,9 +108,7 @@ describe("sync orchestrator (S71/S72 wire-up via runSyncWithAdapter)", () => {
     expect(r.summary.updated).toBe(0);
     expect(r.summary.unchanged).toBe(0);
 
-    const day = JSON.parse(
-      await readFile(path.join(home, "days/2026-04/2026-04-30.json"), "utf8"),
-    );
+    const day = JSON.parse(await readFile(path.join(home, "days/2026-04/2026-04-30.json"), "utf8"));
     expect(day.events).toHaveLength(1);
     expect(day.events[0].external_id).toBe("g1");
     expect(day.events[0].title).toBe("Standup");
@@ -160,9 +155,7 @@ describe("sync orchestrator (S71/S72 wire-up via runSyncWithAdapter)", () => {
     expect(r.summary.created).toBe(0);
     expect(r.summary.unchanged).toBe(0);
 
-    const day = JSON.parse(
-      await readFile(path.join(home, "days/2026-04/2026-04-30.json"), "utf8"),
-    );
+    const day = JSON.parse(await readFile(path.join(home, "days/2026-04/2026-04-30.json"), "utf8"));
     expect(day.events).toHaveLength(1);
     expect(day.events[0].title).toBe("new title");
   });
@@ -205,9 +198,7 @@ describe("sync orchestrator (S71/S72 wire-up via runSyncWithAdapter)", () => {
     expect(r.summary.unchanged).toBe(1);
     expect(r.summary.updated).toBe(0);
 
-    const day = JSON.parse(
-      await readFile(path.join(home, "days/2026-04/2026-04-30.json"), "utf8"),
-    );
+    const day = JSON.parse(await readFile(path.join(home, "days/2026-04/2026-04-30.json"), "utf8"));
     expect(day.events[0].title).toBe("stays");
   });
 
@@ -395,7 +386,7 @@ describe("sync --push orchestrator (S71 push wire-up)", () => {
     expect(r.summary.abandoned).toBe(0);
     const remaining = await readPendingChanges(home);
     expect(remaining).toHaveLength(1);
-    expect(remaining[0]!.attempts).toBe(1);
+    expect(remaining[0]?.attempts).toBe(1);
   });
 
   test("non-retryable error: entry abandoned (queue clears)", async () => {

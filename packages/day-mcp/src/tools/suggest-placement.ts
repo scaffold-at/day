@@ -1,13 +1,13 @@
 import {
-  compilePolicy,
   type Day,
-  defaultHomeDir,
-  entityIdSchemaOf,
   FsDayStore,
   FsTodoRepository,
   ISODateSchema,
-  readPolicyYaml,
   ScaffoldError,
+  compilePolicy,
+  defaultHomeDir,
+  entityIdSchemaOf,
+  readPolicyYaml,
   suggestPlacements,
 } from "@scaffold/day-core";
 import { z } from "zod";
@@ -28,8 +28,18 @@ const inputJsonSchema = {
   properties: {
     todo_id: { type: "string", pattern: "^todo_[a-z0-9]{14}$" },
     date: { type: "string", description: "YYYY-MM-DD anchor; defaults to today (policy TZ)" },
-    within: { type: "integer", minimum: 1, maximum: 30, description: "Number of days to scan, default 7" },
-    max: { type: "integer", minimum: 1, maximum: 50, description: "Maximum candidates returned, default 5" },
+    within: {
+      type: "integer",
+      minimum: 1,
+      maximum: 30,
+      description: "Number of days to scan, default 7",
+    },
+    max: {
+      type: "integer",
+      minimum: 1,
+      maximum: 50,
+      description: "Maximum candidates returned, default 5",
+    },
   },
   required: ["todo_id"],
   additionalProperties: false,

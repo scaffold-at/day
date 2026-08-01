@@ -15,8 +15,8 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { commands } from "../packages/day-cli/src/cli/registry";
 import type { Command } from "../packages/day-cli/src/cli/command";
+import { commands } from "../packages/day-cli/src/cli/registry";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, "..");
@@ -122,7 +122,10 @@ async function readTree(dir: string): Promise<FileMap> {
   return map;
 }
 
-function diff(prev: FileMap, next: FileMap): { changed: string[]; missing: string[]; extra: string[] } {
+function diff(
+  prev: FileMap,
+  next: FileMap,
+): { changed: string[]; missing: string[]; extra: string[] } {
   const changed: string[] = [];
   const missing: string[] = [];
   const extra: string[] = [];
@@ -151,7 +154,9 @@ async function main(): Promise<number> {
       if (d.missing.length > 0) console.error(`  missing: ${d.missing.join(", ")}`);
       if (d.changed.length > 0) console.error(`  changed: ${d.changed.join(", ")}`);
       if (d.extra.length > 0) console.error(`  extra:   ${d.extra.join(", ")}`);
-      console.error(`  run: bun run gen:cli-reference && git add ${path.relative(REPO_ROOT, OUT_DIR)}`);
+      console.error(
+        `  run: bun run gen:cli-reference && git add ${path.relative(REPO_ROOT, OUT_DIR)}`,
+      );
       return 1;
     }
     console.log(`✓ CLI reference tree up to date (${next.size} files)`);
@@ -161,7 +166,7 @@ async function main(): Promise<number> {
   await mkdir(OUT_DIR, { recursive: true });
   // Drop any stale .mdx that no longer corresponds to a registered
   // command (e.g., a renamed command).
-  for (const name of (await readdir(OUT_DIR).catch(() => []))) {
+  for (const name of await readdir(OUT_DIR).catch(() => [])) {
     if (name.endsWith(".mdx") && !next.has(name)) {
       await rm(path.join(OUT_DIR, name));
     }

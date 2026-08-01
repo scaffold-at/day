@@ -5,7 +5,7 @@ import path from "node:path";
 import { isScaffoldError } from "../error";
 import { CURRENT_SCHEMA_VERSION } from "../schema/version";
 import { type Day, DaySchema } from "./day";
-import { FixedEventSchema, type FixedEvent } from "./event";
+import { type FixedEvent, FixedEventSchema } from "./event";
 import { FsDayStore } from "./fs-day-store";
 import { type Placement, PlacementSchema } from "./placement";
 
@@ -57,9 +57,9 @@ describe("FixedEventSchema", () => {
   });
 
   test("rejects wrong id prefix", () => {
-    expect(
-      FixedEventSchema.safeParse({ ...sampleEvent, id: "todo_01abcdefghi123" }).success,
-    ).toBe(false);
+    expect(FixedEventSchema.safeParse({ ...sampleEvent, id: "todo_01abcdefghi123" }).success).toBe(
+      false,
+    );
   });
 
   test("rejects empty title", () => {
@@ -67,9 +67,9 @@ describe("FixedEventSchema", () => {
   });
 
   test("rejects unknown source", () => {
-    expect(
-      FixedEventSchema.safeParse({ ...sampleEvent, source: "outlook" as never }).success,
-    ).toBe(false);
+    expect(FixedEventSchema.safeParse({ ...sampleEvent, source: "outlook" as never }).success).toBe(
+      false,
+    );
   });
 
   test("recurring may be null or {parent_id, rrule}", () => {
@@ -107,9 +107,9 @@ describe("DaySchema", () => {
   });
 
   test("rejects malformed date", () => {
-    expect(
-      DaySchema.safeParse({ schema_version: "0.1.0", date: "2026/04/26" }).success,
-    ).toBe(false);
+    expect(DaySchema.safeParse({ schema_version: "0.1.0", date: "2026/04/26" }).success).toBe(
+      false,
+    );
   });
 });
 

@@ -33,9 +33,7 @@ export const KNOWN_ENTITY_PREFIXES = Object.freeze(
   Object.values(ENTITY_PREFIXES) as EntityPrefix[],
 );
 
-const KNOWN_ENTITY_ID_REGEX = new RegExp(
-  `^(${KNOWN_ENTITY_PREFIXES.join("|")})_[a-z0-9]{14}$`,
-);
+const KNOWN_ENTITY_ID_REGEX = new RegExp(`^(${KNOWN_ENTITY_PREFIXES.join("|")})_[a-z0-9]{14}$`);
 
 export const EntityIdSchema = z
   .string()

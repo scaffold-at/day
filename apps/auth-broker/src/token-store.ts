@@ -53,7 +53,11 @@ export async function decryptSecret(encrypted: string, key: string): Promise<str
   if (version !== "v1" || !ivBase64 || !tagBase64 || !ciphertextBase64) {
     throw new Error("Unsupported encrypted secret format");
   }
-  const decipher = createDecipheriv("aes-256-gcm", normalizeKey(key), Buffer.from(ivBase64, "base64url"));
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    normalizeKey(key),
+    Buffer.from(ivBase64, "base64url"),
+  );
   decipher.setAuthTag(Buffer.from(tagBase64, "base64url"));
   return Buffer.concat([
     decipher.update(Buffer.from(ciphertextBase64, "base64url")),
@@ -95,7 +99,10 @@ export async function storeGoogleTokenSet(
     ? await encryptSecret(input.refreshToken, encryptionKey)
     : undefined;
   const expiresAt = new Date(Date.now() + input.expiresIn * 1000);
-  const accessTokenPreview = createHash("sha256").update(input.accessToken).digest("hex").slice(0, 12);
+  const accessTokenPreview = createHash("sha256")
+    .update(input.accessToken)
+    .digest("hex")
+    .slice(0, 12);
 
   await sql`
     INSERT INTO google_oauth_tokens (

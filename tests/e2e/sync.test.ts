@@ -37,7 +37,6 @@ async function loginWithBrokerToken(): Promise<void> {
   }
 }
 
-
 describe("scaffold-day sync (S71/S72 wire-up)", () => {
   test("without a stored token → DAY_NOT_INITIALIZED exit 78", async () => {
     const r = await runCli(["sync"], { home });
@@ -48,14 +47,7 @@ describe("scaffold-day sync (S71/S72 wire-up)", () => {
 
   test("--end before --start → DAY_INVALID_INPUT", async () => {
     await loginWithBrokerToken();
-    const r = await runCli(
-      [
-        "sync",
-        "--start", "2026-05-01",
-        "--end", "2026-04-30",
-      ],
-      { home },
-    );
+    const r = await runCli(["sync", "--start", "2026-05-01", "--end", "2026-04-30"], { home });
     expect(r.exitCode).toBe(65);
     expect(r.stderr).toContain("DAY_INVALID_INPUT");
     expect(r.stderr).toContain("--end must be on or after --start");
@@ -68,10 +60,7 @@ describe("scaffold-day sync (S71/S72 wire-up)", () => {
   });
 
   test("docs --commands sync surfaces the input contract", async () => {
-    const r = await runCli(
-      ["docs", "--for-ai", "--commands", "sync"],
-      { home },
-    );
+    const r = await runCli(["docs", "--for-ai", "--commands", "sync"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
     expect(r.stdout).toContain("--account");
     expect(r.stdout).toContain("--dry-run");
@@ -86,11 +75,12 @@ describe("event mutations auto-queue pending pushes (S71 push wire-up)", () => {
 
   async function readPending(): Promise<unknown[]> {
     try {
-      const raw = await readFile(
-        path.join(home, "sync", "google-calendar-pending.jsonl"),
-        "utf8",
-      );
-      return raw.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
+      const raw = await readFile(path.join(home, "sync", "google-calendar-pending.jsonl"), "utf8");
+      return raw
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => JSON.parse(l));
     } catch {
       return [];
     }
@@ -101,10 +91,14 @@ describe("event mutations auto-queue pending pushes (S71 push wire-up)", () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
     const r = await runCli(
       [
-        "event", "add",
-        "--title", "queued",
-        "--start", "2026-05-08T10:00:00+09:00",
-        "--end", "2026-05-08T11:00:00+09:00",
+        "event",
+        "add",
+        "--title",
+        "queued",
+        "--start",
+        "2026-05-08T10:00:00+09:00",
+        "--end",
+        "2026-05-08T11:00:00+09:00",
       ],
       { home },
     );
@@ -118,10 +112,14 @@ describe("event mutations auto-queue pending pushes (S71 push wire-up)", () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
     const r = await runCli(
       [
-        "event", "add",
-        "--title", "offline",
-        "--start", "2026-05-08T10:00:00+09:00",
-        "--end", "2026-05-08T11:00:00+09:00",
+        "event",
+        "add",
+        "--title",
+        "offline",
+        "--start",
+        "2026-05-08T10:00:00+09:00",
+        "--end",
+        "2026-05-08T11:00:00+09:00",
       ],
       { home },
     );
@@ -135,18 +133,19 @@ describe("event mutations auto-queue pending pushes (S71 push wire-up)", () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
     const add = await runCli(
       [
-        "event", "add",
-        "--title", "x",
-        "--start", "2026-05-08T10:00:00+09:00",
-        "--end", "2026-05-08T11:00:00+09:00",
+        "event",
+        "add",
+        "--title",
+        "x",
+        "--start",
+        "2026-05-08T10:00:00+09:00",
+        "--end",
+        "2026-05-08T11:00:00+09:00",
       ],
       { home },
     );
-    const id = /id:\s+(evt_[a-z0-9]{14})/.exec(add.stdout)![1] as string;
-    await runCli(
-      ["event", "update", id, "--title", "renamed"],
-      { home },
-    );
+    const id = /id:\s+(evt_[a-z0-9]{14})/.exec(add.stdout)?.[1] as string;
+    await runCli(["event", "update", id, "--title", "renamed"], { home });
     await runCli(["event", "delete", id], { home });
     const queue = await readPending();
     expect(queue).toHaveLength(3);

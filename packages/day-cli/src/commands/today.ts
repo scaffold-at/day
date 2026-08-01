@@ -10,18 +10,16 @@ import {
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import {
+  type DayViewAnchor,
   buildDayView,
   renderDayView,
   renderDayViewJson,
-  type DayViewAnchor,
 } from "../format/day-view";
 
 function todayDate(tz?: string): string {
   // ISO calendar date in the user's TZ. Honors SCAFFOLD_DAY_NOW
   // through core's todayInTz so tests can pin "today".
-  return todayInTz(
-    tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
-  );
+  return todayInTz(tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
 }
 
 /** Shift a YYYY-MM-DD date by `delta` days (negative = past). */
@@ -38,8 +36,10 @@ export const todayCommand: Command = {
     when: "Whenever you want a quick snapshot of the day. AI clients should prefer the `--json` form for token efficiency.",
     cost: "Local read of one Day file plus a free-slot computation. No network.",
     input: "[--json] for structured output. [--tz <iana>] to override the resolved timezone.",
-    return: "Exit 0. Human format ≤40 lines (PRD §6.3). JSON includes the freshly computed free_slots[] each time.",
-    gotcha: "Working window defaults to 09:00-18:00 in the user's system TZ until Policy lands (§S13). Lunch 12:00-13:00 is protected. Tracking SLICES.md §S12.",
+    return:
+      "Exit 0. Human format ≤40 lines (PRD §6.3). JSON includes the freshly computed free_slots[] each time.",
+    gotcha:
+      "Working window defaults to 09:00-18:00 in the user's system TZ until Policy lands (§S13). Lunch 12:00-13:00 is protected. Tracking SLICES.md §S12.",
   },
   run: async (args) => {
     const json = args.includes("--json");
@@ -85,9 +85,7 @@ export const todayCommand: Command = {
     let sleepTarget: { target_hours: number; min_hours: number } | null = null;
     try {
       const yamlText = await readPolicyYaml(home);
-      const budget = yamlText
-        ? compilePolicy(yamlText).context.sleep_budget ?? null
-        : null;
+      const budget = yamlText ? (compilePolicy(yamlText).context.sleep_budget ?? null) : null;
       if (budget) {
         sleepTarget = { target_hours: budget.target_hours, min_hours: budget.min_hours };
       }

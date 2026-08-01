@@ -51,9 +51,7 @@ export type CognitiveLoadInput = {
 
 const HOUR = 60 * 60 * 1000;
 
-export function evaluateCognitiveLoad(
-  input: CognitiveLoadInput,
-): CognitiveLoadEvaluation {
+export function evaluateCognitiveLoad(input: CognitiveLoadInput): CognitiveLoadEvaluation {
   if (!input.cognitiveLoad || !input.anchorOnSlotDate) {
     return {
       severity: "skip",
@@ -69,8 +67,7 @@ export function evaluateCognitiveLoad(
   const elapsedHours = Math.max(0, (slotMs - anchorMs) / HOUR);
 
   const isHeavy =
-    input.effortMin !== null &&
-    input.effortMin >= input.cognitiveLoad.heavy_task_threshold_min;
+    input.effortMin !== null && input.effortMin >= input.cognitiveLoad.heavy_task_threshold_min;
 
   if (!isHeavy) {
     return {
@@ -99,8 +96,7 @@ export function evaluateCognitiveLoad(
   } else {
     // exponential: linear_penalty_per_hour × (base^overshoot - 1)
     // The "-1" makes overshoot=0 produce 0 (continuity with linear at the boundary).
-    const factor =
-      Math.pow(input.cognitiveLoad.exponential_base, overshoot) - 1;
+    const factor = input.cognitiveLoad.exponential_base ** overshoot - 1;
     penalty = -Math.round(input.cognitiveLoad.linear_penalty_per_hour * factor);
   }
 

@@ -53,9 +53,7 @@ describe("policy preset apply / show / patch", () => {
   test("policy patch flips placement_grid_min and preserves the header comment", async () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
 
-    const patch = JSON.stringify([
-      { op: "replace", path: "/placement_grid_min", value: 15 },
-    ]);
+    const patch = JSON.stringify([{ op: "replace", path: "/placement_grid_min", value: 15 }]);
     const r = await runCli(["policy", "patch", patch], { home });
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("applied 1 op");
@@ -76,11 +74,7 @@ describe("policy preset apply / show / patch", () => {
   test("policy patch that violates the schema → DAY_INVALID_INPUT", async () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
     const r = await runCli(
-      [
-        "policy",
-        "patch",
-        JSON.stringify([{ op: "remove", path: "/context/tz" }]),
-      ],
+      ["policy", "patch", JSON.stringify([{ op: "remove", path: "/context/tz" }])],
       { home },
     );
     expect(r.exitCode).toBe(65);

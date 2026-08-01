@@ -2,10 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   ENTITY_ID_REGEX,
   ENTITY_PREFIXES,
-  type EntityKind,
   EntityIdSchema,
-  entityIdSchemaOf,
-  generateEntityId,
+  type EntityKind,
   ISODateSchema,
   ISODateTimeSchema,
   ISOTimeSchema,
@@ -13,6 +11,8 @@ import {
   ModelIdSchema,
   TagSchema,
   YYYYMMSchema,
+  entityIdSchemaOf,
+  generateEntityId,
 } from "./index";
 
 describe("EntityId regex", () => {
@@ -144,13 +144,7 @@ describe("YYYYMMSchema", () => {
 });
 
 describe("TagSchema", () => {
-  const valid = [
-    "#call",
-    "#deep-work",
-    "#business-hours",
-    "#deadline:2026-05-01",
-    "#admin",
-  ];
+  const valid = ["#call", "#deep-work", "#business-hours", "#deadline:2026-05-01", "#admin"];
   const invalid = [
     "call", // no leading #
     "#Deep-work", // uppercase

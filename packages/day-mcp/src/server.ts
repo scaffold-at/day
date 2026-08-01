@@ -1,9 +1,6 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { ScaffoldError } from "@scaffold/day-core";
 import { toMcpError } from "./error-mapping";
 import {
@@ -12,11 +9,7 @@ import {
   recordMorningTool,
 } from "./tools/anchor-tools";
 import { createTodoTool } from "./tools/create-todo";
-import {
-  getDaysRangeTool,
-  getMonthOverviewTool,
-  listAvailableMonthsTool,
-} from "./tools/day-tools";
+import { getDaysRangeTool, getMonthOverviewTool, listAvailableMonthsTool } from "./tools/day-tools";
 import {
   computeTaskImportanceTool,
   explainPlacementTool,
@@ -24,19 +17,11 @@ import {
   replanDayTool,
   resolveConflictTool,
 } from "./tools/decision-tools";
-import {
-  createEventTool,
-  deleteEventTool,
-  updateEventTool,
-} from "./tools/event-tools";
+import { createEventTool, deleteEventTool, updateEventTool } from "./tools/event-tools";
 import { getDayTool } from "./tools/get-day";
 import { healthTool } from "./tools/health";
 import { placeTodoTool } from "./tools/place-todo";
-import {
-  applyPresetTool,
-  getPolicyTool,
-  updatePolicyTool,
-} from "./tools/policy-tools";
+import { applyPresetTool, getPolicyTool, updatePolicyTool } from "./tools/policy-tools";
 import { queryTodosTool } from "./tools/query-todos";
 import type { Tool, ToolRegistry } from "./tools/registry";
 import { suggestPlacementTool } from "./tools/suggest-placement";

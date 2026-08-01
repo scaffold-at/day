@@ -13,7 +13,9 @@ describe("token encryption", () => {
 
     expect(encrypted).not.toContain("refresh-token");
     expect(encrypted).toStartWith("v1:");
-    await expect(decryptSecret(encrypted, "0123456789abcdef0123456789abcdef")).resolves.toBe("refresh-token");
+    await expect(decryptSecret(encrypted, "0123456789abcdef0123456789abcdef")).resolves.toBe(
+      "refresh-token",
+    );
   });
 });
 
@@ -50,7 +52,9 @@ describe("auth broker persistence SQL", () => {
     const callText = JSON.stringify(calls);
     expect(callText).not.toContain("refresh-token");
     expect(callText).toContain("google_oauth_tokens");
-    expect(calls[0]?.values.some((value) => typeof value === "string" && value.startsWith("v1:"))).toBe(true);
+    expect(
+      calls[0]?.values.some((value) => typeof value === "string" && value.startsWith("v1:")),
+    ).toBe(true);
   });
 
   it("upserts a hashed broker session token", async () => {

@@ -14,8 +14,8 @@
  * once with `--force`; the latest line for a given date wins.
  */
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { atomicWrite } from "../fs/atomic-write";
@@ -48,10 +48,7 @@ export function heartbeatsPath(home: string): string {
 }
 
 /** Append a heartbeat entry. Crash-safe on a single line. */
-export async function appendHeartbeat(
-  home: string,
-  entry: HeartbeatEntry,
-): Promise<void> {
+export async function appendHeartbeat(home: string, entry: HeartbeatEntry): Promise<void> {
   const validated = HeartbeatEntrySchema.parse(entry);
   const dest = heartbeatsPath(home);
   await mkdir(path.dirname(dest), { recursive: true });
@@ -94,9 +91,7 @@ export async function readAnchorForDate(
  * Re-export reads of the *most recent* anchor regardless of date —
  * useful for "previous day's last activity" lookups in S61.
  */
-export async function readLatestAnchor(
-  home: string,
-): Promise<HeartbeatEntry | null> {
+export async function readLatestAnchor(home: string): Promise<HeartbeatEntry | null> {
   const dest = heartbeatsPath(home);
   if (!existsSync(dest)) return null;
   const content = await readFile(dest, "utf8");

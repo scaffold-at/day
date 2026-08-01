@@ -47,11 +47,7 @@ export type ProtectedRange = z.infer<typeof ProtectedRangeSchema>;
  */
 export const RecoveryBlockSchema = z
   .object({
-    late_threshold_minutes_past_working_end: z
-      .number()
-      .int()
-      .min(0)
-      .default(120),
+    late_threshold_minutes_past_working_end: z.number().int().min(0).default(120),
     morning_block_hours: z.number().min(0).max(12).default(2),
     soft_penalty: z.number().min(0).default(30),
   })

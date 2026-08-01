@@ -77,10 +77,7 @@ async function checkAndIncrementRate(
   return { ok: true, counts };
 }
 
-async function postedThisWeek(
-  rate: KVNamespace,
-  installId: string,
-): Promise<number> {
+async function postedThisWeek(rate: KVNamespace, installId: string): Promise<number> {
   // Coarse counter: sum of 24-hour buckets covering the last 7 days.
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
@@ -174,9 +171,8 @@ export default {
       return bad("message rejected (too many URLs)");
     }
 
-    const version = typeof payload.scaffold_day_version === "string"
-      ? payload.scaffold_day_version
-      : "unknown";
+    const version =
+      typeof payload.scaffold_day_version === "string" ? payload.scaffold_day_version : "unknown";
     const includeDoctor = Boolean(payload.include_doctor);
     const doctorBundle = includeDoctor ? payload.doctor_bundle : null;
 
@@ -208,9 +204,8 @@ export default {
       );
     }
 
-    return new Response(
-      JSON.stringify({ ok: true, weekly_count: weeklyCount }),
-      { headers: { "content-type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ ok: true, weekly_count: weeklyCount }), {
+      headers: { "content-type": "application/json" },
+    });
   },
 };

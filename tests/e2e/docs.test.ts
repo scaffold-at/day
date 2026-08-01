@@ -85,10 +85,9 @@ describe("docs --for-ai (S53.5)", () => {
   });
 
   test("--commands narrows the cli list to the named slivers", async () => {
-    const r = await runCli(
-      ["docs", "--for-ai", "--commands", "today,init", "--format", "json"],
-      { home },
-    );
+    const r = await runCli(["docs", "--for-ai", "--commands", "today,init", "--format", "json"], {
+      home,
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const bundle = JSON.parse(r.stdout);
     const names = bundle.cli.map((c: { name: string }) => c.name).sort();

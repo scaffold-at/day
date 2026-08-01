@@ -16,17 +16,24 @@ const MONDAY = "2026-04-27";
 async function setupAndPlace(): Promise<string> {
   await runCli(["policy", "preset", "apply", "balanced"], { home });
   const add = await runCli(
-    [
-      "todo", "add",
-      "--title", "S39 me",
-      "--tag", "#deep-work",
-      "--duration-min", "60",
-    ],
+    ["todo", "add", "--title", "S39 me", "--tag", "#deep-work", "--duration-min", "60"],
     { home },
   );
-  const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)![1] as string;
+  const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)?.[1] as string;
   await runCli(
-    ["todo", "score", id, "--urgency", "8", "--impact", "8", "--effort", "3", "--reversibility", "5"],
+    [
+      "todo",
+      "score",
+      id,
+      "--urgency",
+      "8",
+      "--impact",
+      "8",
+      "--effort",
+      "3",
+      "--reversibility",
+      "5",
+    ],
     { home },
   );
   // Place at 10:00.
@@ -47,10 +54,14 @@ describe("day replan (S39)", () => {
     // Now add a colliding event at 10:00.
     await runCli(
       [
-        "event", "add",
-        "--title", "new meeting",
-        "--start", `${MONDAY}T10:00:00+09:00`,
-        "--end", `${MONDAY}T11:00:00+09:00`,
+        "event",
+        "add",
+        "--title",
+        "new meeting",
+        "--start",
+        `${MONDAY}T10:00:00+09:00`,
+        "--end",
+        `${MONDAY}T11:00:00+09:00`,
       ],
       { home },
     );
@@ -74,17 +85,20 @@ describe("day replan (S39)", () => {
     // Add a colliding event.
     await runCli(
       [
-        "event", "add",
-        "--title", "collide",
-        "--start", `${MONDAY}T10:00:00+09:00`,
-        "--end", `${MONDAY}T11:00:00+09:00`,
+        "event",
+        "add",
+        "--title",
+        "collide",
+        "--start",
+        `${MONDAY}T10:00:00+09:00`,
+        "--end",
+        `${MONDAY}T11:00:00+09:00`,
       ],
       { home },
     );
-    const r = await runCli(
-      ["day", "replan", MONDAY, "--scope", "all_unlocked", "--json"],
-      { home },
-    );
+    const r = await runCli(["day", "replan", MONDAY, "--scope", "all_unlocked", "--json"], {
+      home,
+    });
     expect(r.exitCode).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.kept).toBe(1);
@@ -101,10 +115,14 @@ describe("day replan (S39)", () => {
     // Block out the entire working window.
     await runCli(
       [
-        "event", "add",
-        "--title", "all-day",
-        "--start", `${MONDAY}T09:00:00+09:00`,
-        "--end", `${MONDAY}T18:00:00+09:00`,
+        "event",
+        "add",
+        "--title",
+        "all-day",
+        "--start",
+        `${MONDAY}T09:00:00+09:00`,
+        "--end",
+        `${MONDAY}T18:00:00+09:00`,
       ],
       { home },
     );
@@ -115,9 +133,7 @@ describe("day replan (S39)", () => {
     expect(out.dropped_ids).toHaveLength(1);
 
     // A conflict was synced to the partition.
-    const partition = JSON.parse(
-      await readFile(path.join(home, "conflicts/2026-04.json"), "utf8"),
-    );
+    const partition = JSON.parse(await readFile(path.join(home, "conflicts/2026-04.json"), "utf8"));
     expect(partition.conflicts.length).toBeGreaterThanOrEqual(1);
   });
 

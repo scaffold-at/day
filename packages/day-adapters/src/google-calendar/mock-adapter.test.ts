@@ -2,18 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { isScaffoldError, type FixedEvent } from "@scaffold/day-core";
+import { type FixedEvent, isScaffoldError } from "@scaffold/day-core";
 import { MockGoogleCalendarAdapter } from "./mock-adapter";
-import {
-  readSyncState,
-  syncStatePath,
-  writeSyncState,
-} from "./sync-state";
-import {
-  readGoogleOAuthToken,
-  tokenFilePath,
-  writeGoogleOAuthToken,
-} from "./token-storage";
+import { readSyncState, syncStatePath, writeSyncState } from "./sync-state";
+import { readGoogleOAuthToken, tokenFilePath, writeGoogleOAuthToken } from "./token-storage";
 
 let home: string;
 
@@ -56,9 +48,9 @@ describe("token-storage round-trip", () => {
     );
     const back = await readGoogleOAuthToken(home);
     expect(back).not.toBeNull();
-    expect(back!.access_token).toBe("AT");
-    expect(back!.refresh_token).toBe("RT");
-    expect(back!.account_email).toBe("test@example.com");
+    expect(back?.access_token).toBe("AT");
+    expect(back?.refresh_token).toBe("RT");
+    expect(back?.account_email).toBe("test@example.com");
 
     const { stat } = await import("node:fs/promises");
     const st = await stat(tokenFilePath(home));
@@ -99,8 +91,8 @@ describe("sync-state round-trip", () => {
     });
     const back = await readSyncState(home);
     expect(back).not.toBeNull();
-    expect(back!.sync_token).toBe("abc");
-    expect(back!.event_id_map.evt_01abcdefghi100).toBe("google-evt-1");
+    expect(back?.sync_token).toBe("abc");
+    expect(back?.event_id_map.evt_01abcdefghi100).toBe("google-evt-1");
 
     const { stat } = await import("node:fs/promises");
     const st = await stat(syncStatePath(home));
@@ -121,9 +113,9 @@ describe("MockGoogleCalendarAdapter — pull/push lifecycle", () => {
     });
     const state = await readSyncState(home);
     expect(state).not.toBeNull();
-    expect(state!.account).toBe("user@example.com");
-    expect(state!.calendar_id).toBe("primary");
-    expect(state!.sync_token).toBeNull();
+    expect(state?.account).toBe("user@example.com");
+    expect(state?.calendar_id).toBe("primary");
+    expect(state?.sync_token).toBeNull();
   });
 
   test("first pull returns full fixture; sync_token + last_sync_at advance", async () => {
@@ -137,9 +129,9 @@ describe("MockGoogleCalendarAdapter — pull/push lifecycle", () => {
     });
     expect(events).toHaveLength(1);
     const state = await readSyncState(home);
-    expect(state!.sync_token).toBe("mock-token-1");
-    expect(state!.event_id_map.evt_01abcdefghi100).toBe("g-1");
-    expect(state!.last_sync_at).not.toBeNull();
+    expect(state?.sync_token).toBe("mock-token-1");
+    expect(state?.event_id_map.evt_01abcdefghi100).toBe("g-1");
+    expect(state?.last_sync_at).not.toBeNull();
   });
 
   test("incremental: second pull returns [] when fixture flags incremental", async () => {
@@ -176,7 +168,7 @@ describe("MockGoogleCalendarAdapter — pull/push lifecycle", () => {
       expect(caught.summary.en).toContain("410");
     }
     const state = await readSyncState(home);
-    expect(state!.sync_token).toBeNull();
+    expect(state?.sync_token).toBeNull();
   });
 
   test("push records changes + returns synthetic external_ids", async () => {
@@ -205,7 +197,9 @@ describe("MockGoogleCalendarAdapter — pull/push lifecycle", () => {
       ],
     });
     await adapter.init({ home, account: { email: "u@example.com" } });
-    const r = await adapter.push([{ kind: "create", event: fixtureEvent("evt_01abcdefghi100", "g-1") }]);
+    const r = await adapter.push([
+      { kind: "create", event: fixtureEvent("evt_01abcdefghi100", "g-1") },
+    ]);
     expect(r[0]?.kind).toBe("error");
   });
 

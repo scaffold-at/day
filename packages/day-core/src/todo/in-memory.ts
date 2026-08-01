@@ -1,17 +1,7 @@
 import { ScaffoldError } from "../error";
 import { generateEntityId } from "../ids/entity-id";
-import type {
-  CreateTodoInput,
-  TodoFilter,
-  TodoRepository,
-  UpdateTodoInput,
-} from "./repository";
-import type {
-  TodoArchive,
-  TodoDetail,
-  TodoHistoryEntry,
-  TodoSummary,
-} from "./schemas";
+import type { CreateTodoInput, TodoFilter, TodoRepository, UpdateTodoInput } from "./repository";
+import type { TodoArchive, TodoDetail, TodoHistoryEntry, TodoSummary } from "./schemas";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -185,10 +175,7 @@ export class InMemoryTodoRepository implements TodoRepository {
     return clone(next);
   }
 
-  async archive(
-    id: string,
-    options: { reason?: string; by?: string } = {},
-  ): Promise<TodoArchive> {
+  async archive(id: string, options: { reason?: string; by?: string } = {}): Promise<TodoArchive> {
     const existing = this.active.get(id);
     if (!existing) throw notFound(id);
 

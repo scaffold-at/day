@@ -4,12 +4,7 @@ import { ScaffoldError } from "../error";
 import { atomicWrite } from "../fs/atomic-write";
 import { generateEntityId } from "../ids/entity-id";
 import { CURRENT_SCHEMA_VERSION, type SchemaVersion } from "../schema/version";
-import type {
-  CreateTodoInput,
-  TodoFilter,
-  TodoRepository,
-  UpdateTodoInput,
-} from "./repository";
+import type { CreateTodoInput, TodoFilter, TodoRepository, UpdateTodoInput } from "./repository";
 import {
   type TodoArchive,
   TodoArchiveSchema,
@@ -336,10 +331,7 @@ export class FsTodoRepository implements TodoRepository {
     return next;
   }
 
-  async archive(
-    id: string,
-    options: { reason?: string; by?: string } = {},
-  ): Promise<TodoArchive> {
+  async archive(id: string, options: { reason?: string; by?: string } = {}): Promise<TodoArchive> {
     const existing = await this.getDetail(id);
     if (!existing) throw notFound(id);
 
@@ -350,10 +342,7 @@ export class FsTodoRepository implements TodoRepository {
     const archive: TodoArchive = {
       ...existing,
       tags: [...existing.tags],
-      history: [
-        ...existing.history,
-        { at: now, by, kind: "archived", notes: reason, patch: null },
-      ],
+      history: [...existing.history, { at: now, by, kind: "archived", notes: reason, patch: null }],
       archived_at: now,
       archive_reason: reason,
       final_status: existing.status,
@@ -423,20 +412,14 @@ export class FsTodoRepository implements TodoRepository {
 
   private async writeIndex(index: TodosIndexFile): Promise<void> {
     await mkdir(this.activeDir(), { recursive: true });
-    await atomicWrite(
-      this.indexPath(),
-      `${JSON.stringify(index, null, 2)}\n`,
-      { mode: 0o600 },
-    );
+    await atomicWrite(this.indexPath(), `${JSON.stringify(index, null, 2)}\n`, { mode: 0o600 });
   }
 
   private async writeDetail(detail: TodoDetail): Promise<void> {
     await mkdir(this.detailDir(), { recursive: true });
-    await atomicWrite(
-      this.detailPath(detail.id),
-      `${JSON.stringify(detail, null, 2)}\n`,
-      { mode: 0o600 },
-    );
+    await atomicWrite(this.detailPath(detail.id), `${JSON.stringify(detail, null, 2)}\n`, {
+      mode: 0o600,
+    });
   }
 
   private async readArchive(month: string): Promise<ArchivePartitionFile> {
@@ -469,16 +452,11 @@ export class FsTodoRepository implements TodoRepository {
     }
   }
 
-  private async writeArchive(
-    month: string,
-    partition: ArchivePartitionFile,
-  ): Promise<void> {
+  private async writeArchive(month: string, partition: ArchivePartitionFile): Promise<void> {
     await mkdir(path.join(this.todosDir(), "archive"), { recursive: true });
-    await atomicWrite(
-      this.archivePath(month),
-      `${JSON.stringify(partition, null, 2)}\n`,
-      { mode: 0o600 },
-    );
+    await atomicWrite(this.archivePath(month), `${JSON.stringify(partition, null, 2)}\n`, {
+      mode: 0o600,
+    });
   }
 
   /**

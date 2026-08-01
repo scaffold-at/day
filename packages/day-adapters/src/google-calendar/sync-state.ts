@@ -1,7 +1,7 @@
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { ScaffoldError, atomicWrite } from "@scaffold/day-core";
 import { z } from "zod";
-import { atomicWrite, ScaffoldError } from "@scaffold/day-core";
 
 export const SYNC_DIR = "sync";
 export const GOOGLE_CALENDAR_STATE_FILE = "google-calendar.json";
@@ -35,9 +35,7 @@ export function syncStatePath(home: string): string {
   return path.join(home, SYNC_DIR, GOOGLE_CALENDAR_STATE_FILE);
 }
 
-export async function readSyncState(
-  home: string,
-): Promise<GoogleCalendarSyncState | null> {
+export async function readSyncState(home: string): Promise<GoogleCalendarSyncState | null> {
   const target = syncStatePath(home);
   try {
     const raw = await readFile(target, "utf8");
@@ -58,10 +56,7 @@ export async function readSyncState(
   }
 }
 
-export async function writeSyncState(
-  home: string,
-  state: GoogleCalendarSyncState,
-): Promise<void> {
+export async function writeSyncState(home: string, state: GoogleCalendarSyncState): Promise<void> {
   const target = syncStatePath(home);
   await mkdir(path.dirname(target), { recursive: true });
   const validated = GoogleCalendarSyncStateSchema.parse(state);

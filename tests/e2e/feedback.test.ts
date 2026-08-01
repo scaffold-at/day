@@ -18,13 +18,12 @@ describe("feedback (S66) — unconfigured transport", () => {
   });
 
   test("--json shows full payload preview without sending", async () => {
-    const r = await runCli(
-      ["feedback", "this command is confusing", "--json"],
-      {
-        home,
-        env: { /* no FEEDBACK_URL */ },
+    const r = await runCli(["feedback", "this command is confusing", "--json"], {
+      home,
+      env: {
+        /* no FEEDBACK_URL */
       },
-    );
+    });
     // No transport configured → exit 0 with guidance to GitHub Issues.
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
@@ -38,10 +37,7 @@ describe("feedback (S66) — unconfigured transport", () => {
 
   test("--include-doctor attaches a redacted bundle", async () => {
     await runCli(["init", "--force"], { home });
-    const r = await runCli(
-      ["feedback", "broken thing", "--include-doctor", "--json"],
-      { home },
-    );
+    const r = await runCli(["feedback", "broken thing", "--include-doctor", "--json"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.include_doctor).toBe(true);
@@ -63,10 +59,7 @@ describe("feedback (S66) — unconfigured transport", () => {
   });
 
   test("--dry-run prints a structured plan and writes nothing", async () => {
-    const r = await runCli(
-      ["feedback", "preview only", "--dry-run", "--json"],
-      { home },
-    );
+    const r = await runCli(["feedback", "preview only", "--dry-run", "--json"], { home });
     expect(r.exitCode).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.dry_run).toBe(true);

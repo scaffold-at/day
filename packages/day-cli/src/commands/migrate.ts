@@ -1,13 +1,13 @@
 import {
-  compareSchemaVersions,
-  createMigrationBackup,
   CURRENT_SCHEMA_VERSION,
-  defaultHomeDir,
-  findMigrationPath,
   MIGRATORS,
   ScaffoldError,
-  readSchemaVersionFile,
   type SchemaVersion,
+  compareSchemaVersions,
+  createMigrationBackup,
+  defaultHomeDir,
+  findMigrationPath,
+  readSchemaVersionFile,
   writeSchemaVersionFile,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
@@ -44,8 +44,10 @@ export const migrateCommand: Command = {
     when: "After upgrading scaffold-day, when `doctor` reports a version mismatch, or before any operation that requires the latest schema.",
     cost: "Local read of ~/scaffold-day/.scaffold-day/schema-version.json. On --apply: a full directory snapshot under .scaffold-day/.backups/<timestamp>/ before any migrator runs. No network.",
     input: "[--dry-run] (default — preview only) | [--apply] (run migrators after backup)",
-    return: "Exit 0 on success. DAY_NOT_INITIALIZED if home missing. DAY_SCHEMA_FUTURE_VERSION if data is newer than this binary. DAY_USAGE on flag conflicts.",
-    gotcha: "v0.1 ships zero migrators (noop). The plumbing exists so future version bumps are non-destructive. Backup runs before the FIRST migrator, not per-step. Tracking SLICES.md §S4.",
+    return:
+      "Exit 0 on success. DAY_NOT_INITIALIZED if home missing. DAY_SCHEMA_FUTURE_VERSION if data is newer than this binary. DAY_USAGE on flag conflicts.",
+    gotcha:
+      "v0.1 ships zero migrators (noop). The plumbing exists so future version bumps are non-destructive. Backup runs before the FIRST migrator, not per-step. Tracking SLICES.md §S4.",
   },
   run: async (args) => {
     const mode = parseFlags(args);
@@ -72,7 +74,7 @@ export const migrateCommand: Command = {
     if (ordering === 0) {
       console.log(`scaffold-day migrate (${mode})`);
       console.log(`  schema_version: ${file.schema_version} (already at target)`);
-      console.log(`  No migrations to apply.`);
+      console.log("  No migrations to apply.");
       return 0;
     }
 
@@ -112,7 +114,7 @@ export const migrateCommand: Command = {
     }
 
     if (mode === "dry-run") {
-      console.log(`\n(dry-run) no changes written. Re-run with --apply to execute.`);
+      console.log("\n(dry-run) no changes written. Re-run with --apply to execute.");
       return 0;
     }
 

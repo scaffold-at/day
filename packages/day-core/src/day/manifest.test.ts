@@ -41,13 +41,7 @@ async function exists(p: string): Promise<boolean> {
 
 describe("FsDayStore — manifest auto-refresh", () => {
   test("5 days created → manifest has 5 entries (sorted)", async () => {
-    const dates = [
-      "2026-04-26",
-      "2026-04-27",
-      "2026-04-28",
-      "2026-04-29",
-      "2026-04-30",
-    ];
+    const dates = ["2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30"];
     for (const [i, d] of dates.entries()) {
       await store.addEvent(
         d,
@@ -61,10 +55,10 @@ describe("FsDayStore — manifest auto-refresh", () => {
 
     const manifest = await store.readManifest("2026-04");
     expect(manifest).not.toBeNull();
-    expect(manifest!.month).toBe("2026-04");
-    expect(manifest!.days).toHaveLength(5);
-    expect(manifest!.days.map((d) => d.date)).toEqual(dates);
-    for (const entry of manifest!.days) {
+    expect(manifest?.month).toBe("2026-04");
+    expect(manifest?.days).toHaveLength(5);
+    expect(manifest?.days.map((d) => d.date)).toEqual(dates);
+    for (const entry of manifest?.days ?? []) {
       expect(entry.event_count).toBe(1);
       expect(entry.placement_count).toBe(0);
       expect(entry.conflicts_open_count).toBe(0);
@@ -72,13 +66,7 @@ describe("FsDayStore — manifest auto-refresh", () => {
   });
 
   test("deleting a day file then refreshManifest → 4 entries", async () => {
-    const dates = [
-      "2026-04-26",
-      "2026-04-27",
-      "2026-04-28",
-      "2026-04-29",
-      "2026-04-30",
-    ];
+    const dates = ["2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30"];
     for (const [i, d] of dates.entries()) {
       await store.addEvent(
         d,
@@ -104,7 +92,7 @@ describe("FsDayStore — manifest auto-refresh", () => {
 
     // Reading it back from disk gives the same picture.
     const onDisk = await store.readManifest("2026-04");
-    expect(onDisk!.days).toHaveLength(4);
+    expect(onDisk?.days).toHaveLength(4);
   });
 
   test("refreshManifest with zero remaining days deletes the manifest file", async () => {
@@ -131,7 +119,7 @@ describe("FsDayStore — manifest auto-refresh", () => {
       title: "x",
       tags: [],
       importance_score: 50,
-  importance_at_placement: null,
+      importance_at_placement: null,
       duration_min: 60,
       placed_by: "user",
       placed_at: "2026-04-26T09:00:00+09:00",
@@ -143,7 +131,7 @@ describe("FsDayStore — manifest auto-refresh", () => {
 
     const manifest = await store.readManifest("2026-04");
     expect(manifest).not.toBeNull();
-    const entry = manifest!.days.find((d) => d.date === "2026-04-26")!;
+    const entry = manifest?.days.find((d) => d.date === "2026-04-26")!;
     expect(entry.event_count).toBe(1);
     expect(entry.placement_count).toBe(1);
     expect(entry.conflicts_open_count).toBe(1);

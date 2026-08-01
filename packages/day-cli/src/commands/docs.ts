@@ -1,4 +1,4 @@
-import { defaultHomeDir, ScaffoldError } from "@scaffold/day-core";
+import { ScaffoldError, defaultHomeDir } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { commands } from "../cli/registry";
 import { buildBundle, renderMarkdown, renderYaml } from "./docs-bundle";
@@ -35,7 +35,7 @@ export async function runDocsForAi(args: string[]): Promise<number> {
       if (v !== "markdown" && v !== "json" && v !== "yaml") {
         throw new ScaffoldError({
           code: "DAY_INVALID_INPUT",
-          summary: { en: `--format must be markdown|json|yaml` },
+          summary: { en: "--format must be markdown|json|yaml" },
           cause: `Got: ${v}`,
           try: ["Pick one of markdown, json, yaml."],
         });
@@ -47,7 +47,10 @@ export async function runDocsForAi(args: string[]): Promise<number> {
     } else if (a === "--mcp-only") {
       scope = "mcp";
     } else if (a === "--commands") {
-      filter = takeValue(args, i, "--commands").split(",").map((s) => s.trim()).filter(Boolean);
+      filter = takeValue(args, i, "--commands")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       i++;
     } else {
       throw usage(`docs: unexpected argument '${a}'`);
@@ -77,9 +80,11 @@ export const docsCommand: Command = {
     what: "`docs --for-ai` returns the entire surface — CLI commands + MCP tools + JTBD recipes — in markdown / json / yaml so an AI client can paste it once and stay token-efficient.",
     when: "When booting a fresh AI session that needs to reason about scaffold-day. Or as the source of `AGENTS.md` (§S53.7) and the docs site (§S53/§S53.8).",
     cost: "Local, in-memory. No file I/O beyond reading the registry.",
-    input: "--for-ai [--format markdown|json|yaml] [--cli-only|--mcp-only] [--commands name,name,...]",
+    input:
+      "--for-ai [--format markdown|json|yaml] [--cli-only|--mcp-only] [--commands name,name,...]",
     return: "Stdout. Exit 0.",
-    gotcha: "v0.1 emits ~10K char markdown for the full bundle (well within Claude's window). Use --commands to fetch a sliver. Tracking SLICES.md §S53.5 (cmd) / §S53.7 (AGENTS.md generator) / §S53.8 (CLI reference).",
+    gotcha:
+      "v0.1 emits ~10K char markdown for the full bundle (well within Claude's window). Use --commands to fetch a sliver. Tracking SLICES.md §S53.5 (cmd) / §S53.7 (AGENTS.md generator) / §S53.8 (CLI reference).",
   },
   run: async (args) => {
     if (!args.includes("--for-ai")) {

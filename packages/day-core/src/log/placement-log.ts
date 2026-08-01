@@ -1,17 +1,13 @@
 import { mkdir, open } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { ISODateTimeSchema } from "../ids/schemas";
 import { entityIdSchemaOf } from "../ids/entity-id";
+import { ISODateTimeSchema } from "../ids/schemas";
 
 const PlacementIdSchema = entityIdSchemaOf("placement");
 const TodoIdSchema = entityIdSchemaOf("todo");
 
-export const PlacementLogActionSchema = z.enum([
-  "placed",
-  "overridden",
-  "removed",
-]);
+export const PlacementLogActionSchema = z.enum(["placed", "overridden", "removed"]);
 export type PlacementLogAction = z.infer<typeof PlacementLogActionSchema>;
 
 export const PlacementLogEntrySchema = z.object({
@@ -27,9 +23,7 @@ export const PlacementLogEntrySchema = z.object({
   policy_hash: z.string().nullable(),
   reason: z.string().nullable(),
   /** For "overridden", the previous (start, end) the placement moved from. */
-  previous: z
-    .object({ start: ISODateTimeSchema, end: ISODateTimeSchema })
-    .nullable(),
+  previous: z.object({ start: ISODateTimeSchema, end: ISODateTimeSchema }).nullable(),
 });
 export type PlacementLogEntry = z.infer<typeof PlacementLogEntrySchema>;
 
@@ -58,10 +52,7 @@ export const ConflictLogEntrySchema = z.object({
 });
 export type ConflictLogEntry = z.infer<typeof ConflictLogEntrySchema>;
 
-export async function appendConflictLog(
-  home: string,
-  entry: ConflictLogEntry,
-): Promise<void> {
+export async function appendConflictLog(home: string, entry: ConflictLogEntry): Promise<void> {
   const validated = ConflictLogEntrySchema.parse(entry);
   const month = validated.date.slice(0, 7);
   const target = conflictLogPath(home, month);
@@ -82,10 +73,7 @@ export async function appendConflictLog(
  * always reaches disk before the day file does (§S21 transactional
  * order: log → day).
  */
-export async function appendPlacementLog(
-  home: string,
-  entry: PlacementLogEntry,
-): Promise<void> {
+export async function appendPlacementLog(home: string, entry: PlacementLogEntry): Promise<void> {
   const validated = PlacementLogEntrySchema.parse(entry);
   const month = validated.date.slice(0, 7);
   const target = placementLogPath(home, month);

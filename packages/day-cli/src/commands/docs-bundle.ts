@@ -80,7 +80,7 @@ export function buildBundle(options: BuildBundleOptions): DocsBundle {
       {
         label: "Add a TODO and place it",
         flow: [
-          "scaffold-day todo add --title \"...\"   (MCP) create_todo",
+          'scaffold-day todo add --title "..."   (MCP) create_todo',
           "scaffold-day todo score <id> --ai      (MCP) compute_task_importance",
           "scaffold-day place suggest <id> --json (MCP) suggest_placement",
           "scaffold-day place do <id> --slot ...  (MCP) place_todo",
@@ -109,7 +109,9 @@ export function renderMarkdown(bundle: DocsBundle): string {
   const lines: string[] = [];
   lines.push(`# scaffold-day v${bundle.scaffold_day.version} — for AI`);
   lines.push("");
-  lines.push("**Identity.** scaffold-day is a CLI-first OSS that places TODOs into a calendar's free slots, with an AI client (Claude Code / Cursor / Claude Desktop) as a first-class user. Same surface via CLI flags or MCP tools.");
+  lines.push(
+    "**Identity.** scaffold-day is a CLI-first OSS that places TODOs into a calendar's free slots, with an AI client (Claude Code / Cursor / Claude Desktop) as a first-class user. Same surface via CLI flags or MCP tools.",
+  );
   lines.push("");
   lines.push("**Quick start.**");
   lines.push("```");
@@ -118,7 +120,9 @@ export function renderMarkdown(bundle: DocsBundle): string {
   lines.push("scaffold-day docs --for-ai   # this document");
   lines.push("```");
   lines.push("");
-  lines.push("**Token efficiency.** Default to `--json`; for AI clients prefer the MCP tool surface (one tool call per question) over piping CLI text.");
+  lines.push(
+    "**Token efficiency.** Default to `--json`; for AI clients prefer the MCP tool surface (one tool call per question) over piping CLI text.",
+  );
   lines.push("");
   lines.push("## JTBD → call flow");
   lines.push("");
@@ -154,7 +158,7 @@ export function renderMarkdown(bundle: DocsBundle): string {
       lines.push("");
       lines.push(`> ${t.description}`);
       lines.push("");
-      lines.push(`**inputSchema:**`);
+      lines.push("**inputSchema:**");
       lines.push("```json");
       lines.push(JSON.stringify(t.inputSchema, null, 2));
       lines.push("```");
@@ -168,7 +172,7 @@ export function renderMarkdown(bundle: DocsBundle): string {
 
 export function renderYaml(bundle: DocsBundle): string {
   const lines: string[] = [];
-  lines.push(`scaffold_day:`);
+  lines.push("scaffold_day:");
   lines.push(`  version: ${bundle.scaffold_day.version}`);
   lines.push(`  home: ${JSON.stringify(bundle.scaffold_day.home)}`);
   if (bundle.cli.length > 0) {

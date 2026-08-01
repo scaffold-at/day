@@ -73,10 +73,7 @@ describe("event add", () => {
       await readFile(path.join(home, "days/2026-04/2026-04-26.json"), "utf8"),
     );
     expect(onDisk.events).toHaveLength(2);
-    expect(onDisk.events.map((e: { title: string }) => e.title)).toEqual([
-      "Standup",
-      "1:1",
-    ]);
+    expect(onDisk.events.map((e: { title: string }) => e.title)).toEqual(["Standup", "1:1"]);
   });
 
   test("end <= start → DAY_INVALID_INPUT exit 65", async () => {
@@ -167,7 +164,7 @@ describe("event update / delete (S80)", () => {
     expect(r.exitCode, r.stderr).toBe(0);
     const m = /id:\s+(evt_[a-z0-9]{14})/.exec(r.stdout);
     expect(m, r.stdout).not.toBeNull();
-    return m![1] as string;
+    return m?.[1] as string;
   }
 
   test("update patches title in place and bumps synced_at", async () => {
@@ -182,10 +179,9 @@ describe("event update / delete (S80)", () => {
     );
     const beforeSynced = before.events[0].synced_at;
 
-    const r = await runCli(
-      ["event", "update", id, "--title", "Standup (renamed)", "--json"],
-      { home },
-    );
+    const r = await runCli(["event", "update", id, "--title", "Standup (renamed)", "--json"], {
+      home,
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.event.title).toBe("Standup (renamed)");
@@ -242,26 +238,14 @@ describe("event update / delete (S80)", () => {
       start: "09:00",
       end: "10:00",
     });
-    const r = await runCli(
-      [
-        "event",
-        "update",
-        id,
-        "--end",
-        `2026-04-26T08:00:00${KST}`,
-      ],
-      { home },
-    );
+    const r = await runCli(["event", "update", id, "--end", `2026-04-26T08:00:00${KST}`], { home });
     expect(r.exitCode).toBe(65);
     expect(r.stderr).toContain("DAY_INVALID_INPUT");
     expect(r.stderr).toContain("--end must be after --start");
   });
 
   test("update on unknown id → DAY_NOT_FOUND", async () => {
-    const r = await runCli(
-      ["event", "update", "evt_00000000000000", "--title", "y"],
-      { home },
-    );
+    const r = await runCli(["event", "update", "evt_00000000000000", "--title", "y"], { home });
     expect(r.exitCode).toBe(66);
     expect(r.stderr).toContain("DAY_NOT_FOUND");
   });
@@ -298,10 +282,7 @@ describe("event update / delete (S80)", () => {
       start: "14:00",
       end: "14:30",
     });
-    const r = await runCli(
-      ["event", "delete", id, "--date", "2026-04-26"],
-      { home },
-    );
+    const r = await runCli(["event", "delete", id, "--date", "2026-04-26"], { home });
     expect(r.exitCode, r.stderr).toBe(0);
   });
 });
@@ -318,10 +299,7 @@ describe("day get / today / week — JSON contracts", () => {
       tag: "#meeting",
     });
 
-    const r = await runCli(
-      ["day", "get", "2026-04-26", "--json", "--tz", TZ],
-      { home },
-    );
+    const r = await runCli(["day", "get", "2026-04-26", "--json", "--tz", TZ], { home });
     expect(r.exitCode).toBe(0);
     const view = JSON.parse(r.stdout);
     expect(view.date).toBe("2026-04-26");
@@ -348,10 +326,7 @@ describe("day get / today / week — JSON contracts", () => {
 
   test("week --start --json returns 7 days", async () => {
     const start = "2026-04-26";
-    const r = await runCli(
-      ["week", "--start", start, "--json", "--tz", TZ],
-      { home },
-    );
+    const r = await runCli(["week", "--start", start, "--json", "--tz", TZ], { home });
     expect(r.exitCode).toBe(0);
     const view = JSON.parse(r.stdout);
     expect(view.week_start).toBe(start);
@@ -363,10 +338,9 @@ describe("day get / today / week — JSON contracts", () => {
 
   test("day range --json honors inclusive bounds", async () => {
     await addEvent({ title: "x", date: "2026-04-26", start: "09:00", end: "10:00" });
-    const r = await runCli(
-      ["day", "range", "2026-04-26", "2026-04-28", "--json", "--tz", TZ],
-      { home },
-    );
+    const r = await runCli(["day", "range", "2026-04-26", "2026-04-28", "--json", "--tz", TZ], {
+      home,
+    });
     expect(r.exitCode).toBe(0);
     const view = JSON.parse(r.stdout);
     expect(view.range_start).toBe("2026-04-26");
@@ -377,10 +351,7 @@ describe("day get / today / week — JSON contracts", () => {
   });
 
   test("day range with end before start → DAY_INVALID_INPUT", async () => {
-    const r = await runCli(
-      ["day", "range", "2026-04-28", "2026-04-26", "--tz", TZ],
-      { home },
-    );
+    const r = await runCli(["day", "range", "2026-04-28", "2026-04-26", "--tz", TZ], { home });
     expect(r.exitCode).toBe(65);
     expect(r.stderr).toContain("DAY_INVALID_INPUT");
   });

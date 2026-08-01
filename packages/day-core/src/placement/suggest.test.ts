@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { type Day, type FixedEvent } from "../day";
+import type { Day, FixedEvent } from "../day";
 import { BALANCED_PRESET } from "../policy";
-import { suggestPlacements, type SuggestionInput } from "./suggest";
+import { type SuggestionInput, suggestPlacements } from "./suggest";
 
 const TZ = "+09:00";
 const DATE = "2026-04-27"; // Monday in 2026
@@ -60,23 +60,18 @@ describe("suggestPlacements", () => {
   test("each candidate's score = importance + soft_total + reactivity_penalty", () => {
     const result = suggestPlacements(baseInput());
     for (const c of result.candidates) {
-      expect(c.score).toBeCloseTo(
-        c.importance + c.soft_total + c.reactivity_penalty,
-        6,
-      );
+      expect(c.score).toBeCloseTo(c.importance + c.soft_total + c.reactivity_penalty, 6);
     }
   });
 
   test("higher score sorts first; ranks are 1..N", () => {
     const result = suggestPlacements(baseInput());
-    let prev = Infinity;
+    let prev = Number.POSITIVE_INFINITY;
     for (const c of result.candidates) {
       expect(c.score).toBeLessThanOrEqual(prev + 1e-9);
       prev = c.score;
     }
-    expect(result.candidates.map((c) => c.rank)).toEqual(
-      result.candidates.map((_, i) => i + 1),
-    );
+    expect(result.candidates.map((c) => c.rank)).toEqual(result.candidates.map((_, i) => i + 1));
   });
 
   test("deep-work in 09-12 range receives the prefer_tag_in_range bonus", () => {
@@ -89,10 +84,10 @@ describe("suggestPlacements", () => {
       timeZone: "Asia/Seoul",
       hour: "2-digit",
       hour12: false,
-    }).format(new Date(top!.start));
+    }).format(new Date(top?.start));
     expect(Number(localHour)).toBeGreaterThanOrEqual(9);
     expect(Number(localHour)).toBeLessThan(12);
-    expect(top!.contributions.some((c) => c.preference.kind === "prefer_tag_in_range")).toBe(true);
+    expect(top?.contributions.some((c) => c.preference.kind === "prefer_tag_in_range")).toBe(true);
   });
 
   test("packed day with no free room yields zero candidates with a no_fit_reason", () => {
@@ -101,19 +96,15 @@ describe("suggestPlacements", () => {
       event(DATE, "12:00", "13:00", "lunch"), // overlaps protected lunch anyway
       event(DATE, "13:00", "18:00", "block-pm"),
     ]);
-    const result = suggestPlacements(
-      baseInput({ daysByDate: new Map([[DATE, packed]]) }),
-    );
+    const result = suggestPlacements(baseInput({ daysByDate: new Map([[DATE, packed]]) }));
     expect(result.candidates).toHaveLength(0);
     expect(result.no_fit_reason).not.toBeNull();
-    expect(result.no_fit_reason!.length).toBeGreaterThan(0);
+    expect(result.no_fit_reason?.length).toBeGreaterThan(0);
   });
 
   test("weekend day with no working_hours falls through to no_fit_reason", () => {
     const SAT = "2026-04-25"; // Saturday in 2026
-    const result = suggestPlacements(
-      baseInput({ daysByDate: new Map([[SAT, dayOf(SAT)]]) }),
-    );
+    const result = suggestPlacements(baseInput({ daysByDate: new Map([[SAT, dayOf(SAT)]]) }));
     expect(result.candidates).toHaveLength(0);
     expect(result.no_fit_reason).toContain("no working hours");
   });

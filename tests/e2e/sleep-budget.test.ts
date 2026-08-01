@@ -45,10 +45,10 @@ describe("sleep_budget integration (S58)", () => {
       { home },
     );
     const id = JSON.parse(todo.stdout).id;
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07 },
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.candidates.length).toBeGreaterThan(0);
@@ -90,10 +90,10 @@ describe("sleep_budget integration (S58)", () => {
     );
     const id = JSON.parse(todo.stdout).id;
 
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "2"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "2"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07 },
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.candidates.length).toBeGreaterThan(0);
@@ -111,10 +111,10 @@ describe("sleep_budget integration (S58)", () => {
       { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
     );
     const id = JSON.parse(todo.stdout).id;
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07 },
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
     // Either sleep_budget is null on the breakdown, or its severity
@@ -137,10 +137,10 @@ describe("sleep_budget integration (S58)", () => {
       { home },
     );
     const id = JSON.parse(todo.stdout).id;
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07 },
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
     for (const c of out.candidates) {

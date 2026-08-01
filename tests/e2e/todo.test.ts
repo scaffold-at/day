@@ -17,7 +17,7 @@ async function addBasic(title = "Write S17"): Promise<string> {
   expect(r.exitCode, r.stderr).toBe(0);
   const m = /id:\s+(todo_[a-z0-9]{14})/.exec(r.stdout);
   expect(m).not.toBeNull();
-  return m![1] as string;
+  return m?.[1] as string;
 }
 
 describe("todo add / list / get", () => {
@@ -41,10 +41,7 @@ describe("todo add / list / get", () => {
   test("list filters by status / tag / has-deadline", async () => {
     await runCli(["todo", "add", "--title", "A"], { home });
     await runCli(["todo", "add", "--title", "B", "--tag", "#admin"], { home });
-    await runCli(
-      ["todo", "add", "--title", "C", "--tag", "#deadline:2026-05-01"],
-      { home },
-    );
+    await runCli(["todo", "add", "--title", "C", "--tag", "#deadline:2026-05-01"], { home });
 
     const admin = JSON.parse(
       (await runCli(["todo", "list", "--tag", "#admin", "--json"], { home })).stdout,
@@ -59,10 +56,7 @@ describe("todo add / list / get", () => {
     const noDeadlines = JSON.parse(
       (await runCli(["todo", "list", "--no-deadline", "--json"], { home })).stdout,
     );
-    expect(noDeadlines.items.map((s: { title: string }) => s.title).sort()).toEqual([
-      "A",
-      "B",
-    ]);
+    expect(noDeadlines.items.map((s: { title: string }) => s.title).sort()).toEqual(["A", "B"]);
   });
 
   test("add without --title → DAY_USAGE", async () => {
@@ -93,16 +87,11 @@ describe("todo update / archive", () => {
 
   test("archive moves the todo into the YYYY-MM partition", async () => {
     const id = await addBasic();
-    const r = await runCli(
-      ["todo", "archive", id, "--reason", "shipped"],
-      { home },
-    );
+    const r = await runCli(["todo", "archive", id, "--reason", "shipped"], { home });
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("shipped");
 
-    const list = JSON.parse(
-      (await runCli(["todo", "list", "--json"], { home })).stdout,
-    );
+    const list = JSON.parse((await runCli(["todo", "list", "--json"], { home })).stdout);
     expect(list.items).toHaveLength(0);
   });
 });
@@ -151,8 +140,17 @@ describe("todo score", () => {
     const id = await addBasic();
     const r = await runCli(
       [
-        "todo", "score", id,
-        "--urgency", "5", "--impact", "5", "--effort", "5", "--reversibility", "5",
+        "todo",
+        "score",
+        id,
+        "--urgency",
+        "5",
+        "--impact",
+        "5",
+        "--effort",
+        "5",
+        "--reversibility",
+        "5",
       ],
       { home },
     );
@@ -176,8 +174,17 @@ describe("todo score", () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
     const r = await runCli(
       [
-        "todo", "score", "todo_00000000000000",
-        "--urgency", "5", "--impact", "5", "--effort", "5", "--reversibility", "5",
+        "todo",
+        "score",
+        "todo_00000000000000",
+        "--urgency",
+        "5",
+        "--impact",
+        "5",
+        "--effort",
+        "5",
+        "--reversibility",
+        "5",
       ],
       { home },
     );
@@ -195,9 +202,7 @@ describe("todo score", () => {
     expect(r.exitCode, r.stderr).toBe(0);
     expect(r.stdout).toMatch(/score:\s+\d+\.\d+\s+\/ 100/);
 
-    const detail = JSON.parse(
-      (await runCli(["todo", "get", id, "--json"], { home })).stdout,
-    );
+    const detail = JSON.parse((await runCli(["todo", "get", id, "--json"], { home })).stdout);
     expect(detail.importance).not.toBeNull();
     // MockAIProvider's neutral defaults yield the §S16 baseline score
     // (urgency=impact=effort=reversibility=5 → 34.905 under Balanced).
@@ -208,10 +213,7 @@ describe("todo score", () => {
   test("--ai with unknown provider → DAY_PROVIDER_UNAVAILABLE", async () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
     const id = await addBasic();
-    const r = await runCli(
-      ["todo", "score", id, "--ai", "--ai-provider", "nope"],
-      { home },
-    );
+    const r = await runCli(["todo", "score", id, "--ai", "--ai-provider", "nope"], { home });
     expect(r.exitCode).toBe(69);
     expect(r.stderr).toContain("DAY_PROVIDER_UNAVAILABLE");
   });
@@ -221,9 +223,21 @@ describe("todo score", () => {
     const id = await addBasic();
     const r = await runCli(
       [
-        "todo", "score", id, "--json",
-        "--urgency", "5", "--impact", "5", "--effort", "5", "--reversibility", "5",
-        "--deadline", "hard", "--external-dependency",
+        "todo",
+        "score",
+        id,
+        "--json",
+        "--urgency",
+        "5",
+        "--impact",
+        "5",
+        "--effort",
+        "5",
+        "--reversibility",
+        "5",
+        "--deadline",
+        "hard",
+        "--external-dependency",
       ],
       { home },
     );

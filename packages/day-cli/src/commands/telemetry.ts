@@ -1,15 +1,15 @@
 import os from "node:os";
 import {
-  defaultHomeDir,
-  installIdPath,
-  readOrCreateInstallId,
-  readInstallId,
-  readTelemetryConfig,
-  resetInstallId,
   ScaffoldError,
-  telemetryConfigPath,
   type TelemetryConfig,
   type TelemetryState,
+  defaultHomeDir,
+  installIdPath,
+  readInstallId,
+  readOrCreateInstallId,
+  readTelemetryConfig,
+  resetInstallId,
+  telemetryConfigPath,
   writeTelemetryConfig,
 } from "@scaffold/day-core";
 import pkg from "../../package.json" with { type: "json" };
@@ -29,8 +29,7 @@ const POSTHOG_KEY_ENV = "SCAFFOLD_DAY_POSTHOG_KEY";
  * with an empty string to disable transport entirely.
  */
 const DEFAULT_POSTHOG_URL = "https://us.i.posthog.com";
-const DEFAULT_POSTHOG_KEY =
-  "phc_zDaXC9LbtdEM28pkVCEPvxaG2GoaQ3tkUif2tnjmKzXd";
+const DEFAULT_POSTHOG_KEY = "phc_zDaXC9LbtdEM28pkVCEPvxaG2GoaQ3tkUif2tnjmKzXd";
 
 function effectivePostHogUrl(): string | null {
   const env = process.env[POSTHOG_URL_ENV];
@@ -88,7 +87,9 @@ async function runStatus(home: string, json: boolean): Promise<number> {
   console.log(`  install_id:   ${id ?? "(not yet generated)"}`);
   console.log(`  transport:    ${transport_configured ? "configured" : "not configured"}`);
   if (!transport_configured) {
-    console.log(`  note:         set ${POSTHOG_URL_ENV} + ${POSTHOG_KEY_ENV} to enable transmission`);
+    console.log(
+      `  note:         set ${POSTHOG_URL_ENV} + ${POSTHOG_KEY_ENV} to enable transmission`,
+    );
   }
   return 0;
 }
@@ -117,7 +118,7 @@ async function runSet(home: string, state: TelemetryState, json: boolean): Promi
       const url = effectivePostHogUrl();
       const key = effectivePostHogKey();
       if (!url || !key) {
-        console.log(`  note:       transport disabled (env override empties URL/key)`);
+        console.log("  note:       transport disabled (env override empties URL/key)");
       } else {
         console.log(`  transport:  ${url}`);
       }
@@ -227,7 +228,8 @@ export const telemetryCommand: Command = {
     cost: "Local config write only. Each captured event (state=on, transport configured) is one HTTPS POST to PostHog.",
     input: "status (default) | on | off | ask | show-id | reset-id [--json] [--dry-run]",
     return: "Exit 0. JSON mirrors the on-disk config plus transport state.",
-    gotcha: "Default is `ask` — nothing is sent until you opt in. Even with state=on, transport is a no-op until SCAFFOLD_DAY_POSTHOG_URL + _KEY are set. Tracking SLICES.md §S45 / issue #3 §S65.",
+    gotcha:
+      "Default is `ask` — nothing is sent until you opt in. Even with state=on, transport is a no-op until SCAFFOLD_DAY_POSTHOG_URL + _KEY are set. Tracking SLICES.md §S45 / issue #3 §S65.",
   },
   run: async (args) => runTelemetry(args),
 };

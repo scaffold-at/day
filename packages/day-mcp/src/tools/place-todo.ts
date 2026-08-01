@@ -1,16 +1,16 @@
 import {
+  FsDayStore,
+  FsTodoRepository,
+  ISODateTimeSchema,
+  type Placement,
+  ScaffoldError,
   appendPlacementLog,
   compilePolicy,
   defaultHomeDir,
   entityIdSchemaOf,
   evaluateHardRules,
-  FsDayStore,
-  FsTodoRepository,
   generateEntityId,
-  ISODateTimeSchema,
-  type Placement,
   readPolicyYaml,
-  ScaffoldError,
   writePolicySnapshot,
 } from "@scaffold/day-core";
 import { z } from "zod";
@@ -30,7 +30,10 @@ const inputJsonSchema = {
   type: "object",
   properties: {
     todo_id: { type: "string", pattern: "^todo_[a-z0-9]{14}$" },
-    slot: { type: "string", description: "ISO 8601 datetime with explicit TZ (e.g. 2026-04-27T10:00:00+09:00)" },
+    slot: {
+      type: "string",
+      description: "ISO 8601 datetime with explicit TZ (e.g. 2026-04-27T10:00:00+09:00)",
+    },
     lock: { type: "boolean", description: "Mark the placement locked so replan won't move it." },
     by: { type: "string", description: "Attribution (default: 'ai' for MCP calls)." },
   },

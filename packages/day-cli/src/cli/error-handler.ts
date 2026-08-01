@@ -1,8 +1,8 @@
 import {
+  ScaffoldError,
   formatErrorJson,
   formatErrorText,
   isScaffoldError,
-  ScaffoldError,
 } from "@scaffold/day-core";
 
 export type CliErrorOptions = {
@@ -25,8 +25,7 @@ export function handleCliError(err: unknown, options: CliErrorOptions): number {
 }
 
 function wrapAsInternal(err: unknown): ScaffoldError {
-  const message =
-    err instanceof Error ? err.message : typeof err === "string" ? err : String(err);
+  const message = err instanceof Error ? err.message : typeof err === "string" ? err : String(err);
   const stack = err instanceof Error ? err.stack : undefined;
   return new ScaffoldError({
     code: "DAY_INTERNAL",

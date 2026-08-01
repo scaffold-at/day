@@ -30,6 +30,9 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Lint (Biome)
+        run: bun run lint
+
       - name: Validate `--help` template (§S2.5)
         run: bun run validate:help
 

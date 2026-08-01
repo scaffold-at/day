@@ -42,23 +42,15 @@ describe("cognitive_load integration (S59)", () => {
 
     // 90-minute heavy todo.
     const todo = await runCli(
-      [
-        "todo",
-        "add",
-        "--title",
-        "deep-work block",
-        "--duration-min",
-        "90",
-        "--json",
-      ],
+      ["todo", "add", "--title", "deep-work block", "--duration-min", "90", "--json"],
       { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
     );
     const id = JSON.parse(todo.stdout).id;
 
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1", "--max", "10"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1", "--max", "10"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07 },
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
     expect(out.candidates.length).toBeGreaterThan(2);
@@ -73,7 +65,7 @@ describe("cognitive_load integration (S59)", () => {
       const hour = Number(c.start.slice(11, 13));
       return hour >= 14;
     });
-    if (lateAfternoon && lateAfternoon.cognitive_load) {
+    if (lateAfternoon?.cognitive_load) {
       expect(["soft", "ok"]).toContain(lateAfternoon.cognitive_load.severity);
       if (lateAfternoon.cognitive_load.severity === "soft") {
         expect(lateAfternoon.cognitive_load.penalty).toBeLessThan(0);
@@ -88,23 +80,15 @@ describe("cognitive_load integration (S59)", () => {
 
     // 30-minute light todo.
     const todo = await runCli(
-      [
-        "todo",
-        "add",
-        "--title",
-        "quick admin",
-        "--duration-min",
-        "30",
-        "--json",
-      ],
+      ["todo", "add", "--title", "quick admin", "--duration-min", "30", "--json"],
       { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
     );
     const id = JSON.parse(todo.stdout).id;
 
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1", "--max", "10"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1", "--max", "10"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07 },
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
     for (const c of out.candidates) {
@@ -119,22 +103,14 @@ describe("cognitive_load integration (S59)", () => {
     await runCli(["init", "--force"], { home });
     await runCli(["morning"], { home, env: { SCAFFOLD_DAY_NOW: KST_07 } });
     const todo = await runCli(
-      [
-        "todo",
-        "add",
-        "--title",
-        "no-cog policy",
-        "--duration-min",
-        "120",
-        "--json",
-      ],
+      ["todo", "add", "--title", "no-cog policy", "--duration-min", "120", "--json"],
       { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
     );
     const id = JSON.parse(todo.stdout).id;
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07 },
+    });
     const out = JSON.parse(r.stdout);
     for (const c of out.candidates) {
       const cl = c.cognitive_load;
@@ -150,10 +126,10 @@ describe("cognitive_load integration (S59)", () => {
       { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
     );
     const id = JSON.parse(todo.stdout).id;
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1", "--max", "20"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07 } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1", "--max", "20"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07 },
+    });
     const out = JSON.parse(r.stdout);
     const soft = out.candidates.find(
       (c: { cognitive_load: { severity: string } | null }) =>

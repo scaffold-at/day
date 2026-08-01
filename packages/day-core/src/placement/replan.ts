@@ -1,5 +1,5 @@
-import { type Day, type Placement } from "../day";
-import { type Policy } from "../policy";
+import type { Day, Placement } from "../day";
+import type { Policy } from "../policy";
 import { suggestPlacements } from "./suggest";
 
 export type ReplanScope = "flexible_only" | "all_unlocked";

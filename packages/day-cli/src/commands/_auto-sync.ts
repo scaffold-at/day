@@ -50,9 +50,7 @@ function shiftDate(date: string, delta: number): string {
 }
 
 function todayInSystemTz(): string {
-  const now = process.env.SCAFFOLD_DAY_NOW
-    ? new Date(process.env.SCAFFOLD_DAY_NOW)
-    : new Date();
+  const now = process.env.SCAFFOLD_DAY_NOW ? new Date(process.env.SCAFFOLD_DAY_NOW) : new Date();
   return now.toISOString().slice(0, 10);
 }
 

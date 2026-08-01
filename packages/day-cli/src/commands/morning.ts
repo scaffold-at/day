@@ -1,4 +1,5 @@
 import {
+  ScaffoldError,
   buildHeartbeat,
   compilePolicy,
   defaultHomeDir,
@@ -7,7 +8,6 @@ import {
   readAnchorForDate,
   readPolicyYaml,
   recordAnchor,
-  ScaffoldError,
   todayInTz,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
@@ -49,7 +49,7 @@ function parseAt(value: string, tz: string): Date {
     if (Number.isNaN(d.getTime())) {
       throw new ScaffoldError({
         code: "DAY_INVALID_INPUT",
-        summary: { en: `--at is not a parseable ISO 8601 datetime` },
+        summary: { en: "--at is not a parseable ISO 8601 datetime" },
         cause: `Got: ${value}`,
         try: ["Use 2026-04-28T07:30:00+09:00 or HH:MM for today."],
       });
@@ -62,7 +62,7 @@ function parseAt(value: string, tz: string): Date {
   if (!m) {
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
-      summary: { en: `--at must be HH:MM, HH:MM:SS, or full ISO 8601` },
+      summary: { en: "--at must be HH:MM, HH:MM:SS, or full ISO 8601" },
       cause: `Got: ${value}`,
       try: ["Pass --at 07:30 or --at 2026-04-28T07:30:00+09:00."],
     });
@@ -154,8 +154,7 @@ async function runMorning(args: string[]): Promise<number> {
   // explicit/manual entry blocks (idempotent unless --force).
   const existing = await readAnchorForDate(home, entry.date);
   const wasExplicitlySet =
-    existing !== null &&
-    (existing.source === "explicit" || existing.source === "manual");
+    existing !== null && (existing.source === "explicit" || existing.source === "manual");
   const upgradeAuto = existing?.source === "auto";
   const result = await recordAnchor(home, entry, {
     force: force || upgradeAuto,
@@ -183,12 +182,12 @@ async function runMorning(args: string[]): Promise<number> {
 
   const wall = result.entry.anchor.slice(11, 16); // HH:MM
   if (wasExplicitlySet && !force) {
-    console.log(`scaffold-day morning`);
+    console.log("scaffold-day morning");
     console.log(`  already set at ${wall} (${result.entry.source})`);
-    console.log(`  use --force to override, or --at HH:MM to record a different time`);
+    console.log("  use --force to override, or --at HH:MM to record a different time");
     return 0;
   }
-  console.log(`scaffold-day morning`);
+  console.log("scaffold-day morning");
   console.log(`  anchor:  ${result.entry.anchor}`);
   console.log(`  source:  ${source}`);
   if (upgradeAuto) {
@@ -231,8 +230,10 @@ export const morningCommand: Command = {
     when: "First action of the day, or when an AI client receives a 'good morning' message and emits MCP `record_morning`. Auto-fallback: if no explicit call landed yet, the first scaffold-day CLI / MCP invocation of the day records `source: \"auto\"`.",
     cost: "Local file I/O only. Append-only single-line write to `logs/heartbeats.jsonl`. No network.",
     input: "[--at HH:MM | --at <ISO 8601 + TZ>] [--force] [--json]",
-    return: "Exit 0 on success. If today's anchor is already set and --force is not given, prints a non-error notice and exits 0. JSON shape: { anchor, date, source, was_already_set, forced }.",
-    gotcha: "Auto-fallback runs on every command (except `morning` itself); explicit `morning` always wins by replacing or no-op'ing the auto entry depending on --force. Tracking SLICES.md / issue #3 §S60.",
+    return:
+      "Exit 0 on success. If today's anchor is already set and --force is not given, prints a non-error notice and exits 0. JSON shape: { anchor, date, source, was_already_set, forced }.",
+    gotcha:
+      "Auto-fallback runs on every command (except `morning` itself); explicit `morning` always wins by replacing or no-op'ing the auto entry depending on --force. Tracking SLICES.md / issue #3 §S60.",
   },
   run: async (args) => runMorning(args),
 };

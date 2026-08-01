@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  TIME_SENSITIVE_TAGS,
   extractDeadline,
   filterTags,
   isTag,
@@ -7,7 +8,6 @@ import {
   normalizeTag,
   parseTag,
   searchTagsByName,
-  TIME_SENSITIVE_TAGS,
 } from "./tag-helpers";
 
 describe("normalizeTag", () => {

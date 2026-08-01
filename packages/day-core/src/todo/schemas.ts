@@ -1,11 +1,6 @@
 import { z } from "zod";
 import { entityIdSchemaOf } from "../ids/entity-id";
-import {
-  ISODateSchema,
-  ISODateTimeSchema,
-  type Tag,
-  TagSchema,
-} from "../ids/schemas";
+import { ISODateSchema, ISODateTimeSchema, type Tag, TagSchema } from "../ids/schemas";
 import { TaskImportanceSchema } from "../policy/importance";
 import { TODO_STATUSES } from "./status";
 
@@ -103,8 +98,7 @@ export function summarize(detail: TodoDetail | TodoArchive): TodoSummary {
     title: detail.title,
     status: detail.status,
     tags: [...detail.tags],
-    importance_score:
-      detail.importance?.score ?? detail.importance_score ?? null,
+    importance_score: detail.importance?.score ?? detail.importance_score ?? null,
     duration_min: detail.duration_min,
     target_date: detail.target_date,
     created_at: detail.created_at,

@@ -17,14 +17,11 @@ import {
 
 const result = validateRegistry(commands);
 
-console.log(
-  `Validating ${result.commandCount} commands × ${HELP_SECTIONS.length} sections`,
-);
+console.log(`Validating ${result.commandCount} commands × ${HELP_SECTIONS.length} sections`);
 console.log(`  total chars : ${result.totalChars}`);
 console.log(
   `  ~tokens     : ${result.estimatedTokens} / ${result.tokenBudget} (${(
-    (result.estimatedTokens / result.tokenBudget) *
-    100
+    (result.estimatedTokens / result.tokenBudget) * 100
   ).toFixed(1)}%)`,
 );
 
@@ -43,9 +40,7 @@ if (result.issues.length > 0) {
   }
 }
 if (result.overBudget) {
-  console.error(
-    `\n✗ token budget exceeded: ${result.estimatedTokens} > ${result.tokenBudget}`,
-  );
+  console.error(`\n✗ token budget exceeded: ${result.estimatedTokens} > ${result.tokenBudget}`);
 }
 
 if (!result.ok) {

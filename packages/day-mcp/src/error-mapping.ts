@@ -1,5 +1,5 @@
-import { isScaffoldError, type ScaffoldError } from "@scaffold/day-core";
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import { type ScaffoldError, isScaffoldError } from "@scaffold/day-core";
 
 /**
  * Map a `ScaffoldError` (`DAY_*` code) onto a JSON-RPC McpError so the

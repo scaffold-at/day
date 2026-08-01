@@ -1,14 +1,14 @@
 import {
-  appendConflictLog,
   type Conflict,
   ConflictStatusSchema,
+  FsDayStore,
+  ScaffoldError,
+  appendConflictLog,
   compilePolicy,
   defaultHomeDir,
   detectConflicts,
-  FsDayStore,
   readConflicts,
   readPolicyYaml,
-  ScaffoldError,
   syncConflicts,
   writeConflicts,
 } from "@scaffold/day-core";
@@ -32,16 +32,19 @@ async function runList(args: string[]): Promise<number> {
   let json = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (a === "--month") { month = args[i + 1]; i++; }
-    else if (a === "--status") {
+    if (a === "--month") {
+      month = args[i + 1];
+      i++;
+    } else if (a === "--status") {
       const v = args[i + 1];
       if (v !== "all" && v !== "open" && v !== "resolved" && v !== "ignored") {
         throw usage("--status must be all|open|resolved|ignored");
       }
       status = v;
       i++;
-    } else if (a === "--json") { json = true; }
-    else throw usage(`conflict list: unexpected argument '${a}'`);
+    } else if (a === "--json") {
+      json = true;
+    } else throw usage(`conflict list: unexpected argument '${a}'`);
   }
 
   const home = defaultHomeDir();
@@ -76,9 +79,7 @@ async function runList(args: string[]): Promise<number> {
   }
   console.log("scaffold-day conflict list");
   for (const c of all) {
-    console.log(
-      `  ${c.id}  [${c.status.padEnd(8)}] ${c.date}  ${c.kind.padEnd(20)}  ${c.detail}`,
-    );
+    console.log(`  ${c.id}  [${c.status.padEnd(8)}] ${c.date}  ${c.kind.padEnd(20)}  ${c.detail}`);
   }
   return 0;
 }
@@ -91,12 +92,22 @@ async function runResolve(args: string[]): Promise<number> {
   let json = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (!id && !a.startsWith("--")) { id = a; continue; }
-    if (a === "--status") { statusInput = args[i + 1]; i++; }
-    else if (a === "--reason") { reason = args[i + 1]; i++; }
-    else if (a === "--by") { by = args[i + 1] ?? "user"; i++; }
-    else if (a === "--json") { json = true; }
-    else throw usage(`conflict resolve: unexpected argument '${a}'`);
+    if (!id && !a.startsWith("--")) {
+      id = a;
+      continue;
+    }
+    if (a === "--status") {
+      statusInput = args[i + 1];
+      i++;
+    } else if (a === "--reason") {
+      reason = args[i + 1];
+      i++;
+    } else if (a === "--by") {
+      by = args[i + 1] ?? "user";
+      i++;
+    } else if (a === "--json") {
+      json = true;
+    } else throw usage(`conflict resolve: unexpected argument '${a}'`);
   }
   if (!id) throw usage("conflict resolve: <id> argument is required");
   if (!statusInput) throw usage("conflict resolve: --status resolved|ignored is required");
@@ -145,7 +156,10 @@ async function runResolve(args: string[]): Promise<number> {
       command: "conflict resolve",
       writes: [
         { path: `conflicts/${found.month}.json`, op: "update" },
-        { path: `days/${found.conflict.date.slice(0, 7)}/${found.conflict.date}.json`, op: "update" },
+        {
+          path: `days/${found.conflict.date.slice(0, 7)}/${found.conflict.date}.json`,
+          op: "update",
+        },
         { path: `logs/${found.month}/conflicts.jsonl`, op: "update" },
       ],
       result: { id, status: newStatus, reason: reason ?? null, by, at: now },
@@ -201,7 +215,10 @@ async function runDetect(args: string[]): Promise<number> {
   let json = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (!date && !a.startsWith("--")) { date = a; continue; }
+    if (!date && !a.startsWith("--")) {
+      date = a;
+      continue;
+    }
     if (a === "--json") json = true;
     else throw usage(`conflict detect: unexpected argument '${a}'`);
   }
@@ -264,7 +281,9 @@ async function runDetect(args: string[]): Promise<number> {
   }
 
   if (json) {
-    console.log(JSON.stringify({ date, open: openIdsForDate.length, ids: openIdsForDate }, null, 2));
+    console.log(
+      JSON.stringify({ date, open: openIdsForDate.length, ids: openIdsForDate }, null, 2),
+    );
     return 0;
   }
   console.log(`scaffold-day conflict detect ${date}`);
@@ -282,9 +301,12 @@ export const conflictCommand: Command = {
     what: "Inspect, resolve, or trigger detection of conflicts. Conflicts are detected automatically when `place do` / `place override` writes the day file; this command is the user-facing surface for them.",
     when: "When `today` shows open conflicts, or after a manual edit you want to verify.",
     cost: "Local file I/O over `<home>/conflicts/<YYYY-MM>.json` and the day files.",
-    input: "list [--month <YYYY-MM>] [--status open|resolved|ignored|all] [--json]\nresolve <id> --status resolved|ignored [--reason <T>] [--by <attr>] [--json]\ndetect <YYYY-MM-DD> [--json]",
-    return: "Exit 0. DAY_NOT_INITIALIZED if no policy. DAY_NOT_FOUND for unknown conflict. DAY_INVALID_INPUT on bad month / non-open conflict.",
-    gotcha: "v0.1 `resolve` records the decision and clears `day.conflicts_open` but does NOT mutate the underlying placements — use `place override` for the actual move/remove. Auto-resolve lands in v0.2. Tracking SLICES.md §S24 (cmd) / §S23 (detection).",
+    input:
+      "list [--month <YYYY-MM>] [--status open|resolved|ignored|all] [--json]\nresolve <id> --status resolved|ignored [--reason <T>] [--by <attr>] [--json]\ndetect <YYYY-MM-DD> [--json]",
+    return:
+      "Exit 0. DAY_NOT_INITIALIZED if no policy. DAY_NOT_FOUND for unknown conflict. DAY_INVALID_INPUT on bad month / non-open conflict.",
+    gotcha:
+      "v0.1 `resolve` records the decision and clears `day.conflicts_open` but does NOT mutate the underlying placements — use `place override` for the actual move/remove. Auto-resolve lands in v0.2. Tracking SLICES.md §S24 (cmd) / §S23 (detection).",
   },
   run: async (args) => {
     const sub = args[0];

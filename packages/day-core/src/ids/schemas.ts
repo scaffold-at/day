@@ -17,10 +17,7 @@ export const ISODateSchema = z
  */
 export const ISOTimeSchema = z
   .string()
-  .regex(
-    /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/,
-    "ISOTime must match HH:MM or HH:MM:SS (24h)",
-  );
+  .regex(/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/, "ISOTime must match HH:MM or HH:MM:SS (24h)");
 
 /**
  * ISODateTime — full ISO 8601 with explicit timezone (`Z` or `±HH:MM`).
@@ -65,10 +62,7 @@ export const TagSchema = z
 export const ModelIdSchema = z
   .string()
   .min(1)
-  .regex(
-    /^[a-z][a-z0-9._:/-]*$/,
-    "ModelId must be lower-case alphanumeric with ./_:- separators",
-  );
+  .regex(/^[a-z][a-z0-9._:/-]*$/, "ModelId must be lower-case alphanumeric with ./_:- separators");
 
 export type ISODate = z.infer<typeof ISODateSchema>;
 export type ISOTime = z.infer<typeof ISOTimeSchema>;

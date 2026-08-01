@@ -3,13 +3,13 @@ import path from "node:path";
 import { z } from "zod";
 import { ScaffoldError } from "../error";
 import { ImportanceDimensionsSchema } from "../policy/importance";
-import {
-  type AIProvider,
-  type ClassificationResult,
-  type ClassifyEventInput,
-  type ImportanceFromAI,
-  type ProviderCapabilities,
-  type ScoreImportanceInput,
+import type {
+  AIProvider,
+  ClassificationResult,
+  ClassifyEventInput,
+  ImportanceFromAI,
+  ProviderCapabilities,
+  ScoreImportanceInput,
 } from "./provider";
 
 export type ClaudeCliProviderOptions = {
@@ -27,24 +27,13 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_BINARY = "claude";
 
 /** Best-effort PATH lookup that mirrors POSIX `which`. */
-async function findOnPath(
-  bin: string,
-  searchPath: string,
-): Promise<string | null> {
+async function findOnPath(bin: string, searchPath: string): Promise<string | null> {
   // GUI-launched apps on macOS often have a stripped PATH; fall back
   // to a few well-known install dirs (Homebrew arm64, Homebrew x64,
   // /usr/local/bin) so an authenticated `claude` install doesn't
   // disappear when scaffold-day is launched from Spotlight.
-  const fallback = [
-    "/opt/homebrew/bin",
-    "/usr/local/bin",
-    "/usr/bin",
-    "/bin",
-  ];
-  const dirs = [
-    ...searchPath.split(path.delimiter).filter(Boolean),
-    ...fallback,
-  ];
+  const fallback = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"];
+  const dirs = [...searchPath.split(path.delimiter).filter(Boolean), ...fallback];
   for (const dir of dirs) {
     const candidate = path.join(dir, bin);
     try {
@@ -268,15 +257,7 @@ export class ClaudeCliProvider implements AIProvider {
       });
     }
     const proc = Bun.spawn(
-      [
-        this.resolvedCommand,
-        "-p",
-        prompt,
-        "--output-format",
-        "json",
-        "--max-turns",
-        "1",
-      ],
+      [this.resolvedCommand, "-p", prompt, "--output-format", "json", "--max-turns", "1"],
       {
         stdin: "pipe",
         stdout: "pipe",
@@ -342,10 +323,7 @@ export class ClaudeCliProvider implements AIProvider {
       .join("\n");
   }
 
-  private renderClassifyPrompt(
-    input: ClassifyEventInput,
-    categories: readonly string[],
-  ): string {
+  private renderClassifyPrompt(input: ClassifyEventInput, categories: readonly string[]): string {
     return [
       "You are classifying a calendar event for scaffold-day.",
       `Categories: ${categories.join(", ")}.`,

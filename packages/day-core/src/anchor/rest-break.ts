@@ -45,9 +45,7 @@ export type RestSuggestion = {
 
 const DEFAULT_BREAK_MIN = 20;
 
-export function computeRestSuggestion(
-  input: RestSuggestionInput,
-): RestSuggestion {
+export function computeRestSuggestion(input: RestSuggestionInput): RestSuggestion {
   if (!input.budget) {
     return {
       suggest: false,

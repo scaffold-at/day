@@ -42,9 +42,7 @@ type IntervalMs = { start: number; end: number };
 
 function mergeBusyMs(busy: IntervalMs[]): IntervalMs[] {
   if (busy.length === 0) return [];
-  const sorted = [...busy]
-    .filter((b) => b.end > b.start)
-    .sort((a, b) => a.start - b.start);
+  const sorted = [...busy].filter((b) => b.end > b.start).sort((a, b) => a.start - b.start);
   const merged: IntervalMs[] = [];
   for (const b of sorted) {
     const last = merged.length > 0 ? merged[merged.length - 1] : undefined;
@@ -98,8 +96,7 @@ export function computeFreeIntervalsMs(
   const snapped: IntervalMs[] = [];
   for (const f of free) {
     const offsetStart = (f.start - windowStart) % gridMs;
-    const startSnapped =
-      offsetStart === 0 ? f.start : f.start + (gridMs - offsetStart);
+    const startSnapped = offsetStart === 0 ? f.start : f.start + (gridMs - offsetStart);
     const offsetEnd = (f.end - windowStart) % gridMs;
     const endSnapped = f.end - offsetEnd;
     if (endSnapped - startSnapped >= gridMs) {
@@ -115,10 +112,7 @@ export function computeFreeIntervalsMs(
  * UTC (`Z` suffix); callers may format into the user's TZ for
  * human display.
  */
-export function computeFreeSlots(
-  day: Day,
-  options: ComputeFreeSlotsOptions,
-): FreeSlot[] {
+export function computeFreeSlots(day: Day, options: ComputeFreeSlotsOptions): FreeSlot[] {
   const windowStart = toMs(options.windowStart);
   const windowEnd = toMs(options.windowEnd);
   const gridMin = options.gridMin ?? 30;

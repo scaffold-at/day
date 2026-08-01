@@ -1,15 +1,15 @@
 import {
-  compilePolicy,
-  defaultHomeDir,
+  type Day,
   FsDayStore,
   FsTodoRepository,
   type Placement,
+  ScaffoldError,
+  type SuggestionInput,
+  compilePolicy,
+  defaultHomeDir,
   readPolicySnapshot,
   readPolicyYaml,
-  ScaffoldError,
   suggestPlacements,
-  type SuggestionInput,
-  type Day,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 
@@ -27,7 +27,10 @@ async function runExplain(args: string[]): Promise<number> {
   let json = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (!id && !a.startsWith("--")) { id = a; continue; }
+    if (!id && !a.startsWith("--")) {
+      id = a;
+      continue;
+    }
     if (a === "--json") json = true;
     else throw usage(`explain: unexpected argument '${a}'`);
   }
@@ -98,7 +101,7 @@ async function runExplain(args: string[]): Promise<number> {
   // Recreate the day at placement time by removing this placement.
   const dayWithoutThis: Day = {
     ...foundDay,
-    placements: foundDay.placements.filter((p) => p.id !== foundPlacement!.id),
+    placements: foundDay.placements.filter((p) => p.id !== foundPlacement?.id),
   };
 
   const input: SuggestionInput = {
@@ -115,8 +118,8 @@ async function runExplain(args: string[]): Promise<number> {
   const suggestion = suggestPlacements(input);
 
   // Find the alternative that matches our actual slot, mark it as chosen.
-  const chosen = suggestion.candidates.find((c) => c.start === foundPlacement!.start) ?? null;
-  const alternatives = suggestion.candidates.filter((c) => c.start !== foundPlacement!.start);
+  const chosen = suggestion.candidates.find((c) => c.start === foundPlacement?.start) ?? null;
+  const alternatives = suggestion.candidates.filter((c) => c.start !== foundPlacement?.start);
 
   const output = {
     placement: foundPlacement,
@@ -140,7 +143,9 @@ async function runExplain(args: string[]): Promise<number> {
   console.log(`  when:      ${foundPlacement.start} → ${foundPlacement.end}`);
   console.log(`  placed_by: ${foundPlacement.placed_by}`);
   if (policySnapshotMeta) {
-    console.log(`  policy:    ${policySnapshotMeta.hash.slice(0, 12)}… (captured ${policySnapshotMeta.captured_at})`);
+    console.log(
+      `  policy:    ${policySnapshotMeta.hash.slice(0, 12)}… (captured ${policySnapshotMeta.captured_at})`,
+    );
   } else {
     console.log("  policy:    (no snapshot, using current)");
   }
@@ -162,8 +167,10 @@ export const explainCommand: Command = {
     when: "When asked 'why did the AI pick this slot?' or when investigating an outcome.",
     cost: "Local file I/O. Reads the placement, the policy snapshot under <home>/policy-snapshots/, and re-runs the suggest engine for the day.",
     input: "<placement-id> [--json]",
-    return: "Exit 0. JSON shape includes {placement, placed_by, chosen_reason, chosen_breakdown, alternatives, policy_snapshot, importance_at_placement}. DAY_NOT_FOUND if the placement is gone.",
-    gotcha: "Falls back to the current policy when no snapshot exists for the placement's policy_hash. The chosen_reason then reflects the fresh ranking, which may differ from the original. Tracking SLICES.md §S25 (cmd) / §S21 (placement log).",
+    return:
+      "Exit 0. JSON shape includes {placement, placed_by, chosen_reason, chosen_breakdown, alternatives, policy_snapshot, importance_at_placement}. DAY_NOT_FOUND if the placement is gone.",
+    gotcha:
+      "Falls back to the current policy when no snapshot exists for the placement's policy_hash. The chosen_reason then reflects the fresh ranking, which may differ from the original. Tracking SLICES.md §S25 (cmd) / §S21 (placement log).",
   },
   run: async (args) => runExplain(args),
 };

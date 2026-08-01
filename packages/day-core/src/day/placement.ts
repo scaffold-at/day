@@ -25,7 +25,11 @@ export const PlacementSchema = z.object({
   tags: z.array(TagSchema).max(32),
   importance_score: z.number().min(0).max(100).finite().nullable(),
   importance_at_placement: TaskImportanceSchema.nullable().default(null),
-  duration_min: z.number().int().min(0).max(60 * 24 * 30),
+  duration_min: z
+    .number()
+    .int()
+    .min(0)
+    .max(60 * 24 * 30),
   placed_by: PlacedBySchema,
   placed_at: ISODateTimeSchema,
   policy_hash: z.string().nullable().default(null),

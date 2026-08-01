@@ -17,16 +17,13 @@
 
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import {
-  HeartbeatEntrySchema,
-  type HeartbeatEntry,
-} from "../anchor/anchor";
+import { type HeartbeatEntry, HeartbeatEntrySchema } from "../anchor/anchor";
 import { pathExists } from "../schema/storage";
 import {
-  ConflictLogEntrySchema,
-  PlacementLogEntrySchema,
   type ConflictLogEntry,
+  ConflictLogEntrySchema,
   type PlacementLogEntry,
+  PlacementLogEntrySchema,
 } from "./placement-log";
 
 export type LogKind = "placement" | "conflict" | "heartbeat";
@@ -99,9 +96,7 @@ export async function readLogs(
     const months = await listLogMonths(home);
     for (const month of months) {
       if (kinds.has("placement")) {
-        const lines = await readJsonlLines(
-          path.join(home, "logs", month, "placements.jsonl"),
-        );
+        const lines = await readJsonlLines(path.join(home, "logs", month, "placements.jsonl"));
         for (const line of lines) {
           const e = parseLine<PlacementLogEntry>(line, PlacementLogEntrySchema);
           if (!e) continue;
@@ -110,9 +105,7 @@ export async function readLogs(
         }
       }
       if (kinds.has("conflict")) {
-        const lines = await readJsonlLines(
-          path.join(home, "logs", month, "conflicts.jsonl"),
-        );
+        const lines = await readJsonlLines(path.join(home, "logs", month, "conflicts.jsonl"));
         for (const line of lines) {
           const e = parseLine<ConflictLogEntry>(line, ConflictLogEntrySchema);
           if (!e) continue;

@@ -1,4 +1,4 @@
-import { compare, type Operation } from "fast-json-patch";
+import { type Operation, compare } from "fast-json-patch";
 import { Document, parseDocument } from "yaml";
 import { ScaffoldError } from "../error";
 import { type Policy, PolicySchema } from "./policy";
@@ -25,9 +25,7 @@ export function compilePolicy(yamlText: string): Policy {
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
       summary: { en: "policy YAML did not match the Policy schema" },
-      cause: parsed.error.issues
-        .map((i) => `  ${i.path.join(".")}: ${i.message}`)
-        .join("\n"),
+      cause: parsed.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n"),
       try: ["Compare against `scaffold-day policy preset apply balanced`."],
     });
   }
@@ -39,10 +37,7 @@ export function compilePolicy(yamlText: string): Policy {
  * (e.g., when seeding `policy/current.yaml` from a preset). Does NOT
  * preserve comments — there are none to preserve.
  */
-export function serializePolicy(
-  policy: Policy,
-  options: { headerComment?: string } = {},
-): string {
+export function serializePolicy(policy: Policy, options: { headerComment?: string } = {}): string {
   const validated = PolicySchema.parse(policy);
   const doc = new Document(validated as unknown as Record<string, unknown>);
   let text = doc.toString();
@@ -137,9 +132,7 @@ export function applyPolicyPatchPreservingFormatting(
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
       summary: { en: "patched policy no longer matches the Policy schema" },
-      cause: parsed.error.issues
-        .map((i) => `  ${i.path.join(".")}: ${i.message}`)
-        .join("\n"),
+      cause: parsed.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n"),
       try: ["Inspect the patch operations."],
     });
   }

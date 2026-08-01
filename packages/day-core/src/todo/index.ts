@@ -1,10 +1,10 @@
 export { FsTodoRepository } from "./fs-repository";
 export { InMemoryTodoRepository } from "./in-memory";
-export {
-  type CreateTodoInput,
-  type TodoFilter,
-  type TodoRepository,
-  type UpdateTodoInput,
+export type {
+  CreateTodoInput,
+  TodoFilter,
+  TodoRepository,
+  UpdateTodoInput,
 } from "./repository";
 export {
   DurationMinSchema,

@@ -74,7 +74,9 @@ async function main(): Promise<number> {
     `MCP tool corpus: ${TOOLS.length} tools, ${snap.totalChars} chars, ~${snap.totalTokens} tokens (budget ${ABSOLUTE_BUDGET_TOKENS})`,
   );
   for (const t of [...snap.perTool].sort((a, b) => b.tokens - a.tokens)) {
-    console.log(`  ${t.name.padEnd(28)} ${t.tokens.toString().padStart(4)} tokens (${t.chars} chars)`);
+    console.log(
+      `  ${t.name.padEnd(28)} ${t.tokens.toString().padStart(4)} tokens (${t.chars} chars)`,
+    );
   }
 
   if (snap.totalTokens > ABSOLUTE_BUDGET_TOKENS) {
@@ -113,15 +115,11 @@ async function main(): Promise<number> {
 
   const drift = (snap.totalTokens - baseline.total_tokens_est) / baseline.total_tokens_est;
   const driftPct = (drift * 100).toFixed(1);
-  console.log(
-    `\nbaseline: ${baseline.total_tokens_est} tokens (recorded ${baseline.recorded_at})`,
-  );
+  console.log(`\nbaseline: ${baseline.total_tokens_est} tokens (recorded ${baseline.recorded_at})`);
   console.log(`drift:    ${driftPct}%`);
 
   if (Math.abs(drift) >= FAIL_DRIFT) {
-    console.error(
-      `\n✗ FAIL — drift ${driftPct}% exceeds ±${(FAIL_DRIFT * 100).toFixed(0)}%`,
-    );
+    console.error(`\n✗ FAIL — drift ${driftPct}% exceeds ±${(FAIL_DRIFT * 100).toFixed(0)}%`);
     return 1;
   }
   if (Math.abs(drift) >= WARN_DRIFT) {

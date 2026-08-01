@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { SleepBudget } from "../policy";
-import {
-  evaluateSleepBudget,
-  projectAnchorForDate,
-} from "./sleep-budget";
+import { evaluateSleepBudget, projectAnchorForDate } from "./sleep-budget";
 
 const budget: SleepBudget = {
   target_hours: 8,

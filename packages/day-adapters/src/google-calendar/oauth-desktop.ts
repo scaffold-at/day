@@ -56,11 +56,7 @@ export function effectiveClientSecret(): string {
   return process.env[CLIENT_SECRET_ENV] ?? "";
 }
 
-const DEFAULT_SCOPES = [
-  "https://www.googleapis.com/auth/calendar",
-  "openid",
-  "email",
-] as const;
+const DEFAULT_SCOPES = ["https://www.googleapis.com/auth/calendar", "openid", "email"] as const;
 
 // ─── PKCE helpers ─────────────────────────────────────────────────
 
@@ -164,9 +160,7 @@ export async function runOAuthDesktopFlow(
 
   // Capture the resolution of the callback in a Promise so the
   // server handler can hand off to the caller.
-  type CallbackResult =
-    | { ok: true; code: string }
-    | { ok: false; reason: string };
+  type CallbackResult = { ok: true; code: string } | { ok: false; reason: string };
   let resolveCallback!: (r: CallbackResult) => void;
   const callbackPromise = new Promise<CallbackResult>((resolve) => {
     resolveCallback = resolve;
@@ -234,10 +228,7 @@ export async function runOAuthDesktopFlow(
     result = await Promise.race<CallbackResult>([
       callbackPromise,
       new Promise<CallbackResult>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`OAuth flow timed out after ${timeoutMs}ms`)),
-          timeoutMs,
-        ),
+        setTimeout(() => reject(new Error(`OAuth flow timed out after ${timeoutMs}ms`)), timeoutMs),
       ),
     ]);
   } finally {

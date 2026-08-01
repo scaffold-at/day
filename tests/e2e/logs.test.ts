@@ -53,7 +53,10 @@ describe("logs (S63)", () => {
       home,
       env: { SCAFFOLD_DAY_NOW: KST_NOW },
     });
-    const lines = r.stdout.split("\n").filter((l) => l).map((l) => JSON.parse(l));
+    const lines = r.stdout
+      .split("\n")
+      .filter((l) => l)
+      .map((l) => JSON.parse(l));
     expect(lines.length).toBeGreaterThan(0);
     for (const l of lines) expect(l.kind).toBe("heartbeat");
   });

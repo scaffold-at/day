@@ -1,8 +1,8 @@
 import { chmod, mkdir, rename, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import pkg from "../../package.json" with { type: "json" };
 import { ScaffoldError } from "@scaffold/day-core";
+import pkg from "../../package.json" with { type: "json" };
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
 
@@ -27,10 +27,7 @@ function tierTarget(): "darwin-arm64" | "linux-x64" {
     code: "DAY_INVALID_INPUT",
     summary: { en: `${platform}/${arch} is not a Tier 1 target` },
     cause: "v0.2 self-update only supports darwin/arm64 and linux/x64.",
-    try: [
-      "Use brew if installed via brew tap.",
-      "Or wait for a tier-2 build (file an issue).",
-    ],
+    try: ["Use brew if installed via brew tap.", "Or wait for a tier-2 build (file an issue)."],
     context: { platform, arch },
   });
 }
@@ -63,7 +60,11 @@ async function resolveLatestTag(repo: string): Promise<string> {
 
 function compareSemver(a: string, b: string): number {
   // Strip leading "v".
-  const norm = (s: string) => s.replace(/^v/, "").split(".").map((n) => Number.parseInt(n, 10));
+  const norm = (s: string) =>
+    s
+      .replace(/^v/, "")
+      .split(".")
+      .map((n) => Number.parseInt(n, 10));
   const av = norm(a);
   const bv = norm(b);
   for (let i = 0; i < 3; i++) {
@@ -169,7 +170,8 @@ async function runSelfUpdate(args: string[]): Promise<number> {
       code: "DAY_INVALID_INPUT",
       summary: { en: `binary is managed by ${pm}` },
       cause: `self-update refuses to overwrite ${binPath}.`,
-      try: pm === "brew" ? ["Run `brew upgrade scaffold-at/tap/day`."] : ["Use your package manager."],
+      try:
+        pm === "brew" ? ["Run `brew upgrade scaffold-at/tap/day`."] : ["Use your package manager."],
     });
   }
 
@@ -198,7 +200,9 @@ async function runSelfUpdate(args: string[]): Promise<number> {
         code: "DAY_NOT_FOUND",
         summary: { en: "no self-update backup to roll back to" },
         cause: `Looked under ${dir} for ${BACKUP_GLOB_PREFIX}*`,
-        try: ["A previous self-update creates the backup. Reinstall via install.sh if you need a specific older version."],
+        try: [
+          "A previous self-update creates the backup. Reinstall via install.sh if you need a specific older version.",
+        ],
       });
     }
     const backup = path.join(dir, backups[0]!);
@@ -217,7 +221,7 @@ async function runSelfUpdate(args: string[]): Promise<number> {
     if (opts.json) {
       console.log(JSON.stringify({ rolled_back: true, restored_from: backup, aside }));
     } else {
-      console.log(`scaffold-day self-update --rollback`);
+      console.log("scaffold-day self-update --rollback");
       console.log(`  restored: ${binPath}`);
       console.log(`  was:      ${aside}`);
     }
@@ -240,12 +244,12 @@ async function runSelfUpdate(args: string[]): Promise<number> {
     if (opts.json) {
       console.log(JSON.stringify(payload, null, 2));
     } else if (upToDate) {
-      console.log(`scaffold-day self-update --check`);
+      console.log("scaffold-day self-update --check");
       console.log(`  up to date (v${pkg.version})`);
     } else {
-      console.log(`scaffold-day self-update --check`);
+      console.log("scaffold-day self-update --check");
       console.log(`  update available: v${pkg.version} → v${latestSemver}`);
-      console.log(`  run \`scaffold-day self-update\` to install.`);
+      console.log("  run `scaffold-day self-update` to install.");
     }
     return 0;
   }
@@ -289,10 +293,7 @@ async function runSelfUpdate(args: string[]): Promise<number> {
 
   // Download + verify.
   console.error(`self-update: resolving ${tag} (${target})`);
-  const [bin, sumText] = await Promise.all([
-    fetchBinary(assetUrl),
-    fetchText(sumUrl),
-  ]);
+  const [bin, sumText] = await Promise.all([fetchBinary(assetUrl), fetchText(sumUrl)]);
   const expected = sumText.split(/\s+/)[0]?.toLowerCase().trim();
   const actual = (await sha256Hex(bin)).toLowerCase();
   if (!expected) {
@@ -353,10 +354,10 @@ async function runSelfUpdate(args: string[]): Promise<number> {
       }),
     );
   } else {
-    console.log(`scaffold-day self-update`);
+    console.log("scaffold-day self-update");
     console.log(`  ${pkg.version} → ${latestSemver}`);
     console.log(`  backup: ${backupPath}`);
-    console.log(`  run --rollback to revert.`);
+    console.log("  run --rollback to revert.");
   }
   return 0;
 }
@@ -368,9 +369,12 @@ export const selfUpdateCommand: Command = {
     what: "Resolve the latest scaffold-day release from GitHub, verify SHA-256, and replace the running binary in place. Keeps a sibling backup of the previous version so --rollback can revert.",
     when: "Periodically, or when release notes mention a fix. Auto-update is intentionally OFF; this command is the only path.",
     cost: "One HTTPS HEAD to /releases/latest plus the binary + sha256 download (~60 MB). No telemetry.",
-    input: "[--check] check only, no install. [--rollback] revert to the previous binary. [--json] [--dry-run]",
-    return: "Exit 0 with the new version printed. DAY_INVALID_INPUT on sha256 mismatch / unsupported platform / brew-managed path.",
-    gotcha: "Refuses to run when the binary path is under a package manager (Homebrew). Refuses on `bun run` dev invocations. Tracking SLICES.md §S47 / scaffold-at/day#3 §S67.",
+    input:
+      "[--check] check only, no install. [--rollback] revert to the previous binary. [--json] [--dry-run]",
+    return:
+      "Exit 0 with the new version printed. DAY_INVALID_INPUT on sha256 mismatch / unsupported platform / brew-managed path.",
+    gotcha:
+      "Refuses to run when the binary path is under a package manager (Homebrew). Refuses on `bun run` dev invocations. Tracking SLICES.md §S47 / scaffold-at/day#3 §S67.",
   },
   run: async (args) => runSelfUpdate(args),
 };

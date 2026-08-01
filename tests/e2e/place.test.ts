@@ -16,20 +16,11 @@ const MONDAY = "2026-04-27";
 async function setup(): Promise<string> {
   await runCli(["policy", "preset", "apply", "balanced"], { home });
   const add = await runCli(
-    [
-      "todo",
-      "add",
-      "--title",
-      "Write S20",
-      "--tag",
-      "#deep-work",
-      "--duration-min",
-      "60",
-    ],
+    ["todo", "add", "--title", "Write S20", "--tag", "#deep-work", "--duration-min", "60"],
     { home },
   );
   expect(add.exitCode).toBe(0);
-  const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)![1] as string;
+  const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)?.[1] as string;
   await runCli(
     [
       "todo",
@@ -53,18 +44,7 @@ describe("place suggest", () => {
   test("ranked candidates over a weekday window with breakdown", async () => {
     const id = await setup();
     const r = await runCli(
-      [
-        "place",
-        "suggest",
-        id,
-        "--date",
-        MONDAY,
-        "--within",
-        "1",
-        "--max",
-        "5",
-        "--json",
-      ],
+      ["place", "suggest", id, "--date", MONDAY, "--within", "1", "--max", "5", "--json"],
       { home },
     );
     expect(r.exitCode, r.stderr).toBe(0);
@@ -102,10 +82,9 @@ describe("place suggest", () => {
       ],
       { home },
     );
-    const r = await runCli(
-      ["place", "suggest", id, "--date", MONDAY, "--within", "1", "--json"],
-      { home },
-    );
+    const r = await runCli(["place", "suggest", id, "--date", MONDAY, "--within", "1", "--json"], {
+      home,
+    });
     expect(r.exitCode).toBe(0);
     const sug = JSON.parse(r.stdout);
     expect(sug.candidates).toHaveLength(0);
@@ -126,11 +105,8 @@ describe("place suggest", () => {
   });
 
   test("suggest before policy preset apply → DAY_NOT_INITIALIZED", async () => {
-    const add = await runCli(
-      ["todo", "add", "--title", "x", "--duration-min", "60"],
-      { home },
-    );
-    const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)![1] as string;
+    const add = await runCli(["todo", "add", "--title", "x", "--duration-min", "60"], { home });
+    const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)?.[1] as string;
     const r = await runCli(["place", "suggest", id], { home });
     expect(r.exitCode).toBe(78);
     expect(r.stderr).toContain("DAY_NOT_INITIALIZED");
@@ -146,7 +122,7 @@ describe("place suggest", () => {
   test("todo without duration_min → DAY_INVALID_INPUT", async () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
     const add = await runCli(["todo", "add", "--title", "no-duration"], { home });
-    const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)![1] as string;
+    const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)?.[1] as string;
     const r = await runCli(["place", "suggest", id], { home });
     expect(r.exitCode).toBe(65);
     expect(r.stderr).toContain("DAY_INVALID_INPUT");
@@ -180,15 +156,7 @@ describe("place do (S21)", () => {
   test("commits a placement with inline snapshot + writes a log entry first", async () => {
     const id = await setup();
     const r = await runCli(
-      [
-        "place",
-        "do",
-        id,
-        "--slot",
-        `${MONDAY}T10:00:00+09:00`,
-        "--lock",
-        "--json",
-      ],
+      ["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`, "--lock", "--json"],
       { home },
     );
     expect(r.exitCode, r.stderr).toBe(0);
@@ -204,17 +172,12 @@ describe("place do (S21)", () => {
     expect(placement.importance_at_placement.score).toBeGreaterThan(0);
 
     // Day file was updated.
-    const day = JSON.parse(
-      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
-    );
+    const day = JSON.parse(await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"));
     expect(day.placements).toHaveLength(1);
     expect(day.placements[0].id).toBe(placement.id);
 
     // Placement log was appended (before the day file, by spec).
-    const log = await readFile(
-      path.join(home, "logs/2026-04/placements.jsonl"),
-      "utf8",
-    );
+    const log = await readFile(path.join(home, "logs/2026-04/placements.jsonl"), "utf8");
     const lines = log.trim().split("\n");
     expect(lines).toHaveLength(1);
     const entry = JSON.parse(lines[0]!);
@@ -226,29 +189,18 @@ describe("place do (S21)", () => {
 
   test("inline snapshot freezes title at placement time (later todo update doesn't change it)", async () => {
     const id = await setup();
-    await runCli(
-      ["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`],
-      { home },
-    );
+    await runCli(["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`], { home });
 
-    await runCli(
-      ["todo", "update", id, "--title", "renamed after placement"],
-      { home },
-    );
+    await runCli(["todo", "update", id, "--title", "renamed after placement"], { home });
 
-    const day = JSON.parse(
-      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
-    );
+    const day = JSON.parse(await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"));
     expect(day.placements[0].title).toBe("Write S20"); // frozen
   });
 
   test("slot violating a hard rule → DAY_INVALID_INPUT (no placement, no log)", async () => {
     const id = await setup();
     // Schedule into the no_placement_in (22:00-07:00) range.
-    const r = await runCli(
-      ["place", "do", id, "--slot", `${MONDAY}T23:00:00+09:00`],
-      { home },
-    );
+    const r = await runCli(["place", "do", id, "--slot", `${MONDAY}T23:00:00+09:00`], { home });
     expect(r.exitCode).toBe(65);
     expect(r.stderr).toContain("DAY_INVALID_INPUT");
     expect(r.stderr).toContain("no_placement_in");
@@ -277,10 +229,7 @@ describe("place do (S21)", () => {
       ],
       { home },
     );
-    const r = await runCli(
-      ["place", "do", id, "--slot", `${MONDAY}T10:30:00+09:00`],
-      { home },
-    );
+    const r = await runCli(["place", "do", id, "--slot", `${MONDAY}T10:30:00+09:00`], { home });
     expect(r.exitCode).toBe(65);
     expect(r.stderr).toContain("DAY_INVALID_INPUT");
   });
@@ -320,16 +269,11 @@ describe("place do (S21)", () => {
     expect(result.previous.start).toBe(`${MONDAY}T10:00:00+09:00`);
     expect(result.reason).toBe("moved to afternoon");
 
-    const day = JSON.parse(
-      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
-    );
+    const day = JSON.parse(await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"));
     expect(day.placements).toHaveLength(1);
     expect(day.placements[0].start).toBe(`${MONDAY}T15:00:00+09:00`);
 
-    const log = await readFile(
-      path.join(home, "logs/2026-04/placements.jsonl"),
-      "utf8",
-    );
+    const log = await readFile(path.join(home, "logs/2026-04/placements.jsonl"), "utf8");
     const lines = log.trim().split("\n");
     const overrideEntry = JSON.parse(lines[lines.length - 1]!);
     expect(overrideEntry.action).toBe("overridden");
@@ -341,13 +285,7 @@ describe("place do (S21)", () => {
   test("override on unknown placement → DAY_NOT_FOUND", async () => {
     await runCli(["policy", "preset", "apply", "balanced"], { home });
     const r = await runCli(
-      [
-        "place",
-        "override",
-        "plc_00000000000000",
-        "--new-slot",
-        `${MONDAY}T10:00:00+09:00`,
-      ],
+      ["place", "override", "plc_00000000000000", "--new-slot", `${MONDAY}T10:00:00+09:00`],
       { home },
     );
     expect(r.exitCode).toBe(66);
@@ -356,10 +294,7 @@ describe("place do (S21)", () => {
 
   test("override into an overlapping slot → DAY_INVALID_INPUT", async () => {
     const id = await setup();
-    await runCli(
-      ["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`],
-      { home },
-    );
+    await runCli(["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`], { home });
     // Create a blocker event at 14:00.
     await runCli(
       [
@@ -375,18 +310,10 @@ describe("place do (S21)", () => {
       { home },
     );
     // Get the placement id.
-    const day = JSON.parse(
-      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
-    );
+    const day = JSON.parse(await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"));
     const placementId = day.placements[0].id;
     const r = await runCli(
-      [
-        "place",
-        "override",
-        placementId,
-        "--new-slot",
-        `${MONDAY}T14:00:00+09:00`,
-      ],
+      ["place", "override", placementId, "--new-slot", `${MONDAY}T14:00:00+09:00`],
       { home },
     );
     expect(r.exitCode).toBe(65);
@@ -395,30 +322,31 @@ describe("place do (S21)", () => {
 
   test("two placements same day appear in the day file's placements[]", async () => {
     const id = await setup();
-    await runCli(
-      ["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`],
-      { home },
-    );
+    await runCli(["place", "do", id, "--slot", `${MONDAY}T10:00:00+09:00`], { home });
     // second todo
-    const second = await runCli(
+    const second = await runCli(["todo", "add", "--title", "Second", "--duration-min", "30"], {
+      home,
+    });
+    const id2 = /id:\s+(todo_[a-z0-9]{14})/.exec(second.stdout)?.[1] as string;
+    await runCli(
       [
-        "todo", "add", "--title", "Second", "--duration-min", "30",
+        "todo",
+        "score",
+        id2,
+        "--urgency",
+        "5",
+        "--impact",
+        "5",
+        "--effort",
+        "5",
+        "--reversibility",
+        "5",
       ],
       { home },
     );
-    const id2 = /id:\s+(todo_[a-z0-9]{14})/.exec(second.stdout)![1] as string;
-    await runCli(
-      ["todo", "score", id2, "--urgency", "5", "--impact", "5", "--effort", "5", "--reversibility", "5"],
-      { home },
-    );
-    await runCli(
-      ["place", "do", id2, "--slot", `${MONDAY}T14:00:00+09:00`],
-      { home },
-    );
+    await runCli(["place", "do", id2, "--slot", `${MONDAY}T14:00:00+09:00`], { home });
 
-    const day = JSON.parse(
-      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
-    );
+    const day = JSON.parse(await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"));
     expect(day.placements).toHaveLength(2);
   });
 });
@@ -427,30 +355,21 @@ describe("place suggest --auto (S81)", () => {
   test("commits the top suggestion in one call", async () => {
     const id = await setup();
     const r = await runCli(
-      [
-        "place",
-        "suggest",
-        id,
-        "--auto",
-        "--date",
-        MONDAY,
-        "--within",
-        "1",
-        "--json",
-      ],
+      ["place", "suggest", id, "--auto", "--date", MONDAY, "--within", "1", "--json"],
       { home },
     );
     expect(r.exitCode, r.stderr).toBe(0);
     // Output: place suggest preview JSON, then a place-do JSON.
     const lines = r.stdout.trim().split("\n");
     // The final stanza is the place-do output (placement object).
-    const lastJson = lines.slice(lines.findIndex((l) => l === "}") + 1).join("\n").trim()
-      || lines.slice(-15).join("\n");
+    const lastJson =
+      lines
+        .slice(lines.findIndex((l) => l === "}") + 1)
+        .join("\n")
+        .trim() || lines.slice(-15).join("\n");
     void lastJson;
     // Sanity: a placement file should exist for MONDAY.
-    const day = JSON.parse(
-      await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"),
-    );
+    const day = JSON.parse(await readFile(path.join(home, "days/2026-04/2026-04-27.json"), "utf8"));
     expect(day.placements.length).toBeGreaterThan(0);
     expect(day.placements[0].todo_id).toBe(id);
   });

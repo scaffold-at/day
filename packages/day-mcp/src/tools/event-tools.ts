@@ -1,12 +1,12 @@
 import {
-  defaultHomeDir,
-  entityIdSchemaOf,
   type FixedEvent,
   FsDayStore,
-  generateEntityId,
   ISODateTimeSchema,
   ScaffoldError,
   TagSchema,
+  defaultHomeDir,
+  entityIdSchemaOf,
+  generateEntityId,
 } from "@scaffold/day-core";
 import { z } from "zod";
 import type { Tool } from "./registry";
@@ -148,8 +148,7 @@ export const updateEventTool: Tool<UpdateIn, unknown> = {
       start: input.start ?? found.event.start,
       end: input.end ?? found.event.end,
       all_day: input.all_day ?? found.event.all_day,
-      location:
-        input.location !== undefined ? input.location : found.event.location,
+      location: input.location !== undefined ? input.location : found.event.location,
       notes: input.notes !== undefined ? input.notes : found.event.notes,
       tags: input.tags ? [...input.tags] : found.event.tags,
       synced_at: new Date().toISOString(),

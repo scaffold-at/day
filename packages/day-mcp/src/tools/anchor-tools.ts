@@ -1,4 +1,5 @@
 import {
+  ScaffoldError,
   buildHeartbeat,
   compilePolicy,
   computeRestSuggestion,
@@ -7,7 +8,6 @@ import {
   readAnchorForDate,
   readPolicyYaml,
   recordAnchor,
-  ScaffoldError,
   todayInTz,
 } from "@scaffold/day-core";
 import { z } from "zod";
@@ -38,9 +38,7 @@ const RecordMorningInputSchema = z
     at: z
       .string()
       .optional()
-      .describe(
-        "Optional ISO 8601 (with TZ) instant to record. Defaults to now.",
-      ),
+      .describe("Optional ISO 8601 (with TZ) instant to record. Defaults to now."),
     force: z
       .boolean()
       .optional()
@@ -74,8 +72,7 @@ export const recordMorningTool: Tool<RecordMorningInput, RecordMorningOutput> = 
       },
       force: {
         type: "boolean",
-        description:
-          "Overwrite an existing explicit/manual anchor for today.",
+        description: "Overwrite an existing explicit/manual anchor for today.",
       },
     },
     additionalProperties: false,
@@ -106,8 +103,7 @@ export const recordMorningTool: Tool<RecordMorningInput, RecordMorningOutput> = 
 
     const existing = await readAnchorForDate(home, entry.date);
     const wasExplicitlySet =
-      existing !== null &&
-      (existing.source === "explicit" || existing.source === "manual");
+      existing !== null && (existing.source === "explicit" || existing.source === "manual");
     const upgradeAuto = existing?.source === "auto";
 
     const result = await recordAnchor(home, entry, {
@@ -134,9 +130,7 @@ const GetMorningAnchorInputSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional()
-      .describe(
-        "Optional YYYY-MM-DD. Defaults to today in the policy timezone.",
-      ),
+      .describe("Optional YYYY-MM-DD. Defaults to today in the policy timezone."),
   })
   .strict();
 type GetMorningAnchorInput = z.infer<typeof GetMorningAnchorInputSchema>;
@@ -160,10 +154,7 @@ type GetRestSuggestionOutput = {
   reason: string;
 };
 
-export const getRestSuggestionTool: Tool<
-  GetRestSuggestionInput,
-  GetRestSuggestionOutput
-> = {
+export const getRestSuggestionTool: Tool<GetRestSuggestionInput, GetRestSuggestionOutput> = {
   name: "get_rest_suggestion",
   description:
     "Compute today's rest-break suggestion from yesterday→today anchors vs sleep_budget.min_hours. Volatile (no on-disk record). Read-only.",
@@ -176,9 +167,7 @@ export const getRestSuggestionTool: Tool<
     const yesterday = shiftDate(today, -1);
 
     const yamlText = await readPolicyYaml(home);
-    const budget = yamlText
-      ? compilePolicy(yamlText).context.sleep_budget ?? null
-      : null;
+    const budget = yamlText ? (compilePolicy(yamlText).context.sleep_budget ?? null) : null;
 
     const todayAnchor = await readAnchorForDate(home, today);
     const yesterdayAnchor = await readAnchorForDate(home, yesterday);
@@ -197,10 +186,7 @@ export const getRestSuggestionTool: Tool<
   },
 };
 
-export const getMorningAnchorTool: Tool<
-  GetMorningAnchorInput,
-  GetMorningAnchorOutput
-> = {
+export const getMorningAnchorTool: Tool<GetMorningAnchorInput, GetMorningAnchorOutput> = {
   name: "get_morning_anchor",
   description:
     "Read the morning anchor for a date (default: today). Null if not yet recorded. Read-only.",

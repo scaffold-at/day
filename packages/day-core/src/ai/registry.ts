@@ -67,7 +67,7 @@ export class ProviderRegistry {
         throw new ScaffoldError({
           code: "DAY_PROVIDER_UNAVAILABLE",
           summary: { en: `provider '${primary}' is not available` },
-          cause: `provider.available() returned false.`,
+          cause: "provider.available() returned false.",
           try: [
             "Check the binary/runtime is installed and authenticated.",
             "Or fall back to another provider with `resolve()` (no primary).",

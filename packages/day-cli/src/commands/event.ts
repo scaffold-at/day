@@ -1,7 +1,4 @@
-import {
-  readGoogleOAuthToken,
-  recordPendingChange,
-} from "@scaffold/day-adapters";
+import { readGoogleOAuthToken, recordPendingChange } from "@scaffold/day-adapters";
 import {
   type FixedEvent,
   FsDayStore,
@@ -131,7 +128,7 @@ async function runEventAdd(args: string[]): Promise<number> {
   if (!startCheck.success) {
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
-      summary: { en: `--start is not a valid ISO 8601 datetime with TZ` },
+      summary: { en: "--start is not a valid ISO 8601 datetime with TZ" },
       cause: startCheck.error.message,
       try: ["Use a value like 2026-04-26T10:00:00+09:00 (TZ required)."],
       context: { value: flags.start },
@@ -141,7 +138,7 @@ async function runEventAdd(args: string[]): Promise<number> {
   if (!endCheck.success) {
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
-      summary: { en: `--end is not a valid ISO 8601 datetime with TZ` },
+      summary: { en: "--end is not a valid ISO 8601 datetime with TZ" },
       cause: endCheck.error.message,
       try: ["Use a value like 2026-04-26T11:00:00+09:00 (TZ required)."],
       context: { value: flags.end },
@@ -215,13 +212,15 @@ async function runEventAdd(args: string[]): Promise<number> {
     patch: null,
   });
 
-  console.log(`scaffold-day event add`);
+  console.log("scaffold-day event add");
   console.log(`  id:    ${event.id}`);
   console.log(`  title: ${event.title}`);
   console.log(`  when:  ${event.start} → ${event.end}${event.all_day ? "  (all-day)" : ""}`);
   if (event.location) console.log(`  where: ${event.location}`);
   if (tags.length > 0) console.log(`  tags:  ${tags.join(" ")}`);
-  console.log(`  file:  days/${date.slice(0, 7)}/${date}.json (${day.events.length} event${day.events.length === 1 ? "" : "s"} total)`);
+  console.log(
+    `  file:  days/${date.slice(0, 7)}/${date}.json (${day.events.length} event${day.events.length === 1 ? "" : "s"} total)`,
+  );
   return 0;
 }
 
@@ -340,7 +339,10 @@ async function runEventUpdate(args: string[]): Promise<number> {
       cause: flags.date
         ? `No event with this id exists on ${flags.date}.`
         : "No event with this id exists in any day file.",
-      try: ["Run `scaffold-day day overview <YYYY-MM>` to inspect.", "Or pass --date <YYYY-MM-DD> if you know the day."],
+      try: [
+        "Run `scaffold-day day overview <YYYY-MM>` to inspect.",
+        "Or pass --date <YYYY-MM-DD> if you know the day.",
+      ],
       context: { id },
     });
   }
@@ -353,7 +355,7 @@ async function runEventUpdate(args: string[]): Promise<number> {
     if (!c.success) {
       throw new ScaffoldError({
         code: "DAY_INVALID_INPUT",
-        summary: { en: `--start is not a valid ISO 8601 datetime with TZ` },
+        summary: { en: "--start is not a valid ISO 8601 datetime with TZ" },
         cause: c.error.message,
         try: ["Use a value like 2026-04-26T10:00:00+09:00 (TZ required)."],
         context: { value: flags.start },
@@ -366,7 +368,7 @@ async function runEventUpdate(args: string[]): Promise<number> {
     if (!c.success) {
       throw new ScaffoldError({
         code: "DAY_INVALID_INPUT",
-        summary: { en: `--end is not a valid ISO 8601 datetime with TZ` },
+        summary: { en: "--end is not a valid ISO 8601 datetime with TZ" },
         cause: c.error.message,
         try: ["Use a value like 2026-04-26T11:00:00+09:00 (TZ required)."],
         context: { value: flags.end },
@@ -455,7 +457,9 @@ async function runEventUpdate(args: string[]): Promise<number> {
   });
 
   if (flags.json) {
-    console.log(JSON.stringify({ event: next, previous_date: found.date, new_date: newDate }, null, 2));
+    console.log(
+      JSON.stringify({ event: next, previous_date: found.date, new_date: newDate }, null, 2),
+    );
     return 0;
   }
   console.log("scaffold-day event update");
@@ -501,7 +505,10 @@ async function runEventDelete(args: string[]): Promise<number> {
       cause: date
         ? `No event with this id exists on ${date}.`
         : "No event with this id exists in any day file.",
-      try: ["Run `scaffold-day day overview <YYYY-MM>` to inspect.", "Or pass --date <YYYY-MM-DD> if you know the day."],
+      try: [
+        "Run `scaffold-day day overview <YYYY-MM>` to inspect.",
+        "Or pass --date <YYYY-MM-DD> if you know the day.",
+      ],
       context: { id },
     });
   }
@@ -509,9 +516,7 @@ async function runEventDelete(args: string[]): Promise<number> {
   if (isDryRun()) {
     emitDryRun(json, {
       command: "event delete",
-      writes: [
-        { path: `days/${found.date.slice(0, 7)}/${found.date}.json`, op: "update" },
-      ],
+      writes: [{ path: `days/${found.date.slice(0, 7)}/${found.date}.json`, op: "update" }],
       result: { id, date: found.date, title: found.event.title },
     });
     return 0;
@@ -548,9 +553,12 @@ export const eventCommand: Command = {
     what: "Add, update, or delete a fixed event on the calendar. `add` creates a `manual`-source event; `update` patches any field (re-partitioning the day file when --start crosses days); `delete` removes by id.",
     when: "When recording a meeting, appointment, or any block of time the placement engine must work around.",
     cost: "Local file I/O on the relevant day file(s). No network for `manual` source. `update` / `delete` scan all day files when --date is omitted.",
-    input: "add --title <text> --start <ISO datetime+TZ> --end <ISO datetime+TZ> [--all-day] [--location <text>] [--notes <text>] [--tag <#tag>]…\nupdate <id> [--title <t>] [--start <ISO>] [--end <ISO>] [--all-day | --no-all-day] [--location <t> | --clear-location] [--notes <t> | --clear-notes] [--tag <#t>… | --clear-tags] [--date <YYYY-MM-DD>] [--json]\ndelete <id> [--date <YYYY-MM-DD>] [--json]",
-    return: "Exit 0 on success. DAY_USAGE on missing flags. DAY_INVALID_INPUT on bad date/time/tag. DAY_NOT_FOUND when the event id is unknown.",
-    gotcha: "The day partition (`YYYY-MM-DD.json`) is derived from `--start`. `update` re-partitions the file when --start moves the event across midnight in its TZ. Tracking SLICES.md §S9 (add) / §S80 (update + delete).",
+    input:
+      "add --title <text> --start <ISO datetime+TZ> --end <ISO datetime+TZ> [--all-day] [--location <text>] [--notes <text>] [--tag <#tag>]…\nupdate <id> [--title <t>] [--start <ISO>] [--end <ISO>] [--all-day | --no-all-day] [--location <t> | --clear-location] [--notes <t> | --clear-notes] [--tag <#t>… | --clear-tags] [--date <YYYY-MM-DD>] [--json]\ndelete <id> [--date <YYYY-MM-DD>] [--json]",
+    return:
+      "Exit 0 on success. DAY_USAGE on missing flags. DAY_INVALID_INPUT on bad date/time/tag. DAY_NOT_FOUND when the event id is unknown.",
+    gotcha:
+      "The day partition (`YYYY-MM-DD.json`) is derived from `--start`. `update` re-partitions the file when --start moves the event across midnight in its TZ. Tracking SLICES.md §S9 (add) / §S80 (update + delete).",
   },
   run: async (args) => {
     const sub = args[0];

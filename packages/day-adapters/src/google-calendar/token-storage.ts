@@ -1,7 +1,7 @@
 import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { ScaffoldError, atomicWrite } from "@scaffold/day-core";
 import { z } from "zod";
-import { atomicWrite, ScaffoldError } from "@scaffold/day-core";
 import {
   detectKeychainBackend,
   keychainDelete,
@@ -66,9 +66,7 @@ export function tokenFilePath(home: string): string {
  * the returned token's `refresh_token` is the empty sentinel — the
  * caller should treat that the same as a missing token.
  */
-export async function readGoogleOAuthToken(
-  home: string,
-): Promise<GoogleOAuthToken | null> {
+export async function readGoogleOAuthToken(home: string): Promise<GoogleOAuthToken | null> {
   const target = tokenFilePath(home);
   let raw: string;
   try {
@@ -163,7 +161,9 @@ export async function deleteGoogleOAuthToken(home: string): Promise<boolean> {
     const raw = await readFile(target, "utf8");
     const parsed = GoogleOAuthTokenSchema.safeParse(JSON.parse(raw));
     if (parsed.success) {
-      const sentinel = parsed.data.refresh_token ? parseKeychainSentinel(parsed.data.refresh_token) : null;
+      const sentinel = parsed.data.refresh_token
+        ? parseKeychainSentinel(parsed.data.refresh_token)
+        : null;
       if (sentinel !== null) keychainAccount = sentinel;
     }
   } catch {

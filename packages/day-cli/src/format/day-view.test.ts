@@ -57,7 +57,9 @@ const sampleDay = (): Day => ({
     event("evt_01abcdefghi200", "1:1 with Alex", "10:00", "11:00", "Zoom"),
   ],
   placements: [
-    placement("plc_01abcdefghi100", "todo_01abcdefghi100", "Write S12", "13:00", "14:00", ["#deep-work"]),
+    placement("plc_01abcdefghi100", "todo_01abcdefghi100", "Write S12", "13:00", "14:00", [
+      "#deep-work",
+    ]),
     placement("plc_01abcdefghi200", "todo_01abcdefghi200", "Review PRs", "14:30", "15:30"),
     placement("plc_01abcdefghi300", "todo_01abcdefghi300", "Email triage", "16:00", "17:00"),
   ],

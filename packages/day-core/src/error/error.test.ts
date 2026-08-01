@@ -1,18 +1,19 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   DAY_CODE_CATALOG,
+  ScaffoldError,
   detectLocale,
   formatErrorJson,
   formatErrorText,
   isDayCode,
   isScaffoldError,
-  ScaffoldError,
 } from "./index";
 
 const sampleSpec = {
   code: "DAY_USAGE",
   summary: { en: "unknown command 'foo'", ko: "알 수 없는 명령 'foo'" },
-  cause: "scaffold-day does not have a command named 'foo'.\nIt was not registered in the CLI command registry.",
+  cause:
+    "scaffold-day does not have a command named 'foo'.\nIt was not registered in the CLI command registry.",
   try: [
     "Run `scaffold-day --help` to list available commands.",
     "Check the spelling — commands are lower-case kebab-case.",
@@ -95,12 +96,8 @@ describe("detectLocale", () => {
   });
 
   test("LC_MESSAGES wins over LANG, LC_ALL wins over both", () => {
-    expect(
-      detectLocale({ LANG: "en_US.UTF-8", LC_MESSAGES: "ko_KR" }),
-    ).toBe("ko");
-    expect(
-      detectLocale({ LANG: "ko_KR", LC_ALL: "en_US.UTF-8" }),
-    ).toBe("en");
+    expect(detectLocale({ LANG: "en_US.UTF-8", LC_MESSAGES: "ko_KR" })).toBe("ko");
+    expect(detectLocale({ LANG: "ko_KR", LC_ALL: "en_US.UTF-8" })).toBe("en");
   });
 
   test("unknown / missing → en", () => {

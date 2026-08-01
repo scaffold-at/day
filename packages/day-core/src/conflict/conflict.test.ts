@@ -70,20 +70,15 @@ describe("detectConflicts — 3 acceptance scenarios", () => {
     const conflicts = detectConflicts(day, BALANCED_PRESET);
     const overlaps = conflicts.filter((c) => c.kind === "overlap");
     expect(overlaps).toHaveLength(1);
-    expect(overlaps[0]!.party_ids.sort()).toEqual([
-      "plc_aaaaaaaaaaaaaa",
-      "plc_bbbbbbbbbbbbbb",
-    ]);
+    expect(overlaps[0]?.party_ids.sort()).toEqual(["plc_aaaaaaaaaaaaaa", "plc_bbbbbbbbbbbbbb"]);
   });
 
   test("scenario B — hard_rule_violation (no_placement_in 22-07)", () => {
-    const day = dayOf([
-      placement("plc_aaaaaaaaaaaaaa", "23:00", "23:30", 30),
-    ]);
+    const day = dayOf([placement("plc_aaaaaaaaaaaaaa", "23:00", "23:30", 30)]);
     const conflicts = detectConflicts(day, BALANCED_PRESET);
     const hard = conflicts.filter((c) => c.kind === "hard_rule_violation");
     expect(hard).toHaveLength(1);
-    expect(hard[0]!.hard_rule_kind).toBe("no_placement_in");
+    expect(hard[0]?.hard_rule_kind).toBe("no_placement_in");
   });
 
   test("scenario C — buffer_breach (10-min buffer around meeting)", () => {
@@ -94,7 +89,7 @@ describe("detectConflicts — 3 acceptance scenarios", () => {
     const conflicts = detectConflicts(day, BALANCED_PRESET);
     const buf = conflicts.filter((c) => c.kind === "buffer_breach");
     expect(buf).toHaveLength(1);
-    expect(buf[0]!.hard_rule_kind).toBe("min_buffer_around_meeting_min");
+    expect(buf[0]?.hard_rule_kind).toBe("min_buffer_around_meeting_min");
   });
 
   test("capacity_exceeded fires when total > duration_cap_per_day_min", () => {
@@ -113,7 +108,7 @@ describe("detectConflicts — 3 acceptance scenarios", () => {
     const conflicts = detectConflicts(day, policy);
     const cap = conflicts.filter((c) => c.kind === "capacity_exceeded");
     expect(cap).toHaveLength(1);
-    expect(cap[0]!.party_ids).toHaveLength(3);
+    expect(cap[0]?.party_ids).toHaveLength(3);
   });
 });
 
@@ -137,7 +132,7 @@ describe("syncConflicts — open ↔ resolved transitions", () => {
 
     const partition = await readConflicts(home, "2026-04");
     expect(partition.conflicts).toHaveLength(1);
-    expect(partition.conflicts[0]!.status).toBe("open");
+    expect(partition.conflicts[0]?.status).toBe("open");
   });
 
   test("second sync without the same conflict auto-resolves it", async () => {
@@ -162,8 +157,8 @@ describe("syncConflicts — open ↔ resolved transitions", () => {
 
     const partition = await readConflicts(home, "2026-04");
     expect(partition.conflicts).toHaveLength(1);
-    expect(partition.conflicts[0]!.status).toBe("resolved");
-    expect(partition.conflicts[0]!.resolved_by).toBe("auto");
+    expect(partition.conflicts[0]?.status).toBe("resolved");
+    expect(partition.conflicts[0]?.resolved_by).toBe("auto");
   });
 
   test("read/write round-trips a partition", async () => {

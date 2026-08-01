@@ -14,7 +14,11 @@ const PreferTagInRangeSchema = z
 const AvoidBackToBackAfterMinSchema = z
   .object({
     kind: z.literal("avoid_back_to_back_after_min"),
-    minutes: z.number().int().min(0).max(60 * 8),
+    minutes: z
+      .number()
+      .int()
+      .min(0)
+      .max(60 * 8),
     weight: z.number().finite(),
   })
   .strict();

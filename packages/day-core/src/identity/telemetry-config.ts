@@ -30,9 +30,7 @@ export function telemetryConfigPath(home: string): string {
   return path.join(home, TELEMETRY_FILE);
 }
 
-export async function readTelemetryConfig(
-  home: string,
-): Promise<TelemetryConfig> {
+export async function readTelemetryConfig(home: string): Promise<TelemetryConfig> {
   const p = telemetryConfigPath(home);
   if (!(await pathExists(p))) {
     return { state: "ask", decided_at: null };
@@ -47,10 +45,7 @@ export async function readTelemetryConfig(
   return { state: "ask", decided_at: null };
 }
 
-export async function writeTelemetryConfig(
-  home: string,
-  config: TelemetryConfig,
-): Promise<void> {
+export async function writeTelemetryConfig(home: string, config: TelemetryConfig): Promise<void> {
   const p = telemetryConfigPath(home);
   await mkdir(path.dirname(p), { recursive: true });
   await writeFile(p, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o644 });

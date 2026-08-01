@@ -29,10 +29,7 @@ export type RunOptions = {
  * environments. Use `keepColor: true` if a test specifically needs to
  * exercise color behavior.
  */
-export async function runCli(
-  args: readonly string[],
-  options: RunOptions = {},
-): Promise<CliRun> {
+export async function runCli(args: readonly string[], options: RunOptions = {}): Promise<CliRun> {
   const env: Record<string, string> = {
     ...(process.env as Record<string, string>),
     ...(options.home ? { SCAFFOLD_DAY_HOME: options.home } : {}),
@@ -97,9 +94,7 @@ export type MakeTmpHomeOptions = {
   schemaVersion?: string;
 };
 
-export async function makeTmpHome(
-  options: MakeTmpHomeOptions = {},
-): Promise<string> {
+export async function makeTmpHome(options: MakeTmpHomeOptions = {}): Promise<string> {
   const home = await mkdtemp(path.join(tmpdir(), "scaffold-day-e2e-"));
   if (!options.uninitialized) {
     await mkdir(path.join(home, ".scaffold-day"), { recursive: true });

@@ -1,11 +1,11 @@
 import {
-  defaultHomeDir,
   type LogKind,
-  parseSinceArg,
-  readLogs,
   ScaffoldError,
   type UnifiedLogEntry,
+  defaultHomeDir,
   now,
+  parseSinceArg,
+  readLogs,
 } from "@scaffold/day-core";
 import { colors } from "../cli/colors";
 import type { Command } from "../cli/command";
@@ -81,7 +81,7 @@ function parseLogsFlags(args: string[]): ParsedFlags {
           code: "DAY_INVALID_INPUT",
           summary: { en: `--kind must be one of ${KINDS.join("|")} (or "decision")` },
           cause: `Got: ${v}`,
-          try: [`Pass --kind placement.`],
+          try: ["Pass --kind placement."],
         });
       }
       i++;
@@ -135,7 +135,7 @@ export async function followTick(
   emit(newer, opts.json);
   // Bump lastAt by 1ms past the newest entry so the next read does
   // not re-emit the entries we just printed (`since` is `>=`).
-  let maxMs = -Infinity;
+  let maxMs = Number.NEGATIVE_INFINITY;
   for (const e of newer) {
     const ms = Date.parse(timestampOf(e));
     if (Number.isFinite(ms) && ms > maxMs) maxMs = ms;
@@ -239,9 +239,12 @@ export const logsCommand: Command = {
     what: "Read placement / conflict / heartbeat logs from `<home>/logs/`. Filters: --since (1d / 12h / 30m / ISO date) and --kind (placement | conflict | heartbeat | decision). `--follow` polls for new entries and emits them as they appear (Ctrl+C to exit).",
     when: "When debugging an unexpected placement, a resolved conflict, to audit when 'morning' was recorded across days, or to watch placements happen live during a session.",
     cost: "Local read only. Loads matching JSONL files into memory; corpora are small in v0.2. `--follow` polls every --poll ms (default 1000).",
-    input: "[--since <duration|date>] [--kind placement|conflict|heartbeat|decision] [--json] [--follow] [--poll <ms>=1000]",
-    return: "JSON Lines on stdout when --json. Otherwise human-formatted lines, one per entry, sorted by `at` ascending. `--follow` runs until SIGINT/SIGTERM (exit 0).",
-    gotcha: "`decision` is an alias for placement+conflict (no separate decision log in v0.2). `--follow` starts from `now` (tail-f semantics) — combine with a plain `scaffold-day logs` first to see history. Tracking SLICES.md §S63.",
+    input:
+      "[--since <duration|date>] [--kind placement|conflict|heartbeat|decision] [--json] [--follow] [--poll <ms>=1000]",
+    return:
+      "JSON Lines on stdout when --json. Otherwise human-formatted lines, one per entry, sorted by `at` ascending. `--follow` runs until SIGINT/SIGTERM (exit 0).",
+    gotcha:
+      "`decision` is an alias for placement+conflict (no separate decision log in v0.2). `--follow` starts from `now` (tail-f semantics) — combine with a plain `scaffold-day logs` first to see history. Tracking SLICES.md §S63.",
   },
   run: async (args) => runLogs(args),
 };

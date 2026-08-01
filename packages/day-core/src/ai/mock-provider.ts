@@ -1,10 +1,10 @@
-import {
-  type AIProvider,
-  type ClassificationResult,
-  type ClassifyEventInput,
-  type ImportanceFromAI,
-  type ProviderCapabilities,
-  type ScoreImportanceInput,
+import type {
+  AIProvider,
+  ClassificationResult,
+  ClassifyEventInput,
+  ImportanceFromAI,
+  ProviderCapabilities,
+  ScoreImportanceInput,
 } from "./provider";
 
 export type MockProviderFixture = {

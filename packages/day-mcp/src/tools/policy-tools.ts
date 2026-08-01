@@ -1,12 +1,12 @@
 import {
-  applyPolicyPatchPreservingFormatting,
   BUILTIN_PRESETS,
   type BuiltinPresetName,
+  type JsonPatchOperation,
+  ScaffoldError,
+  applyPolicyPatchPreservingFormatting,
   compilePolicy,
   defaultHomeDir,
-  type JsonPatchOperation,
   readPolicyYaml,
-  ScaffoldError,
   serializePolicy,
   writePolicyYaml,
 } from "@scaffold/day-core";
@@ -91,10 +91,7 @@ export const updatePolicyTool: Tool<UpdateIn, unknown> = {
         try: ["Call apply_preset with a built-in preset name."],
       });
     }
-    const patched = applyPolicyPatchPreservingFormatting(
-      yaml,
-      input.patch as JsonPatchOperation[],
-    );
+    const patched = applyPolicyPatchPreservingFormatting(yaml, input.patch as JsonPatchOperation[]);
     await writePolicyYaml(home, patched);
     return { ok: true, applied: input.patch.length };
   },
@@ -115,7 +112,9 @@ export const applyPresetTool: Tool<ApplyIn, unknown> = {
     "Overwrite <home>/policy/current.yaml with a built-in preset. v0.1 only ships `balanced`. Generates a header comment with the timestamp.",
   inputSchema: {
     type: "object",
-    properties: { name: { type: "string", description: "Built-in preset name (v0.1: 'balanced')" } },
+    properties: {
+      name: { type: "string", description: "Built-in preset name (v0.1: 'balanced')" },
+    },
     required: ["name"],
     additionalProperties: false,
   },

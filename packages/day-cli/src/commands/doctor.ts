@@ -1,20 +1,20 @@
+import path from "node:path";
 import {
+  MockAIProvider,
+  type ProviderProbeResult,
+  ScaffoldError,
   compilePolicy,
   defaultHomeDir,
   detectAvailableProviders,
-  MockAIProvider,
   pathExists,
-  type ProviderProbeResult,
   readAnchorForDate,
   readInstallId,
   readPolicyYaml,
   readSchemaVersionFile,
   readTelemetryConfig,
-  ScaffoldError,
   schemaVersionPath,
   todayInTz,
 } from "@scaffold/day-core";
-import path from "node:path";
 import pkg from "../../package.json" with { type: "json" };
 import { colors } from "../cli/colors";
 import type { Command } from "../cli/command";
@@ -75,9 +75,7 @@ async function buildEnvironmentSection(home: string): Promise<Section> {
   if (await pathExists(schemaPath)) {
     try {
       const file = await readSchemaVersionFile(home);
-      const detail: string[] = [
-        `initialized by: scaffold-day v${file.scaffold_day_version}`,
-      ];
+      const detail: string[] = [`initialized by: scaffold-day v${file.scaffold_day_version}`];
       if (file.last_seen_binary_version) {
         detail.push(`last seen by:   scaffold-day v${file.last_seen_binary_version}`);
       }
@@ -89,7 +87,7 @@ async function buildEnvironmentSection(home: string): Promise<Section> {
     } catch (err) {
       lines.push({
         status: "error",
-        text: `data schema: malformed schema-version.json`,
+        text: "data schema: malformed schema-version.json",
         detail: [(err as Error).message],
       });
     }
@@ -175,8 +173,7 @@ async function buildProvidersSection(probe: boolean): Promise<{
     // Roundtrip test: zero-cost providers run by default; metered
     // providers require --probe so a routine `doctor` doesn't burn
     // tokens on every call.
-    const shouldProbe =
-      probe || (r.capabilities && r.capabilities.approx_cost_per_call === "zero");
+    const shouldProbe = probe || (r.capabilities && r.capabilities.approx_cost_per_call === "zero");
     if (shouldProbe) {
       try {
         const rt = await runRoundtrip(r.id);
@@ -298,8 +295,10 @@ export const doctorCommand: Command = {
     what: "Read-only health check across Environment (home, schema_version, lock, policy presence, bun + scaffold-day versions), AI Providers (catalog detect, capabilities, optional roundtrip), and Adapters (Google Calendar deferred for now).",
     when: "When something feels wrong, before reporting a bug, or after a self-update.",
     cost: "Local checks plus a light roundtrip ping per zero-cost provider. Subscription / per-token providers are skipped unless --probe is given (so routine doctor calls don't burn tokens).",
-    input: "[--json] for machine output. [--probe] to also exercise subscription / per-token providers.",
-    return: "Exit 0 if no errors. Exit 70 (DAY_INTERNAL) on internal failure; provider issues remain non-fatal warnings unless they block the catalog entirely.",
+    input:
+      "[--json] for machine output. [--probe] to also exercise subscription / per-token providers.",
+    return:
+      "Exit 0 if no errors. Exit 70 (DAY_INTERNAL) on internal failure; provider issues remain non-fatal warnings unless they block the catalog entirely.",
     gotcha: "doctor is strictly read-only. Tracking SLICES.md §S35 + §S33 + §S34.",
   },
   run: async (args) => {

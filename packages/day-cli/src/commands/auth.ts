@@ -180,7 +180,9 @@ async function runBrokerManualFlow(): Promise<GoogleOAuthToken> {
   const startUrl = `${authBrokerBaseUrl()}/api/auth/google/start`;
   console.log("  open this URL in any browser:");
   console.log(`    ${startUrl}`);
-  console.log("  after approval, copy the brokerSessionToken shown by the broker and paste it here, then press Enter:");
+  console.log(
+    "  after approval, copy the brokerSessionToken shown by the broker and paste it here, then press Enter:",
+  );
   const brokerSessionToken = await readBrokerSessionTokenFromStdin();
   return verifyBrokerSessionToken(brokerSessionToken);
 }

@@ -26,9 +26,7 @@ export function formatCommandHelp(cmd: Command): string {
 
 export function formatRootHelp(version: string, commands: Command[]): string {
   const colWidth = Math.max(...commands.map((c) => c.name.length)) + 2;
-  const cmdLines = commands.map(
-    (c) => `  ${c.name.padEnd(colWidth)}${c.summary}`,
-  );
+  const cmdLines = commands.map((c) => `  ${c.name.padEnd(colWidth)}${c.summary}`);
   return [
     `scaffold-day v${version}`,
     "",

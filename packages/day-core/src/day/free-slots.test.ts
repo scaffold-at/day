@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { Day } from "./day";
 import type { FixedEvent } from "./event";
-import type { Placement } from "./placement";
 import { computeFreeIntervalsMs, computeFreeSlots } from "./free-slots";
+import type { Placement } from "./placement";
 
 const TZ = "+09:00";
 const at = (hhmm: string) => `2026-04-26T${hhmm}:00${TZ}`;
@@ -118,12 +118,7 @@ describe("computeFreeIntervalsMs — pure", () => {
   });
 
   test("inverted window → no slots", () => {
-    const slots = computeFreeIntervalsMs(
-      ms("18:00"),
-      ms("09:00"),
-      [],
-      { gridMin: 30 },
-    );
+    const slots = computeFreeIntervalsMs(ms("18:00"), ms("09:00"), [], { gridMin: 30 });
     expect(slots).toEqual([]);
   });
 });

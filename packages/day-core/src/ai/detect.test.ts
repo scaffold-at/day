@@ -31,7 +31,10 @@ describe("detectAvailableProviders", () => {
 
   test("custom candidates override the default catalog", async () => {
     const results = await detectAvailableProviders({
-      candidates: [new MockAIProvider({ id: "alpha" }), new MockAIProvider({ id: "beta", available: false })],
+      candidates: [
+        new MockAIProvider({ id: "alpha" }),
+        new MockAIProvider({ id: "beta", available: false }),
+      ],
       includeMock: false,
     });
     expect(results.map((r) => r.id)).toEqual(["alpha", "beta"]);

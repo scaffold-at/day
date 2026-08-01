@@ -18,23 +18,23 @@
 // secret material is logged.
 
 import {
-  compactPendingChanges,
+  type ExternalEvent,
   LiveGoogleCalendarAdapter,
   type LocalEventChange,
   type PendingChange,
   type PushResult,
+  type SyncAdapter,
+  compactPendingChanges,
   readGoogleOAuthToken,
   readPendingChanges,
-  type ExternalEvent,
-  type SyncAdapter,
 } from "@scaffold/day-adapters";
 import {
-  defaultHomeDir,
-  FsDayStore,
-  ScaffoldError,
-  todayInTz as todayInTzCore,
   type Day,
   type FixedEvent,
+  FsDayStore,
+  ScaffoldError,
+  defaultHomeDir,
+  todayInTz as todayInTzCore,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
@@ -167,15 +167,11 @@ async function applyRemote(
       // Strip from old date, write to (possibly new) date.
       if (existing.date === date) {
         const day: Day = await store.readDay(date);
-        day.events = day.events.map((e) =>
-          e.external_id === remote.external_id ? remote : e,
-        );
+        day.events = day.events.map((e) => (e.external_id === remote.external_id ? remote : e));
         await store.writeDay(day);
       } else {
         const oldDay: Day = await store.readDay(existing.date);
-        oldDay.events = oldDay.events.filter(
-          (e) => e.external_id !== remote.external_id,
-        );
+        oldDay.events = oldDay.events.filter((e) => e.external_id !== remote.external_id);
         await store.writeDay(oldDay);
         await store.addEvent(date, remote);
       }
@@ -514,9 +510,12 @@ export const syncCommand: Command = {
     what: "Pull (default): for each remote event, either insert into the matching day file or apply Last-Wins reconcile. Push (`--push`): replay queued local mutations (`event add/update/delete`) through the adapter, attach Google's external_id to created events, and compact the queue. Retryable errors stay queued (up to 3 attempts); non-retryable errors are reported and dropped.",
     when: "After `auth login`, before placing todos (pull) or after a batch of local event edits (push). Run periodically as a sanity check.",
     cost: "Pull: one `events.list` call (incremental via stored sync_token after the first run) + one local read+write per affected day file. Push: one Calendar API call per pending entry. Refresh-token rotation is handled inside the adapter.",
-    input: "[--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--account <email>] [--push] [--json] [--dry-run]",
-    return: "Exit 0 with a summary. Pull: pulled/created/updated/unchanged. Push: attempted/created/updated/deleted/retried/abandoned. DAY_NOT_INITIALIZED when no token. DAY_OAUTH_NO_REFRESH when refresh fails. DAY_INVALID_INPUT on a 410 Gone (sync_token reset; retry once).",
-    gotcha: "Pending push entries are auto-recorded by `event add/update/delete` only when a Google token is present at mutation time. Events created before `auth login` are not auto-pushed. Default pull window is today − 7d → today + 30d (system TZ). Tracking SLICES.md §S71 / §S72.",
+    input:
+      "[--start <YYYY-MM-DD>] [--end <YYYY-MM-DD>] [--account <email>] [--push] [--json] [--dry-run]",
+    return:
+      "Exit 0 with a summary. Pull: pulled/created/updated/unchanged. Push: attempted/created/updated/deleted/retried/abandoned. DAY_NOT_INITIALIZED when no token. DAY_OAUTH_NO_REFRESH when refresh fails. DAY_INVALID_INPUT on a 410 Gone (sync_token reset; retry once).",
+    gotcha:
+      "Pending push entries are auto-recorded by `event add/update/delete` only when a Google token is present at mutation time. Events created before `auth login` are not auto-pushed. Default pull window is today − 7d → today + 30d (system TZ). Tracking SLICES.md §S71 / §S72.",
   },
   run: async (args) => run(args),
 };

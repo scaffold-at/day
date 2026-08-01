@@ -46,10 +46,7 @@ function rangesForDay(
   ];
 }
 
-function intersects(
-  a: { start: number; end: number },
-  b: { start: number; end: number },
-): boolean {
+function intersects(a: { start: number; end: number }, b: { start: number; end: number }): boolean {
   return a.start < b.end && b.start < a.end;
 }
 

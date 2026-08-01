@@ -21,10 +21,7 @@ afterEach(async () => {
   await rm(home, { recursive: true, force: true });
 });
 
-async function appendPlacement(
-  monthDir: string,
-  entry: Record<string, unknown>,
-): Promise<void> {
+async function appendPlacement(monthDir: string, entry: Record<string, unknown>): Promise<void> {
   const dir = path.join(home, "logs", monthDir);
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, "placements.jsonl");
@@ -73,10 +70,13 @@ describe("followTick (logs --follow polling primitive)", () => {
     await followTick(home, state, { json: true });
     expect(logSpy).toHaveLength(1);
 
-    await appendPlacement("2026-05", samplePlacement({
-      at: "2026-05-08T10:01:00.000Z",
-      placement_id: "plc_01abcdefghi200",
-    }));
+    await appendPlacement(
+      "2026-05",
+      samplePlacement({
+        at: "2026-05-08T10:01:00.000Z",
+        placement_id: "plc_01abcdefghi200",
+      }),
+    );
     await followTick(home, state, { json: true });
     expect(logSpy).toHaveLength(2);
     expect(logSpy[1]!).toContain("plc_01abcdefghi200");
@@ -91,14 +91,20 @@ describe("followTick (logs --follow polling primitive)", () => {
   });
 
   test("multiple entries at the same instant: lastAt bumps past them all", async () => {
-    await appendPlacement("2026-05", samplePlacement({
-      at: "2026-05-08T10:00:00.000Z",
-      placement_id: "plc_01abcdefghi300",
-    }));
-    await appendPlacement("2026-05", samplePlacement({
-      at: "2026-05-08T10:00:00.000Z",
-      placement_id: "plc_01abcdefghi400",
-    }));
+    await appendPlacement(
+      "2026-05",
+      samplePlacement({
+        at: "2026-05-08T10:00:00.000Z",
+        placement_id: "plc_01abcdefghi300",
+      }),
+    );
+    await appendPlacement(
+      "2026-05",
+      samplePlacement({
+        at: "2026-05-08T10:00:00.000Z",
+        placement_id: "plc_01abcdefghi400",
+      }),
+    );
     const state = { lastAt: "2026-05-08T09:00:00.000Z" };
     await followTick(home, state, { json: true });
     expect(logSpy).toHaveLength(2);

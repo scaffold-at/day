@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
-  compactPendingChanges,
   PENDING_FILE,
+  SYNC_DIR,
+  compactPendingChanges,
   pendingChangesPath,
   readPendingChanges,
   recordPendingChange,
-  SYNC_DIR,
 } from "./pending-changes";
 
 let home: string;
@@ -39,10 +39,10 @@ describe("pending-changes JSONL", () => {
     });
     const out = await readPendingChanges(home);
     expect(out).toHaveLength(2);
-    expect(out[0]!.kind).toBe("create");
-    expect(out[0]!.event_id).toBe("evt_first");
-    expect(out[1]!.kind).toBe("update");
-    expect(out[1]!.patch).toEqual({ title: "renamed" });
+    expect(out[0]?.kind).toBe("create");
+    expect(out[0]?.event_id).toBe("evt_first");
+    expect(out[1]?.kind).toBe("update");
+    expect(out[1]?.patch).toEqual({ title: "renamed" });
   });
 
   test("read on a missing file returns empty array (not an error)", async () => {
@@ -60,7 +60,7 @@ describe("pending-changes JSONL", () => {
       patch: null,
     });
     const [first] = await readPendingChanges(home);
-    expect(first!.attempts).toBe(0);
+    expect(first?.attempts).toBe(0);
   });
 
   test("compact replaces the file atomically with given survivors", async () => {
@@ -84,7 +84,7 @@ describe("pending-changes JSONL", () => {
     await compactPendingChanges(home, [all[1]!]);
     const after = await readPendingChanges(home);
     expect(after).toHaveLength(1);
-    expect(after[0]!.event_id).toBe("evt_b");
+    expect(after[0]?.event_id).toBe("evt_b");
   });
 
   test("compact with empty survivors deletes the file entirely", async () => {

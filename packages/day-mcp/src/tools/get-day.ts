@@ -1,9 +1,4 @@
-import {
-  computeFreeSlots,
-  defaultHomeDir,
-  FsDayStore,
-  ISODateSchema,
-} from "@scaffold/day-core";
+import { FsDayStore, ISODateSchema, computeFreeSlots, defaultHomeDir } from "@scaffold/day-core";
 import { z } from "zod";
 import type { Tool } from "./registry";
 
@@ -64,7 +59,11 @@ export const getDayTool: Tool<Input, unknown> = {
       windowStart: `${input.date}T09:00:00${off}`,
       windowEnd: `${input.date}T18:00:00${off}`,
       protectedRanges: [
-        { start: `${input.date}T12:00:00${off}`, end: `${input.date}T13:00:00${off}`, label: "lunch" },
+        {
+          start: `${input.date}T12:00:00${off}`,
+          end: `${input.date}T13:00:00${off}`,
+          label: "lunch",
+        },
       ],
       gridMin: 30,
       bufferMin: 0,

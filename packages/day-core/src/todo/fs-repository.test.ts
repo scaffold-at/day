@@ -5,7 +5,7 @@ import path from "node:path";
 import { isScaffoldError } from "../error";
 import { FsTodoRepository } from "./fs-repository";
 import type { CreateTodoInput } from "./repository";
-import { summarize, TodoSummarySchema } from "./schemas";
+import { TodoSummarySchema, summarize } from "./schemas";
 
 let home: string;
 let repo: FsTodoRepository;
@@ -75,9 +75,7 @@ describe("FsTodoRepository — create + invariant", () => {
     expect(indexRaw.summaries).toHaveLength(1);
     expect(indexRaw.summaries[0].id).toBe(created.id);
 
-    const detailRaw = JSON.parse(
-      await readFile(repo.detailPath(created.id), "utf8"),
-    );
+    const detailRaw = JSON.parse(await readFile(repo.detailPath(created.id), "utf8"));
     expect(detailRaw.id).toBe(created.id);
     expect(detailRaw.title).toBe("round-trip todo");
 
@@ -148,9 +146,9 @@ describe("FsTodoRepository — archive", () => {
     const month = archived.archived_at.slice(0, 7);
     const list = await repo.listArchive(month);
     expect(list).toHaveLength(1);
-    expect(list[0]!.id).toBe(created.id);
-    expect(list[0]!.archive_reason).toBe("shipped");
-    expect(list[0]!.final_status).toBe("open");
+    expect(list[0]?.id).toBe(created.id);
+    expect(list[0]?.archive_reason).toBe("shipped");
+    expect(list[0]?.final_status).toBe("open");
 
     await checkInvariant(repo);
   });

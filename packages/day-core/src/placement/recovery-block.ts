@@ -49,14 +49,8 @@ export type RecoveryBlockInput = {
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 
-export function evaluateRecoveryBlock(
-  input: RecoveryBlockInput,
-): RecoveryBlockEvaluation {
-  if (
-    !input.policy ||
-    !input.yesterdayWorkingEnd ||
-    !input.todayWorkingStart
-  ) {
+export function evaluateRecoveryBlock(input: RecoveryBlockInput): RecoveryBlockEvaluation {
+  if (!input.policy || !input.yesterdayWorkingEnd || !input.todayWorkingStart) {
     return {
       severity: "skip",
       penalty: 0,
@@ -69,9 +63,7 @@ export function evaluateRecoveryBlock(
     Date.parse(input.yesterdayWorkingEnd) +
     input.policy.late_threshold_minutes_past_working_end * MIN;
 
-  const triggered = input.yesterdayEvents.some(
-    (e) => Date.parse(e.end) > thresholdMs,
-  );
+  const triggered = input.yesterdayEvents.some((e) => Date.parse(e.end) > thresholdMs);
   if (!triggered) {
     return {
       severity: "ok",
@@ -98,6 +90,6 @@ export function evaluateRecoveryBlock(
     severity: "soft",
     penalty: -input.policy.soft_penalty,
     triggered: true,
-    reason: `inside the morning recovery window (yesterday ran late)`,
+    reason: "inside the morning recovery window (yesterday ran late)",
   };
 }

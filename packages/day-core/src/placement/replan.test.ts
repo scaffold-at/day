@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { type FixedEvent, type Placement } from "../day";
+import type { FixedEvent, Placement } from "../day";
 import { BALANCED_PRESET } from "../policy";
 import { replanDay } from "./replan";
 
@@ -103,18 +103,13 @@ describe("replanDay", () => {
     const day = {
       schema_version: "0.1.0",
       date: DATE,
-      events: [
-        event("09:00", "12:00"),
-        event("13:00", "18:00"),
-      ],
-      placements: [
-        placement("plc_aaaaaaaaaaaaaa", "10:00", "11:00", { placed_by: "ai" }),
-      ],
+      events: [event("09:00", "12:00"), event("13:00", "18:00")],
+      placements: [placement("plc_aaaaaaaaaaaaaa", "10:00", "11:00", { placed_by: "ai" })],
       conflicts_open: [],
     };
     const out = replanDay(day, BALANCED_PRESET);
     expect(out.dropped).toHaveLength(1);
-    expect(out.dropped[0]!.id).toBe("plc_aaaaaaaaaaaaaa");
+    expect(out.dropped[0]?.id).toBe("plc_aaaaaaaaaaaaaa");
     expect(out.final_placements).toHaveLength(0);
   });
 

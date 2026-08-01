@@ -5,11 +5,7 @@ import { atomicWrite } from "../fs/atomic-write";
 import { CURRENT_SCHEMA_VERSION } from "../schema/version";
 import { type Day, DaySchema } from "./day";
 import type { FixedEvent } from "./event";
-import {
-  type DayManifest,
-  type DayManifestEntry,
-  DayManifestSchema,
-} from "./manifest";
+import { type DayManifest, type DayManifestEntry, DayManifestSchema } from "./manifest";
 import type { Placement } from "./placement";
 
 function isEnoent(err: unknown): boolean {
@@ -247,11 +243,9 @@ export class FsDayStore {
     }
 
     await mkdir(this.monthDir(month), { recursive: true });
-    await atomicWrite(
-      this.manifestPath(month),
-      `${JSON.stringify(manifest, null, 2)}\n`,
-      { mode: 0o600 },
-    );
+    await atomicWrite(this.manifestPath(month), `${JSON.stringify(manifest, null, 2)}\n`, {
+      mode: 0o600,
+    });
     return manifest;
   }
 

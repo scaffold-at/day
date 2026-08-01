@@ -20,7 +20,8 @@ async function writeFakeBinary(name: string, body: string): Promise<string> {
   return target;
 }
 
-const VERSION_PROBE = "#!/usr/bin/env sh\nif [ \"$1\" = \"--version\" ]; then echo 'claude-cli 0.0.0'; exit 0; fi\n";
+const VERSION_PROBE =
+  '#!/usr/bin/env sh\nif [ "$1" = "--version" ]; then echo \'claude-cli 0.0.0\'; exit 0; fi\n';
 
 describe("ClaudeCliProvider — availability", () => {
   test("missing binary → available() === false (no throw)", async () => {

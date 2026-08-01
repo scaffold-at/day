@@ -1,12 +1,12 @@
 import {
-  applyPolicyPatchPreservingFormatting,
   BUILTIN_PRESETS,
   type BuiltinPresetName,
+  type JsonPatchOperation,
+  ScaffoldError,
+  applyPolicyPatchPreservingFormatting,
   compilePolicy,
   defaultHomeDir,
-  type JsonPatchOperation,
   readPolicyYaml,
-  ScaffoldError,
   serializePolicy,
   writePolicyYaml,
 } from "@scaffold/day-core";
@@ -30,9 +30,7 @@ function notInitialized(): ScaffoldError {
       ko: "policy/current.yaml 이 없습니다",
     },
     cause: "The local home does not have a policy file.",
-    try: [
-      "Run `scaffold-day policy preset apply balanced` to seed it.",
-    ],
+    try: ["Run `scaffold-day policy preset apply balanced` to seed it."],
   });
 }
 
@@ -90,9 +88,7 @@ async function runPatch(args: string[]): Promise<number> {
       code: "DAY_INVALID_INPUT",
       summary: { en: "patch must be a JSON array of RFC 6902 ops" },
       cause: (err as Error).message,
-      try: [
-        'Example: policy patch \'[{"op":"replace","path":"/placement_grid_min","value":15}]\'',
-      ],
+      try: ['Example: policy patch \'[{"op":"replace","path":"/placement_grid_min","value":15}]\''],
     });
   }
 
@@ -175,13 +171,17 @@ export const policyCommand: Command = {
     when: "After install (seed via `preset apply`), or whenever you change scheduling rules / weights.",
     cost: "Local file I/O. Patch parses the YAML through the yaml Document API so unchanged regions stay byte-identical.",
     input: "show [--json]\npatch <json-patch> | --from-stdin [--json]\npreset apply <name>",
-    return: "Exit 0 on success. DAY_NOT_INITIALIZED if there's no policy file yet. DAY_INVALID_INPUT on a bad patch / preset name. DAY_USAGE on missing args.",
-    gotcha: "Comments in `current.yaml` survive `policy patch`. `preset apply` OVERWRITES the file — back up first if you've customized it. Tracking SLICES.md §S15 (cmds), §S14 (codec), §S13 (schemas).",
+    return:
+      "Exit 0 on success. DAY_NOT_INITIALIZED if there's no policy file yet. DAY_INVALID_INPUT on a bad patch / preset name. DAY_USAGE on missing args.",
+    gotcha:
+      "Comments in `current.yaml` survive `policy patch`. `preset apply` OVERWRITES the file — back up first if you've customized it. Tracking SLICES.md §S15 (cmds), §S14 (codec), §S13 (schemas).",
   },
   run: async (args) => {
     const sub = args[0];
     if (!sub) {
-      throw usage("policy: missing subcommand. try `policy show`, `policy patch ...`, or `policy preset apply <name>`");
+      throw usage(
+        "policy: missing subcommand. try `policy show`, `policy patch ...`, or `policy preset apply <name>`",
+      );
     }
     const rest = args.slice(1);
     if (sub === "show") return runShow(rest);

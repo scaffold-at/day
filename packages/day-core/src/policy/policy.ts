@@ -59,12 +59,8 @@ export const PolicySchema = z
     hard_rules: z.array(HardRuleSchema).default([]),
     soft_preferences: z.array(SoftPreferenceSchema).default([]),
     reactivity: ReactivityLevelSchema.default("balanced"),
-    importance_weights: ImportanceWeightsSchema.default(
-      ImportanceWeightsSchema.parse({}),
-    ),
-    conflict_thresholds: ConflictThresholdsSchema.default(
-      ConflictThresholdsSchema.parse({}),
-    ),
+    importance_weights: ImportanceWeightsSchema.default(ImportanceWeightsSchema.parse({})),
+    conflict_thresholds: ConflictThresholdsSchema.default(ConflictThresholdsSchema.parse({})),
     placement_grid_min: z.number().int().min(5).max(120).default(30),
     ai_provider: AIProviderConfigSchema.optional(),
   })
@@ -78,10 +74,7 @@ export type Policy = z.infer<typeof PolicySchema>;
  */
 export async function policyHash(policy: Policy): Promise<string> {
   const canonical = JSON.stringify(policy);
-  const buf = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(canonical),
-  );
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");

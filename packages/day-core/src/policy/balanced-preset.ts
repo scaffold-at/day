@@ -13,12 +13,8 @@ export const BALANCED_PRESET: Policy = {
   preset: "balanced",
   context: {
     tz: "Asia/Seoul",
-    working_hours: [
-      { start: "09:00", end: "18:00", days: ["mon", "tue", "wed", "thu", "fri"] },
-    ],
-    energy_peaks: [
-      { start: "09:00", end: "12:00", days: ["mon", "tue", "wed", "thu", "fri"] },
-    ],
+    working_hours: [{ start: "09:00", end: "18:00", days: ["mon", "tue", "wed", "thu", "fri"] }],
+    energy_peaks: [{ start: "09:00", end: "12:00", days: ["mon", "tue", "wed", "thu", "fri"] }],
     protected_ranges: [
       {
         start: "12:00",

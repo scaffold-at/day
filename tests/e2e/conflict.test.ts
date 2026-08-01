@@ -15,17 +15,24 @@ const MONDAY = "2026-04-27";
 
 async function setupTodoAndScore(title: string): Promise<string> {
   const add = await runCli(
-    [
-      "todo", "add",
-      "--title", title,
-      "--tag", "#deep-work",
-      "--duration-min", "60",
-    ],
+    ["todo", "add", "--title", title, "--tag", "#deep-work", "--duration-min", "60"],
     { home },
   );
-  const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)![1] as string;
+  const id = /id:\s+(todo_[a-z0-9]{14})/.exec(add.stdout)?.[1] as string;
   await runCli(
-    ["todo", "score", id, "--urgency", "8", "--impact", "8", "--effort", "3", "--reversibility", "5"],
+    [
+      "todo",
+      "score",
+      id,
+      "--urgency",
+      "8",
+      "--impact",
+      "8",
+      "--effort",
+      "3",
+      "--reversibility",
+      "5",
+    ],
     { home },
   );
   return id;
@@ -108,10 +115,9 @@ describe("conflict detect / list / resolve", () => {
 
   test("resolve unknown id → DAY_NOT_FOUND", async () => {
     await seedPolicy();
-    const r = await runCli(
-      ["conflict", "resolve", "cfl_00000000000000", "--status", "ignored"],
-      { home },
-    );
+    const r = await runCli(["conflict", "resolve", "cfl_00000000000000", "--status", "ignored"], {
+      home,
+    });
     expect(r.exitCode).toBe(66);
     expect(r.stderr).toContain("DAY_NOT_FOUND");
   });
@@ -124,10 +130,9 @@ describe("conflict detect / list / resolve", () => {
 
   test("resolve --status with bad value → DAY_USAGE", async () => {
     await seedPolicy();
-    const r = await runCli(
-      ["conflict", "resolve", "cfl_00000000000000", "--status", "wild"],
-      { home },
-    );
+    const r = await runCli(["conflict", "resolve", "cfl_00000000000000", "--status", "wild"], {
+      home,
+    });
     expect(r.exitCode).toBe(2);
     expect(r.stderr).toContain("DAY_USAGE");
   });

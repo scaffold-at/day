@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  type ImportanceDimensions,
-  ImportanceDimensionsSchema,
-} from "../policy/importance";
+import { type ImportanceDimensions, ImportanceDimensionsSchema } from "../policy/importance";
 
 /**
  * Cost class for a provider call (PRD §11.5.2).
@@ -88,8 +85,6 @@ export interface AIProvider {
 }
 
 /** Round-trip helper for tests / docs. */
-export function validateImportanceDimensions(
-  candidate: unknown,
-): ImportanceDimensions {
+export function validateImportanceDimensions(candidate: unknown): ImportanceDimensions {
   return ImportanceDimensionsSchema.parse(candidate);
 }

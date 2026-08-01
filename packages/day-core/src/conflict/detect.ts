@@ -1,8 +1,8 @@
-import { type Day } from "../day";
+import type { Day } from "../day";
 import { generateEntityId } from "../ids/entity-id";
 import { evaluateHardRules } from "../placement/hard-rules";
-import { type Policy } from "../policy";
-import { type Conflict } from "./conflict";
+import type { Policy } from "../policy";
+import type { Conflict } from "./conflict";
 
 const MS_PER_MIN = 60_000;
 
@@ -150,7 +150,7 @@ export function detectConflicts(
     }
   }
 
-  return conflicts;
   // Note on `MS_PER_MIN`: imported indirectly through ms(); kept top-level for future extension.
   void MS_PER_MIN;
+  return conflicts;
 }

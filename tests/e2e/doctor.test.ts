@@ -46,9 +46,7 @@ describe("doctor (S35)", () => {
   test("policy presence flips the policy line from warn → ok after preset apply", async () => {
     const beforeApply = await runCli(["doctor", "--json"], { home });
     const beforeJson = JSON.parse(beforeApply.stdout);
-    const envBefore = beforeJson.sections.find(
-      (s: { title: string }) => s.title === "Environment",
-    );
+    const envBefore = beforeJson.sections.find((s: { title: string }) => s.title === "Environment");
     const policyLineBefore = envBefore.lines.find((l: { text: string }) =>
       l.text.includes("policy/current.yaml"),
     );
@@ -58,9 +56,7 @@ describe("doctor (S35)", () => {
 
     const afterApply = await runCli(["doctor", "--json"], { home });
     const afterJson = JSON.parse(afterApply.stdout);
-    const envAfter = afterJson.sections.find(
-      (s: { title: string }) => s.title === "Environment",
-    );
+    const envAfter = afterJson.sections.find((s: { title: string }) => s.title === "Environment");
     const policyLineAfter = envAfter.lines.find((l: { text: string }) =>
       l.text.includes("policy/current.yaml"),
     );
@@ -74,9 +70,7 @@ describe("doctor (S35)", () => {
       expect(r.exitCode).toBe(0);
       const out = JSON.parse(r.stdout);
       const env = out.sections.find((s: { title: string }) => s.title === "Environment");
-      const schemaLine = env.lines.find((l: { text: string }) =>
-        l.text.includes("data schema"),
-      );
+      const schemaLine = env.lines.find((l: { text: string }) => l.text.includes("data schema"));
       expect(schemaLine.status).toBe("warn");
     } finally {
       await cleanupHome(fresh);

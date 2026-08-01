@@ -2,17 +2,14 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { KEYCHAIN_REFRESH_SENTINEL_PREFIX, _resetKeychainCache } from "./keychain";
 import {
-  deleteGoogleOAuthToken,
   type GoogleOAuthToken,
+  deleteGoogleOAuthToken,
   readGoogleOAuthToken,
   tokenFilePath,
   writeGoogleOAuthToken,
 } from "./token-storage";
-import {
-  KEYCHAIN_REFRESH_SENTINEL_PREFIX,
-  _resetKeychainCache,
-} from "./keychain";
 
 let home: string;
 beforeEach(async () => {
@@ -40,7 +37,7 @@ describe("token-storage with keychain disabled (forced file mode)", () => {
     _resetKeychainCache();
   });
   afterEach(() => {
-    if (priorEnv === undefined) delete process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN;
+    if (priorEnv === undefined) process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN = undefined;
     else process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN = priorEnv;
     _resetKeychainCache();
   });
@@ -56,12 +53,12 @@ describe("token-storage with keychain disabled (forced file mode)", () => {
 
     const read = await readGoogleOAuthToken(home);
     expect(read).not.toBeNull();
-    expect(read!.refresh_token).toBe("1//refresh-real-secret");
-    expect(read!.storage).toBe("file");
+    expect(read?.refresh_token).toBe("1//refresh-real-secret");
+    expect(read?.storage).toBe("file");
   });
 
   test("preferFile=true also forces file mode regardless of env", async () => {
-    delete process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN;
+    process.env.SCAFFOLD_DAY_DISABLE_KEYCHAIN = undefined;
     _resetKeychainCache();
     const written = await writeGoogleOAuthToken(home, baseToken, { preferFile: true });
     expect(written.storage).toBe("file");

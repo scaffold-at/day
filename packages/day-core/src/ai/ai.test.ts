@@ -121,9 +121,7 @@ describe("ProviderRegistry", () => {
   test("duplicate registration throws", () => {
     const reg = makeRegistry();
     reg.register(new MockAIProvider({ id: "x" }));
-    expect(() => reg.register(new MockAIProvider({ id: "x" }))).toThrow(
-      /already registered/,
-    );
+    expect(() => reg.register(new MockAIProvider({ id: "x" }))).toThrow(/already registered/);
   });
 
   test("availableProviders filters by available()", async () => {

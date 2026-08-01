@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
-  extractDeadlineDate,
   TODO_STATUSES,
   TodoArchiveSchema,
   TodoDetailSchema,
   TodoSummarySchema,
+  extractDeadlineDate,
 } from "./index";
 
 const baseSummary = {
@@ -87,9 +87,7 @@ describe("Tag — #deadline:YYYY-MM-DD", () => {
   });
 
   test("extractDeadlineDate finds the YYYY-MM-DD value", () => {
-    expect(extractDeadlineDate(["#deep-work", "#deadline:2026-05-01"])).toBe(
-      "2026-05-01",
-    );
+    expect(extractDeadlineDate(["#deep-work", "#deadline:2026-05-01"])).toBe("2026-05-01");
   });
 
   test("extractDeadlineDate returns null for malformed values", () => {

@@ -1,4 +1,4 @@
-import { detectLocale, type Locale } from "./locale";
+import { type Locale, detectLocale } from "./locale";
 import type { ScaffoldError } from "./scaffold-error";
 
 export type FormatOptions = {
@@ -50,10 +50,7 @@ function indentList(items: readonly string[], prefix = "  • "): string {
  * of NO_COLOR, so the meaning is preserved when color is added later
  * (SLICES §S12).
  */
-export function formatErrorText(
-  err: ScaffoldError,
-  options: FormatOptions = {},
-): string {
+export function formatErrorText(err: ScaffoldError, options: FormatOptions = {}): string {
   const locale = options.locale ?? detectLocale();
   const head = `${err.code}: ${err.localizedSummary(locale)}`;
   const sections: string[] = [`CAUSE\n${indent(err.causeText)}`];

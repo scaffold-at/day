@@ -63,9 +63,7 @@ export type SleepBudgetInput = {
 
 const HOURS = 60 * 60 * 1000;
 
-export function evaluateSleepBudget(
-  input: SleepBudgetInput,
-): SleepBudgetEvaluation {
+export function evaluateSleepBudget(input: SleepBudgetInput): SleepBudgetEvaluation {
   if (!input.budget || !input.anchorOnSlotDate) {
     return {
       severity: "skip",

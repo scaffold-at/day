@@ -1,28 +1,18 @@
-import { computeFreeSlots, type Day, type FreeSlot } from "../day";
+import { type Day, type FreeSlot, computeFreeSlots } from "../day";
 import type { Policy } from "../policy";
 import type { DayOfWeek } from "../policy";
+import { type CognitiveLoadEvaluation, evaluateCognitiveLoad } from "./cognitive-load";
+import { type CandidateSlot, type HardRuleViolation, evaluateHardRules } from "./hard-rules";
+import { type RecoveryBlockEvaluation, evaluateRecoveryBlock } from "./recovery-block";
 import {
-  type CandidateSlot,
-  evaluateHardRules,
-  type HardRuleViolation,
-} from "./hard-rules";
-import {
-  evaluateCognitiveLoad,
-  type CognitiveLoadEvaluation,
-} from "./cognitive-load";
-import {
-  evaluateRecoveryBlock,
-  type RecoveryBlockEvaluation,
-} from "./recovery-block";
-import {
+  type SleepBudgetEvaluation,
   evaluateSleepBudget,
   projectAnchorForDate,
-  type SleepBudgetEvaluation,
 } from "./sleep-budget";
 import {
+  type SoftPreferenceContribution,
   computeReactivityPenalty,
   evaluateSoftPreferencesPolicy,
-  type SoftPreferenceContribution,
 } from "./soft-preferences";
 
 export type SuggestionInput = {
@@ -250,7 +240,9 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
       input.policy.placement_grid_min,
     );
     if (candidates.length === 0) {
-      rejectionReasons.push(`${date}: no free interval long enough for ${input.todo.duration_min} min`);
+      rejectionReasons.push(
+        `${date}: no free interval long enough for ${input.todo.duration_min} min`,
+      );
       continue;
     }
 
@@ -302,8 +294,7 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
       const cog = evaluateCognitiveLoad({
         slot: { start: cand.start },
         anchorOnSlotDate,
-        effortMin:
-          input.todo.effort_min ?? input.todo.duration_min ?? null,
+        effortMin: input.todo.effort_min ?? input.todo.duration_min ?? null,
         cognitiveLoad: cogPolicy,
       });
 
@@ -330,18 +321,10 @@ export function suggestPlacements(input: SuggestionInput): Suggestion {
         cog.penalty +
         (recovery?.penalty ?? 0);
 
-      const sleepNote =
-        sleep.severity === "soft"
-          ? ` + sleep_budget(${sleep.penalty})`
-          : "";
-      const cogNote =
-        cog.severity === "soft"
-          ? ` + cognitive_load(${cog.penalty})`
-          : "";
+      const sleepNote = sleep.severity === "soft" ? ` + sleep_budget(${sleep.penalty})` : "";
+      const cogNote = cog.severity === "soft" ? ` + cognitive_load(${cog.penalty})` : "";
       const recoveryNote =
-        recovery?.severity === "soft"
-          ? ` + recovery_block(${recovery.penalty})`
-          : "";
+        recovery?.severity === "soft" ? ` + recovery_block(${recovery.penalty})` : "";
       const baseRationale =
         soft.contributions.length === 0
           ? `Importance ${input.todo.importance_score.toFixed(1)} carries the slot.`

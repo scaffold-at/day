@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  BALANCED_PRESET,
-  computeImportanceScore,
-} from "../policy";
+import { BALANCED_PRESET, computeImportanceScore } from "../policy";
 import { scoreImportanceViaProvider } from "./delegate";
 import { MockAIProvider } from "./mock-provider";
 
@@ -20,11 +17,7 @@ describe("scoreImportanceViaProvider", () => {
         computed_by: "mock",
       },
     });
-    const ti = await scoreImportanceViaProvider(
-      { title: "ship S37" },
-      BALANCED_PRESET,
-      provider,
-    );
+    const ti = await scoreImportanceViaProvider({ title: "ship S37" }, BALANCED_PRESET, provider);
     // The deterministic score for these dimensions under Balanced
     // weights matches the §S16 goldfile entry.
     const expected = computeImportanceScore(
@@ -50,16 +43,8 @@ describe("scoreImportanceViaProvider", () => {
     const provider = new MockAIProvider({
       importance: { urgency: 6, impact: 6, effort: 6, reversibility: 6 },
     });
-    const a = await scoreImportanceViaProvider(
-      { title: "x" },
-      BALANCED_PRESET,
-      provider,
-    );
-    const b = await scoreImportanceViaProvider(
-      { title: "x" },
-      BALANCED_PRESET,
-      provider,
-    );
+    const a = await scoreImportanceViaProvider({ title: "x" }, BALANCED_PRESET, provider);
+    const b = await scoreImportanceViaProvider({ title: "x" }, BALANCED_PRESET, provider);
     expect(a.score).toBe(b.score);
     expect(a.policy_hash).toBe(b.policy_hash);
   });
@@ -68,17 +53,9 @@ describe("scoreImportanceViaProvider", () => {
     const provider = new MockAIProvider({
       importance: { urgency: 5, impact: 5, effort: 5, reversibility: 5 },
     });
-    const a = await scoreImportanceViaProvider(
-      { title: "x" },
-      BALANCED_PRESET,
-      provider,
-    );
+    const a = await scoreImportanceViaProvider({ title: "x" }, BALANCED_PRESET, provider);
     const tweaked = { ...BALANCED_PRESET, placement_grid_min: 15 };
-    const b = await scoreImportanceViaProvider(
-      { title: "x" },
-      tweaked,
-      provider,
-    );
+    const b = await scoreImportanceViaProvider({ title: "x" }, tweaked, provider);
     expect(a.policy_hash).not.toBe(b.policy_hash);
   });
 
@@ -86,12 +63,9 @@ describe("scoreImportanceViaProvider", () => {
     const provider = new MockAIProvider({
       importance: { urgency: 5 },
     });
-    const ti = await scoreImportanceViaProvider(
-      { title: "x" },
-      BALANCED_PRESET,
-      provider,
-      { by: "claude-sonnet-4-5" },
-    );
+    const ti = await scoreImportanceViaProvider({ title: "x" }, BALANCED_PRESET, provider, {
+      by: "claude-sonnet-4-5",
+    });
     expect(ti.computed_by).toBe("claude-sonnet-4-5");
   });
 });

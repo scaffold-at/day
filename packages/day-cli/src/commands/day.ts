@@ -1,24 +1,24 @@
 import {
+  type Conflict,
+  FsDayStore,
+  ScaffoldError,
   appendPlacementLog,
   compilePolicy,
-  FsDayStore,
+  defaultHomeDir,
+  detectConflicts,
   generateEntityId,
   readPolicyYaml,
   replanDay,
-  ScaffoldError,
   syncConflicts,
-  type Conflict,
-  defaultHomeDir,
-  detectConflicts,
 } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
 import {
+  type WeekDaySummary,
   buildDayView,
   renderDayView,
   renderDayViewJson,
   renderWeek,
-  type WeekDaySummary,
 } from "../format/day-view";
 
 const YYYYMM_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -95,7 +95,9 @@ async function runDayOverview(args: string[]): Promise<number> {
   const manifest = await store.readManifest(month);
   if (!manifest) {
     console.log(`scaffold-day day overview ${month}`);
-    console.log("  (no manifest yet — add an event in this month with `scaffold-day event add ...`)");
+    console.log(
+      "  (no manifest yet — add an event in this month with `scaffold-day event add ...`)",
+    );
     return 0;
   }
   console.log(
@@ -137,7 +139,8 @@ async function runDayRange(args: string[]): Promise<number> {
   const { positional, flags } = parseCommonFlags(args);
   const start = positional[0];
   const end = positional[1];
-  if (!start || !end) throw usage("day range: <start> <end> arguments are required (YYYY-MM-DD each)");
+  if (!start || !end)
+    throw usage("day range: <start> <end> arguments are required (YYYY-MM-DD each)");
   if (!ISO_DATE_RE.test(start) || !ISO_DATE_RE.test(end)) {
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
@@ -178,11 +181,7 @@ async function runDayRange(args: string[]): Promise<number> {
   const tz = flags.tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
   if (flags.json) {
     console.log(
-      JSON.stringify(
-        { range_start: start, range_end: end, tz, days: summaries },
-        null,
-        2,
-      ),
+      JSON.stringify({ range_start: start, range_end: end, tz, days: summaries }, null, 2),
     );
   } else {
     console.log(renderWeek(start, end, tz, summaries));
@@ -197,14 +196,19 @@ export const dayCommand: Command = {
     what: "Read-only navigation over the days/ tree. Sub-commands: `months` (list partitions), `overview <YYYY-MM>` (per-day counts), `get <YYYY-MM-DD>` (full view), `range <start> <end>` (compact list).",
     when: "When you want a quick AI-friendly summary or a one-day detail view.",
     cost: "Local file I/O. `get` and per-day computation in `range` recompute free slots each call.",
-    input: "months\noverview <YYYY-MM>\nget <YYYY-MM-DD> [--json] [--tz <iana>]\nrange <start> <end> [--json] [--tz <iana>]",
-    return: "Exit 0 on success. DAY_USAGE on missing args. DAY_INVALID_INPUT on bad date / month strings. `--json` returns the structured DayView (or range summary).",
-    gotcha: "Manifests are auto-rewritten on every Day write. Working window defaults to 09:00-18:00 system TZ; lunch 12:00-13:00 protected (until Policy lands per §S13). Tracking SLICES.md §S10 (manifest), §S12 (views).",
+    input:
+      "months\noverview <YYYY-MM>\nget <YYYY-MM-DD> [--json] [--tz <iana>]\nrange <start> <end> [--json] [--tz <iana>]",
+    return:
+      "Exit 0 on success. DAY_USAGE on missing args. DAY_INVALID_INPUT on bad date / month strings. `--json` returns the structured DayView (or range summary).",
+    gotcha:
+      "Manifests are auto-rewritten on every Day write. Working window defaults to 09:00-18:00 system TZ; lunch 12:00-13:00 protected (until Policy lands per §S13). Tracking SLICES.md §S10 (manifest), §S12 (views).",
   },
   run: async (args) => {
     const sub = args[0];
     if (sub === undefined || sub === "") {
-      throw usage("day: missing subcommand. try `day months`, `day overview <YYYY-MM>`, `day get <YYYY-MM-DD>`, or `day range <start> <end>`");
+      throw usage(
+        "day: missing subcommand. try `day months`, `day overview <YYYY-MM>`, `day get <YYYY-MM-DD>`, or `day range <start> <end>`",
+      );
     }
     if (sub === "months") return runDayMonths();
     if (sub === "overview") return runDayOverview(args.slice(1));
@@ -221,7 +225,10 @@ async function runDayReplan(args: string[]): Promise<number> {
   let json = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? "";
-    if (!date && !a.startsWith("--")) { date = a; continue; }
+    if (!date && !a.startsWith("--")) {
+      date = a;
+      continue;
+    }
     if (a === "--scope") {
       const v = args[i + 1];
       if (v !== "flexible_only" && v !== "all_unlocked") {
@@ -347,30 +354,34 @@ async function runDayReplan(args: string[]): Promise<number> {
     day.conflicts_open = openIdsForDate;
     await dayStore.writeDay(day);
   } else {
-    const detected = detectConflicts(
-      { ...day, placements: outcome.final_placements },
-      policy,
-      { detector: "replan" },
-    );
+    const detected = detectConflicts({ ...day, placements: outcome.final_placements }, policy, {
+      detector: "replan",
+    });
     const { openIdsForDate } = await syncConflicts(home, date, detected);
     day.conflicts_open = openIdsForDate;
     await dayStore.writeDay(day);
   }
 
   if (json) {
-    console.log(JSON.stringify({
-      date,
-      scope,
-      kept: outcome.kept_in_place.length,
-      moved: outcome.moved.length,
-      dropped: outcome.dropped.length,
-      moves: outcome.moved.map((m) => ({
-        id: m.placement.id,
-        previous: m.previous,
-        next: { start: m.placement.start, end: m.placement.end },
-      })),
-      dropped_ids: outcome.dropped.map((d) => d.id),
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          date,
+          scope,
+          kept: outcome.kept_in_place.length,
+          moved: outcome.moved.length,
+          dropped: outcome.dropped.length,
+          moves: outcome.moved.map((m) => ({
+            id: m.placement.id,
+            previous: m.previous,
+            next: { start: m.placement.start, end: m.placement.end },
+          })),
+          dropped_ids: outcome.dropped.map((d) => d.id),
+        },
+        null,
+        2,
+      ),
+    );
     return 0;
   }
   console.log(`scaffold-day day replan ${date}`);

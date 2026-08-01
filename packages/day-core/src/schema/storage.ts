@@ -2,7 +2,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { ScaffoldError } from "../error";
-import { CURRENT_SCHEMA_VERSION, isSchemaVersion, type SchemaVersion } from "./version";
+import { CURRENT_SCHEMA_VERSION, type SchemaVersion, isSchemaVersion } from "./version";
 
 export type SchemaVersionFile = {
   /** Data-format version (todos / days / policy / heartbeats / …). */
@@ -73,8 +73,8 @@ export async function readSchemaVersionFile(home: string): Promise<SchemaVersion
     throw new ScaffoldError({
       code: "DAY_INVALID_INPUT",
       summary: {
-        en: `schema-version.json is not valid JSON`,
-        ko: `schema-version.json 형식이 올바르지 않습니다`,
+        en: "schema-version.json is not valid JSON",
+        ko: "schema-version.json 형식이 올바르지 않습니다",
       },
       cause: `Failed to parse ${p}: ${(err as Error).message}`,
       try: [
@@ -106,9 +106,7 @@ export async function readSchemaVersionFile(home: string): Promise<SchemaVersion
     scaffold_day_version:
       typeof file.scaffold_day_version === "string" ? file.scaffold_day_version : "unknown",
     last_seen_binary_version:
-      typeof file.last_seen_binary_version === "string"
-        ? file.last_seen_binary_version
-        : undefined,
+      typeof file.last_seen_binary_version === "string" ? file.last_seen_binary_version : undefined,
   };
 }
 
@@ -143,10 +141,7 @@ export async function updateLastSeenBinaryVersion(
   }
 }
 
-export async function writeSchemaVersionFile(
-  home: string,
-  file: SchemaVersionFile,
-): Promise<void> {
+export async function writeSchemaVersionFile(home: string, file: SchemaVersionFile): Promise<void> {
   await mkdir(metaDir(home), { recursive: true });
   // True atomic-write (tmp + fsync + rename) lands in S8a; for now plain write.
   await writeFile(schemaVersionPath(home), `${JSON.stringify(file, null, 2)}\n`, "utf8");

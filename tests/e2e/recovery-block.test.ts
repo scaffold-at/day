@@ -59,10 +59,10 @@ describe("recovery_block integration (S62)", () => {
     );
     const id = JSON.parse(todo.stdout).id;
 
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1", "--max", "20"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07_TODAY } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1", "--max", "20"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07_TODAY },
+    });
     expect(r.exitCode, r.stderr).toBe(0);
     const out = JSON.parse(r.stdout);
 
@@ -112,10 +112,10 @@ describe("recovery_block integration (S62)", () => {
     );
     const id = JSON.parse(todo.stdout).id;
 
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1", "--max", "10"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07_TODAY } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1", "--max", "10"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07_TODAY },
+    });
     const out = JSON.parse(r.stdout);
     for (const c of out.candidates) {
       expect(c.recovery_block.triggered).toBe(false);
@@ -145,10 +145,10 @@ describe("recovery_block integration (S62)", () => {
       { home, env: { SCAFFOLD_DAY_NOW: KST_07_TODAY } },
     );
     const id = JSON.parse(todo.stdout).id;
-    const r = await runCli(
-      ["place", "suggest", id, "--json", "--within", "1"],
-      { home, env: { SCAFFOLD_DAY_NOW: KST_07_TODAY } },
-    );
+    const r = await runCli(["place", "suggest", id, "--json", "--within", "1"], {
+      home,
+      env: { SCAFFOLD_DAY_NOW: KST_07_TODAY },
+    });
     const out = JSON.parse(r.stdout);
     for (const c of out.candidates) {
       expect(c.recovery_block.severity === "skip" || c.recovery_block === null).toBe(true);

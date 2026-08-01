@@ -1,9 +1,4 @@
-import {
-  defaultHomeDir,
-  FsDayStore,
-  FsTodoRepository,
-  ScaffoldError,
-} from "@scaffold/day-core";
+import { FsDayStore, FsTodoRepository, ScaffoldError, defaultHomeDir } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
 import { emitDryRun, isDryRun } from "../cli/runtime";
 
@@ -105,7 +100,9 @@ async function runRebuild(args: string[]): Promise<number> {
     console.log(`  todos/active/index.json: ${t.detail_count} entries${driftHint}`);
   }
   if (result.days) {
-    console.log(`  days manifests: ${result.days.months.length} months, ${result.days.entries} day files`);
+    console.log(
+      `  days manifests: ${result.days.months.length} months, ${result.days.entries} day files`,
+    );
   }
   return 0;
 }
@@ -118,8 +115,10 @@ export const rebuildIndexCommand: Command = {
     when: "After hand-editing files under <home>/, after a backup restore, or when `doctor` reports inconsistency.",
     cost: "Reads every TODO and day file once. Atomic write of the new index / manifests. Bound by disk speed.",
     input: "[--scope todos|days|all] (default all) [--json] [--dry-run]",
-    return: "Exit 0 with counts of rebuilt indexes + a drift summary (added / removed / changed). Detail files are never modified — they are the source of truth.",
-    gotcha: "Drift counts > 0 mean the index was out of sync with the detail files. v0.2 doesn't hold the advisory lock yet (S2 lock + this slice's coordination lands in a v0.3 followup); avoid running while the MCP server actively writes.",
+    return:
+      "Exit 0 with counts of rebuilt indexes + a drift summary (added / removed / changed). Detail files are never modified — they are the source of truth.",
+    gotcha:
+      "Drift counts > 0 mean the index was out of sync with the detail files. v0.2 doesn't hold the advisory lock yet (S2 lock + this slice's coordination lands in a v0.3 followup); avoid running while the MCP server actively writes.",
   },
   run: async (args) => runRebuild(args),
 };

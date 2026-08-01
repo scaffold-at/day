@@ -1,10 +1,6 @@
 import { FsDayStore, ScaffoldError, defaultHomeDir } from "@scaffold/day-core";
 import type { Command } from "../cli/command";
-import {
-  buildDayView,
-  renderWeek,
-  type WeekDaySummary,
-} from "../format/day-view";
+import { type WeekDaySummary, buildDayView, renderWeek } from "../format/day-view";
 
 function shiftDays(date: string, delta: number): string {
   const ms = Date.parse(`${date}T00:00:00Z`);
@@ -19,9 +15,11 @@ export const weekCommand: Command = {
     what: "Print a one-line-per-day summary of the next 7 days starting from today (or --start), with event / placement / free-slot / open-conflict counts.",
     when: "Quick weekly orientation. For one-day detail use `scaffold-day today` or `day get`.",
     cost: "Local: reads up to 7 day files, runs a free-slot computation per day. No network.",
-    input: "[--start <YYYY-MM-DD>] to anchor the window. [--json] for structured output. [--tz <iana>].",
+    input:
+      "[--start <YYYY-MM-DD>] to anchor the window. [--json] for structured output. [--tz <iana>].",
     return: "Exit 0. Human format = 7 lines + header. JSON has days[] with the same counts.",
-    gotcha: "Working window defaults to 09:00-18:00 system TZ until Policy lands (§S13). Tracking SLICES.md §S12.",
+    gotcha:
+      "Working window defaults to 09:00-18:00 system TZ until Policy lands (§S13). Tracking SLICES.md §S12.",
   },
   run: async (args) => {
     let start: string | undefined;
@@ -72,8 +70,7 @@ export const weekCommand: Command = {
       });
     }
     const weekEnd = shiftDays(start, 6);
-    const resolvedTz =
-      tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
+    const resolvedTz = tz ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
 
     if (json) {
       console.log(
